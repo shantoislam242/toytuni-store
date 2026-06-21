@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { Globe, Phone, Mail, Clock } from "lucide-react";
+import { Globe, Phone, Mail, Clock, ArrowRight } from "lucide-react";
 import { footerInfo, socials, type Social } from "@/lib/mock/nav";
-import { BRAND_NAME, BRAND_TAGLINE } from "@/lib/config";
+import { BRAND_NAME } from "@/lib/config";
 
 // lucide dropped brand icons, so social glyphs are inline SVG (simple-icons paths).
 const brandPath: Record<Exclude<Social["icon"], "globe">, string> = {
@@ -22,36 +22,59 @@ function SocialIcon({ icon }: { icon: Social["icon"] }) {
   );
 }
 
+const cardClass = "rounded-2xl bg-white/5 p-6 sm:p-8";
+
 export function Footer() {
   return (
-    <footer className="mt-16 bg-ink text-cream-200">
-      <div className="mx-auto grid max-w-6xl gap-10 px-6 py-12 sm:grid-cols-2 lg:grid-cols-3">
-        {/* brand */}
-        <div>
-          <p className="font-display text-2xl font-bold text-paper">{BRAND_NAME}</p>
-          <p className="mt-2 max-w-xs text-sm text-cream-300">{BRAND_TAGLINE}</p>
-          <p className="mt-3 text-xs text-ink-soft">Made in Bangladesh 🇧🇩</p>
+    <footer className="bg-ink text-cream-200">
+      <div className="mx-auto grid max-w-6xl gap-5 px-4 py-12 sm:px-6 lg:grid-cols-3">
+        {/* Keep In Touch (newsletter) */}
+        <div className={cardClass}>
+          <h2 className="font-display text-2xl font-bold text-paper">Keep In Touch</h2>
+          <p className="mt-2 text-sm text-cream-300">
+            Our conversation is just getting started
+          </p>
+          <div className="mt-5 flex items-center gap-2 rounded-full bg-white/10 p-1.5 pl-4">
+            <input
+              type="email"
+              placeholder="Enter your email"
+              aria-label="Email address"
+              className="flex-1 bg-transparent text-sm text-paper outline-none placeholder:text-cream-300"
+            />
+            <button
+              type="button"
+              aria-label="Subscribe"
+              className="flex size-9 shrink-0 items-center justify-center rounded-full bg-blush text-ink transition-colors hover:bg-paper"
+            >
+              <ArrowRight className="size-4" />
+            </button>
+          </div>
         </div>
 
-        {/* contact */}
-        <div className="space-y-2 text-sm">
-          <p className="font-display text-base font-semibold text-paper">Contact</p>
-          <p className="flex items-center gap-2">
-            <Phone className="size-4 text-neem-soft" /> +880 13XX-XXXXXX
-          </p>
-          <p className="flex items-center gap-2">
-            <Mail className="size-4 text-neem-soft" /> hello@example.com
-          </p>
-          <p className="flex items-start gap-2 text-cream-300">
-            <Clock className="mt-0.5 size-4 shrink-0 text-neem-soft" />
-            <span>Sat–Thu · 10:00 AM – 7:00 PM</span>
-          </p>
+        {/* Company */}
+        <div className={cardClass}>
+          <h2 className="font-display text-2xl font-bold text-paper">{BRAND_NAME}</h2>
+          <div className="mt-4 space-y-2.5 text-sm text-cream-300">
+            <p>BIN: XXX-XXX-XXXX</p>
+            <p>Trade License: XXXXXXXX</p>
+            <p className="flex items-center gap-2">
+              <Phone className="size-4 text-neem-soft" /> +880 13XX-XXXXXX
+            </p>
+            <p className="flex items-center gap-2">
+              <Mail className="size-4 text-neem-soft" /> hello@example.com
+            </p>
+            <p>Bulk Orders: +880 13XX-XXXXXX</p>
+            <p className="flex items-start gap-2">
+              <Clock className="mt-0.5 size-4 shrink-0 text-neem-soft" />
+              <span>Sat–Thu · 10:00 AM – 7:00 PM</span>
+            </p>
+          </div>
         </div>
 
-        {/* information */}
-        <div>
-          <p className="font-display text-base font-semibold text-paper">Information</p>
-          <ul className="mt-2 space-y-1.5 text-sm">
+        {/* Information */}
+        <div className={cardClass}>
+          <h2 className="font-display text-2xl font-bold text-paper">Information</h2>
+          <ul className="mt-4 space-y-2.5 text-sm">
             {footerInfo.map((l) => (
               <li key={l.href}>
                 <Link href={l.href} className="text-cream-300 hover:text-paper">
