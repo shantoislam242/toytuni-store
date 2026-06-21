@@ -100,15 +100,15 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 border-b border-cream-300 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
       {/* top bar */}
-      <div className="mx-auto grid h-16 max-w-6xl grid-cols-[1fr_auto_1fr] items-center gap-2 px-4 sm:px-6">
-        {/* left: hamburger (mobile) / search (desktop) */}
-        <div className="flex items-center justify-start">
+      <div className="mx-auto flex h-20 max-w-6xl items-center gap-4 px-4 sm:px-6 md:h-24">
+        {/* left: hamburger (mobile) + brand */}
+        <div className="flex items-center gap-1">
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
-                className="md:hidden"
+                className="-ml-2 md:hidden"
                 aria-label="Open menu"
               >
                 <Menu className="size-5" />
@@ -135,19 +135,19 @@ export function Header() {
             </SheetContent>
           </Sheet>
 
-          <SearchBox className="hidden w-full max-w-xs md:block" />
+          <Link
+            href="/"
+            className="font-display text-2xl font-bold tracking-tight text-ink sm:text-3xl"
+          >
+            {BRAND_NAME}
+          </Link>
         </div>
 
-        {/* center: logo */}
-        <Link
-          href="/"
-          className="justify-self-center font-display text-2xl font-bold tracking-tight text-ink"
-        >
-          {BRAND_NAME}
-        </Link>
+        {/* center: search (desktop) */}
+        <SearchBox className="mx-auto hidden w-full max-w-md md:block" />
 
-        {/* right: wishlist (desktop) + cart */}
-        <div className="flex items-center justify-end gap-0.5">
+        {/* right: search (mobile) + wishlist (desktop) + cart */}
+        <div className="ml-auto flex items-center gap-0.5 md:ml-0">
           <Button
             asChild
             variant="ghost"
@@ -183,7 +183,7 @@ export function Header() {
 
       {/* desktop nav row */}
       <nav className="hidden border-t border-cream-300 md:block">
-        <div className="mx-auto flex max-w-6xl items-center gap-6 px-6 py-2.5">
+        <div className="mx-auto flex max-w-6xl items-center justify-center gap-7 px-6 py-4">
           <Link href="/" className="text-sm font-medium text-ink hover:text-neem-deep">
             Home
           </Link>
