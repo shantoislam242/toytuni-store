@@ -14,7 +14,7 @@ export type Tone =
 /** Age-tier used for "Browse by Age" and product tagging. */
 export type AgeTier = {
   slug: string; // "0-6m" | "6-12m" | "1-2y" | "2-3y-plus"
-  labelBn: string; // "০–৬ মাস"
+  labelBn: string; // "0–6 months"
   href: string; // stub collection route
   tone: Tone;
 };
@@ -29,7 +29,7 @@ export type Category = {
 
 /** Visual-only variant swatch. */
 export type Variant = {
-  name: string; // "নিম" | "সেগুন"
+  name: string; // "Neem" | "Teak"
   tone: Tone;
 };
 
@@ -42,7 +42,7 @@ export type Product = {
   rating: number; // 0–5
   reviewCount: number;
   ageTierSlug: string;
-  badge?: "নতুন" | "বেস্ট সেলার" | "সীমিত";
+  badge?: "New" | "Best Seller" | "Limited";
   /** at least two tones → hover-swap "image" */
   imageTones: [Tone, Tone];
   imageLabelBn: string; // shown on the placeholder
@@ -63,8 +63,8 @@ export type HeroSlide = {
 /** Trust-strip stat. */
 export type TrustStat = {
   id: string;
-  valueBn: string; // "৩ লক্ষ+"
-  labelBn: string; // "বিশ্বস্ত অভিভাবক"
+  valueBn: string; // "300k+"
+  labelBn: string; // "Trusted parents"
   icon: "users" | "shield-check" | "star";
 };
 

@@ -14,11 +14,11 @@ export default function Home() {
       <p className="mt-4 max-w-md text-lg text-ink-muted">{BRAND_TAGLINE}</p>
       <div className="mt-8">
         <Button asChild size="lg">
-          <Link href="/styleguide">ডিজাইন সিস্টেম দেখুন →</Link>
+          <Link href="/styleguide">View design system →</Link>
         </Button>
       </div>
       <p className="mt-6 font-mono text-xs text-ink-soft">
-        স্টোরফ্রন্ট পরের phase-এ আসছে।
+        Storefront coming in the next phase.
       </p>
     </main>
   );

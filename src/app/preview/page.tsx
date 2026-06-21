@@ -14,20 +14,20 @@ export default function PreviewPage() {
     <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
       <header className="border-b-2 border-ink pb-5">
         <p className="font-mono text-xs uppercase tracking-[0.14em] text-neem-deep">
-          ধাপ ১ · Primitives Preview
+          Step 1 · Primitives Preview
         </p>
         <h1 className="mt-2 font-display text-3xl font-bold text-ink">
-          ProductCard ও ProductRail
+          ProductCard & ProductRail
         </h1>
         <p className="mt-2 text-ink-muted">
-          এই পেজটি শুধু যাচাইয়ের জন্য — পরে সরিয়ে ফেলা হবে।
+          This page is only for verification — it will be removed later.
         </p>
       </header>
 
       {/* static grid — inspect a single card closely */}
       <section className="mt-10">
         <h2 className="mb-4 font-display text-xl font-semibold text-wood-deep">
-          ProductCard (গ্রিড)
+          ProductCard (grid)
         </h2>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {products.slice(0, 4).map((p) => (
@@ -39,18 +39,18 @@ export default function PreviewPage() {
       {/* rails */}
       <div className="mt-12 space-y-10">
         <ProductRail
-          title="বেস্ট সেলার"
-          subtitle="অভিভাবকদের সবচেয়ে পছন্দের"
+          title="Best Sellers"
+          subtitle="Parents' favourites"
           products={bestSellers}
           viewAllHref="/collections/best-sellers"
         />
         <ProductRail
-          title="নতুন লঞ্চ"
+          title="New Launches"
           products={newLaunches}
           viewAllHref="/collections/new"
         />
         <ProductRail
-          title="সব খেলনা"
+          title="All Toys"
           products={products}
           viewAllHref="/collections/all"
         />

@@ -12,7 +12,7 @@ export function SectionHeading({
   title,
   subtitle,
   viewAllHref,
-  viewAllLabel = "সব দেখুন",
+  viewAllLabel = "View all",
 }: Props) {
   return (
     <div className="mb-5 flex items-end justify-between gap-4">

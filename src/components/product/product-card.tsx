@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PlaceholderImage } from "@/components/placeholder-image";
 import { ageTierBySlug } from "@/lib/mock/age-tiers";
-import { formatTk, toBn } from "@/lib/format";
+import { formatTk } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { Product, Tone } from "@/lib/types";
 
@@ -23,7 +23,7 @@ const swatchBg: Record<Tone, string> = {
 function Stars({ rating }: { rating: number }) {
   const rounded = Math.round(rating);
   return (
-    <div className="flex items-center gap-0.5" aria-label={`রেটিং ${toBn(rating.toFixed(1))}`}>
+    <div className="flex items-center gap-0.5" aria-label={`Rating ${rating.toFixed(1)}`}>
       {Array.from({ length: 5 }).map((_, i) => (
         <Star
           key={i}
@@ -81,7 +81,7 @@ export function ProductCard({ product }: { product: Product }) {
 
         <div className="mt-1.5 flex items-center gap-1.5">
           <Stars rating={product.rating} />
-          <span className="text-xs text-ink-soft">({toBn(product.reviewCount)})</span>
+          <span className="text-xs text-ink-soft">({product.reviewCount})</span>
         </div>
 
         {/* variant swatches */}
@@ -112,9 +112,9 @@ export function ProductCard({ product }: { product: Product }) {
               </span>
             ) : null}
           </div>
-          <Button size="sm" aria-label="কার্টে যোগ করুন">
+          <Button size="sm" aria-label="Add to cart">
             <ShoppingCart className="size-4" />
-            <span className="sr-only sm:not-sr-only">কার্টে</span>
+            <span className="sr-only sm:not-sr-only">Add</span>
           </Button>
         </div>
       </div>

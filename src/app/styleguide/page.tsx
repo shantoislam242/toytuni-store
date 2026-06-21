@@ -17,11 +17,11 @@ type Swatch = {
   signature?: boolean;
 };
 
-type Group = { title: string; note?: string; swatches: Swatch[] };
+type Group = { title: string; swatches: Swatch[] };
 
 const GROUPS: Group[] = [
   {
-    title: "Surface — ক্রিম / পেপার",
+    title: "Surface — cream / paper",
     swatches: [
       { token: "cream-50", hex: "#FBF8F1", use: "card / popover", bg: "bg-cream-50" },
       { token: "cream-100", hex: "#F7F1E6", use: "base background", bg: "bg-cream-100" },
@@ -31,14 +31,14 @@ const GROUPS: Group[] = [
     ],
   },
   {
-    title: "Wood / Earth — কাঠ",
+    title: "Wood / Earth",
     swatches: [
-      { token: "wood-light", hex: "#C9A678", use: "হালকা কাঠ", bg: "bg-wood-light" },
+      { token: "wood-light", hex: "#C9A678", use: "light wood", bg: "bg-wood-light" },
       { token: "wood-deep", hex: "#8A5A3B", use: "walnut · secondary", bg: "bg-wood-deep", dark: true },
     ],
   },
   {
-    title: "Neem — Signature সবুজ",
+    title: "Neem — signature green",
     swatches: [
       { token: "neem-soft", hex: "#A9C09A", use: "sage · accent", bg: "bg-neem-soft" },
       { token: "neem", hex: "#5E7C4A", use: "primary action", bg: "bg-neem", dark: true, signature: true },
@@ -46,7 +46,7 @@ const GROUPS: Group[] = [
     ],
   },
   {
-    title: "Ink / Text — কৃষ্ণ near-black",
+    title: "Ink / Text — near-black",
     swatches: [
       { token: "ink", hex: "#2B2620", use: "primary text", bg: "bg-ink", dark: true },
       { token: "ink-muted", hex: "#6B6258", use: "secondary text", bg: "bg-ink-muted", dark: true },
@@ -54,7 +54,7 @@ const GROUPS: Group[] = [
     ],
   },
   {
-    title: "Play Accents — অল্প পরিমাণে",
+    title: "Play Accents — use sparingly",
     swatches: [
       { token: "terracotta", hex: "#E08A5F", use: "craft-warm", bg: "bg-terracotta" },
       { token: "mustard", hex: "#E8B84B", use: "warm highlight", bg: "bg-mustard" },
@@ -86,10 +86,8 @@ function SwatchCard({ s }: { s: Swatch }) {
           s.signature ? "ring-2 ring-neem ring-inset" : ""
         }`}
       >
-        <span
-          className={`font-mono text-sm ${s.dark ? "text-paper" : "text-ink"}`}
-        >
-          Aa · অআক
+        <span className={`font-mono text-sm ${s.dark ? "text-paper" : "text-ink"}`}>
+          Aa · Bb
         </span>
       </div>
       <div className="px-3 pb-3 pt-2.5">
@@ -114,17 +112,17 @@ export default function StyleGuidePage() {
           {BRAND_NAME} · Design System
         </p>
         <h1 className="mt-3 font-display text-3xl font-bold tracking-tight text-ink sm:text-4xl">
-          স্টাইল গাইড
+          Style Guide
         </h1>
         <p className="mt-3 max-w-xl text-ink-muted">
-          সব রঙ, টাইপ স্কেল আর বাটন স্টেট এক জায়গায় — চোখে যাচাই করার জন্য। উষ্ণ ·
-          প্রাকৃতিক · বিশ্বাসযোগ্য।
+          Every color, type scale, and button state in one place — eyeball-verifiable.
+          Warm · natural · trustworthy.
         </p>
       </header>
 
       {/* ---- Palette ---- */}
       <section className="mt-12">
-        <h2 className="font-display text-2xl font-bold text-ink">রঙের প্যালেট</h2>
+        <h2 className="font-display text-2xl font-bold text-ink">Color Palette</h2>
         {GROUPS.map((g) => (
           <div key={g.title} className="mt-7">
             <h3 className="font-display text-lg font-semibold text-wood-deep">
@@ -141,7 +139,7 @@ export default function StyleGuidePage() {
 
       {/* ---- Type scale ---- */}
       <section className="mt-14">
-        <h2 className="font-display text-2xl font-bold text-ink">টাইপোগ্রাফি</h2>
+        <h2 className="font-display text-2xl font-bold text-ink">Typography</h2>
 
         <div className="mt-5 space-y-6 rounded-xl border border-cream-300 bg-cream-50 p-5 sm:p-7">
           <div>
@@ -149,7 +147,7 @@ export default function StyleGuidePage() {
               Display · Bricolage Grotesque
             </p>
             <p className="mt-2 font-display text-4xl font-bold tracking-tight text-ink">
-              নিম কাঠের খেলনা
+              Neem wood toys
             </p>
             <p className="font-display text-2xl font-semibold text-ink">
               Handmade in Bangladesh
@@ -158,16 +156,16 @@ export default function StyleGuidePage() {
 
           <div className="border-t border-cream-300 pt-5">
             <p className="font-mono text-xs uppercase tracking-wider text-ink-soft">
-              Body · Inter + Noto Sans Bengali
+              Body · Inter
             </p>
             <p className="mt-2 text-lg text-ink">
-              শিশুর প্রথম খেলনা হোক নিরাপদ — non-toxic, lab-tested, হাতে বানানো।
+              Let your child's first toy be safe — non-toxic, lab-tested, handmade.
             </p>
             <p className="mt-1 text-base text-ink-muted">
-              The quick brown fox · ০১২৩৪৫৬৭৮৯ · ১৫+ SKU · ৳ ৮৫০
+              The quick brown fox · 0123456789 · 15+ SKU · ৳850
             </p>
             <p className="mt-1 text-sm text-ink-soft">
-              ছোট ক্যাপশন টেক্সট — caption / helper · ০–৩ বছর।
+              Small caption text — caption / helper · ages 0–3.
             </p>
           </div>
 
@@ -184,7 +182,7 @@ export default function StyleGuidePage() {
 
       {/* ---- Buttons ---- */}
       <section className="mt-14">
-        <h2 className="font-display text-2xl font-bold text-ink">বাটন স্টেট</h2>
+        <h2 className="font-display text-2xl font-bold text-ink">Button States</h2>
 
         <div className="mt-5 space-y-7 rounded-xl border border-cream-300 bg-cream-50 p-5 sm:p-7">
           <div>
@@ -192,12 +190,12 @@ export default function StyleGuidePage() {
               Variants
             </p>
             <div className="mt-3 flex flex-wrap items-center gap-3">
-              <Button>প্রাইমারি</Button>
-              <Button variant="secondary">সেকেন্ডারি</Button>
-              <Button variant="outline">আউটলাইন</Button>
-              <Button variant="ghost">ঘোস্ট</Button>
-              <Button variant="destructive">ডিলিট</Button>
-              <Button variant="link">লিংক</Button>
+              <Button>Primary</Button>
+              <Button variant="secondary">Secondary</Button>
+              <Button variant="outline">Outline</Button>
+              <Button variant="ghost">Ghost</Button>
+              <Button variant="destructive">Delete</Button>
+              <Button variant="link">Link</Button>
             </div>
           </div>
 
@@ -214,15 +212,15 @@ export default function StyleGuidePage() {
 
           <div className="border-t border-cream-300 pt-6">
             <p className="font-mono text-xs uppercase tracking-wider text-ink-soft">
-              States — hover (মাউস রাখুন) · focus (Tab চাপুন) · disabled
+              States — hover · focus (press Tab) · disabled
             </p>
             <div className="mt-3 flex flex-wrap items-center gap-3">
-              <Button>সাধারণ</Button>
-              <Button disabled>নিষ্ক্রিয়</Button>
+              <Button>Default</Button>
+              <Button disabled>Disabled</Button>
               <Button variant="outline" disabled>
-                নিষ্ক্রিয় আউটলাইন
+                Disabled outline
               </Button>
-              <Button className="cursor-pointer">কার্টে যোগ</Button>
+              <Button className="cursor-pointer">Add to cart</Button>
             </div>
           </div>
         </div>

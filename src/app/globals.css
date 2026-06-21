@@ -88,10 +88,9 @@
    ============================================================ */
 @theme inline {
   /* fonts */
-  --font-sans: var(--font-inter), var(--font-bn), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-display), var(--font-bn), ui-sans-serif, sans-serif;
-  --font-heading: var(--font-display), var(--font-bn), ui-sans-serif, sans-serif;
-  --font-bn: var(--font-bn), ui-sans-serif, sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-display), ui-sans-serif, sans-serif;
+  --font-heading: var(--font-display), ui-sans-serif, sans-serif;
   --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
   /* radius scale */

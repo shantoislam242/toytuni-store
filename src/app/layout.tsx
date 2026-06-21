@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
-import { Bricolage_Grotesque, Inter, Noto_Sans_Bengali } from "next/font/google";
+import { Bricolage_Grotesque, Inter } from "next/font/google";
 import "./globals.css";
 import { BRAND_NAME, BRAND_TAGLINE } from "@/lib/config";
+import { Header } from "@/components/layout/header";
+import { Footer } from "@/components/layout/footer";
+import { MobileBottomBar } from "@/components/layout/mobile-bottom-bar";
+import { WhatsAppButton } from "@/components/layout/whatsapp-button";
 
 // Display / headings
 const bricolage = Bricolage_Grotesque({
@@ -10,25 +14,17 @@ const bricolage = Bricolage_Grotesque({
   display: "swap",
 });
 
-// Latin body
+// Body
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
   display: "swap",
 });
 
-// Bangla body — primary UI language
-const notoBengali = Noto_Sans_Bengali({
-  variable: "--font-bn",
-  subsets: ["bengali"],
-  weight: ["400", "500", "600", "700"],
-  display: "swap",
-});
-
 export const metadata: Metadata = {
   title: `${BRAND_NAME} — ${BRAND_TAGLINE}`,
   description:
-    "বাংলাদেশে তৈরি, নিম কাঠের, non-toxic, হাতে-বানানো শিশু-খেলনা — ০–৩ বছরের শিশুদের জন্য।",
+    "Bangladesh-made, neem-wood, non-toxic, handmade children's toys for ages 0–3.",
 };
 
 export default function RootLayout({
@@ -38,11 +34,15 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="bn"
-      className={`${bricolage.variable} ${inter.variable} ${notoBengali.variable} h-full antialiased`}
+      lang="en"
+      className={`${bricolage.variable} ${inter.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col font-sans bg-background text-foreground">
-        {children}
+      <body className="flex min-h-full flex-col bg-background pb-14 font-sans text-foreground md:pb-0">
+        <Header />
+        <div className="flex flex-1 flex-col">{children}</div>
+        <Footer />
+        <MobileBottomBar />
+        <WhatsAppButton />
       </body>
     </html>
   );

@@ -3,15 +3,15 @@ import type { BulkProgram } from "@/lib/types";
 export const bulkPrograms: BulkProgram[] = [
   {
     id: "preschool",
-    titleBn: "প্রি-স্কুল",
-    descBn: "Montessori-উপযোগী খেলনা প্রি-স্কুল ও ডে-কেয়ারের জন্য, বিশেষ মূল্যে।",
+    titleBn: "Preschool",
+    descBn: "Montessori-ready toys for preschools and daycares, at special pricing.",
     href: "/bulk#preschool",
     tone: "neem-soft",
   },
   {
     id: "retail",
-    titleBn: "রিটেইল",
-    descBn: "দোকান ও রিসেলারদের জন্য পাইকারি দর ও নিয়মিত স্টক সহযোগিতা।",
+    titleBn: "Retail",
+    descBn: "Wholesale rates and steady stock support for shops and resellers.",
     href: "/bulk#retail",
     tone: "mustard",
   },
