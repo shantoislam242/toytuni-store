@@ -57,7 +57,7 @@ export function BrowseTabs() {
   }));
 
   return (
-    <section className="mx-auto w-full max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
+    <section className="mx-auto w-full max-w-6xl px-4 py-12 sm:px-6 sm:py-16 lg:max-w-[90rem] lg:px-8">
       <h2 className="text-center font-display text-2xl font-bold tracking-tight text-ink sm:text-3xl">
         Browse the shop
       </h2>

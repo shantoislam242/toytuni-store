@@ -25,31 +25,25 @@ export function CollectionToolbar({
   activeFilterCount?: number;
 }) {
   return (
-    <div className="flex items-center justify-between gap-2 border-b border-cream-300 pb-3">
-      <div className="flex items-center gap-2">
-        {onOpenFilters ? (
-          <Button
-            variant="outline"
-            size="sm"
-            className="lg:hidden"
-            onClick={onOpenFilters}
-          >
-            <SlidersHorizontal className="size-4" />
-            Filter
-            {activeFilterCount > 0 ? (
-              <span className="ml-1 inline-flex size-5 items-center justify-center rounded-full bg-neem text-[11px] font-semibold text-paper">
-                {activeFilterCount}
-              </span>
-            ) : null}
-          </Button>
-        ) : null}
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-cream-300 pb-3">
+      {onOpenFilters ? (
+        <Button variant="outline" size="sm" onClick={onOpenFilters}>
+          <SlidersHorizontal className="size-4" />
+          Filters
+          {activeFilterCount > 0 ? (
+            <span className="ml-1 inline-flex size-5 items-center justify-center rounded-full bg-neem text-[11px] font-semibold text-paper">
+              {activeFilterCount}
+            </span>
+          ) : null}
+        </Button>
+      ) : null}
+
+      {/* count + sort grouped on the right */}
+      <div className="ml-auto flex items-center gap-3 sm:gap-4">
         <p className="text-sm text-ink-muted">
           <span className="font-medium text-ink">{count}</span>{" "}
           {count === 1 ? "product" : "products"}
         </p>
-      </div>
-
-      <div className="flex items-center gap-2">
         <label htmlFor="sort" className="hidden text-sm text-ink-muted sm:inline">
           Sort by
         </label>

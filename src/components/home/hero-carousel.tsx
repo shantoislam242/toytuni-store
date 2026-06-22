@@ -59,7 +59,7 @@ export function HeroCarousel() {
           {heroSlides.map((s) => (
             <CarouselItem key={s.id}>
               <div className={cn("relative w-full overflow-hidden", toneClass[s.tone])}>
-                <div className="mx-auto flex min-h-[440px] max-w-6xl flex-col justify-center px-6 py-12 sm:min-h-[560px] sm:px-10">
+                <div className="mx-auto flex min-h-[440px] max-w-6xl flex-col justify-center px-6 py-12 sm:min-h-[560px] sm:px-10 lg:max-w-[90rem]">
                   <span className="w-fit rounded-full bg-paper/80 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.16em] text-neem-deep">
                     {s.eyebrowBn}
                   </span>

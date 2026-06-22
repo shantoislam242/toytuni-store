@@ -27,8 +27,9 @@ const LOAD_MORE_STEP = 6; // products revealed per "Load more" click
 
 /**
  * State owner for the PLP: holds sort / filters / how many are visible,
- * derives the displayed list, and renders the filter sidebar (desktop) or
- * Sheet (mobile), the toolbar, active-filter chips, the grid and Load more.
+ * derives the displayed list, and renders the toolbar, the filters Sheet
+ * (toggled open on every screen size), active-filter chips, the grid and
+ * Load more.
  */
 export function ProductGrid({ products }: { products: Product[] }) {
   const priceMax = priceCeiling(products);
@@ -55,63 +56,55 @@ export function ProductGrid({ products }: { products: Product[] }) {
   const hasMore = visibleCount < sorted.length;
 
   return (
-    <div className="lg:grid lg:grid-cols-[240px_1fr] lg:gap-8">
-      {/* Desktop sidebar */}
-      <aside className="hidden lg:block">
-        <FilterPanel filters={filters} priceMax={priceMax} onChange={updateFilters} />
-      </aside>
+    <div>
+      <CollectionToolbar
+        count={filtered.length}
+        sort={sort}
+        onSortChange={setSort}
+        activeFilterCount={activeCount}
+        onOpenFilters={() => setSheetOpen(true)}
+      />
 
-      {/* Main column */}
-      <div>
-        <CollectionToolbar
-          count={filtered.length}
-          sort={sort}
-          onSortChange={setSort}
-          activeFilterCount={activeCount}
-          onOpenFilters={() => setSheetOpen(true)}
-        />
+      <ActiveFilters
+        filters={filters}
+        priceMax={priceMax}
+        onChange={updateFilters}
+      />
 
-        <ActiveFilters
-          filters={filters}
-          priceMax={priceMax}
-          onChange={updateFilters}
-        />
-
-        {filtered.length === 0 ? (
-          <div className="mt-10 flex flex-col items-center rounded-xl border border-dashed border-cream-300 px-6 py-16 text-center">
-            <p className="font-display text-xl font-bold text-ink">
-              No toys match these filters
-            </p>
-            <p className="mt-2 max-w-sm text-sm text-ink-muted">
-              Try widening the price range or clearing a filter to see more.
-            </p>
-            <Button variant="outline" className="mt-6" onClick={resetFilters}>
-              Reset filters
-            </Button>
+      {filtered.length === 0 ? (
+        <div className="mt-10 flex flex-col items-center rounded-xl border border-dashed border-cream-300 px-6 py-16 text-center">
+          <p className="font-display text-xl font-bold text-ink">
+            No toys match these filters
+          </p>
+          <p className="mt-2 max-w-sm text-sm text-ink-muted">
+            Try widening the price range or clearing a filter to see more.
+          </p>
+          <Button variant="outline" className="mt-6" onClick={resetFilters}>
+            Reset filters
+          </Button>
+        </div>
+      ) : (
+        <>
+          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+            {visible.map((product) => (
+              <ProductCard key={product.slug} product={product} />
+            ))}
           </div>
-        ) : (
-          <>
-            <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
-              {visible.map((product) => (
-                <ProductCard key={product.slug} product={product} />
-              ))}
+
+          {hasMore ? (
+            <div className="mt-8 flex justify-center">
+              <Button
+                variant="outline"
+                onClick={() => setVisibleCount((c) => c + LOAD_MORE_STEP)}
+              >
+                Load more
+              </Button>
             </div>
+          ) : null}
+        </>
+      )}
 
-            {hasMore ? (
-              <div className="mt-8 flex justify-center">
-                <Button
-                  variant="outline"
-                  onClick={() => setVisibleCount((c) => c + LOAD_MORE_STEP)}
-                >
-                  Load more
-                </Button>
-              </div>
-            ) : null}
-          </>
-        )}
-      </div>
-
-      {/* Mobile filter Sheet — same FilterPanel */}
+      {/* Filters Sheet (toggled open on every screen size) — same FilterPanel */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetContent side="left" className="w-[300px] overflow-y-auto">
           <SheetHeader>
