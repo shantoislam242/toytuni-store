@@ -1,9 +1,8 @@
 import { Breadcrumb } from "@/components/breadcrumb";
-import { ProductCard } from "@/components/product/product-card";
+import { ProductGrid } from "@/components/collection/product-grid";
 import { products } from "@/lib/mock/products";
 
-// Step 1: static breadcrumb + heading + raw grid (no sort/filter yet).
-// Sort, count, Load More and filters arrive in later steps.
+// Composes the All Products PLP: breadcrumb + heading + interactive grid.
 export function AllProductsView() {
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 sm:py-10">
@@ -20,10 +19,8 @@ export function AllProductsView() {
         </p>
       </header>
 
-      <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
-        {products.map((product) => (
-          <ProductCard key={product.slug} product={product} />
-        ))}
+      <div className="mt-8">
+        <ProductGrid products={products} />
       </div>
     </main>
   );
