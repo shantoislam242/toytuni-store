@@ -47,9 +47,9 @@ function SearchBox({ className }: { className?: string }) {
 function NavDropdown({ label, links }: { label: string; links: NavLink[] }) {
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="inline-flex items-center gap-1 text-sm font-medium text-ink outline-none hover:text-neem-deep data-[state=open]:text-neem-deep">
+      <DropdownMenuTrigger className="group/nav inline-flex items-center gap-1 text-[15px] font-medium text-ink outline-none transition-all duration-200 hover:-translate-y-0.5 hover:text-neem-deep data-[state=open]:text-neem-deep">
         {label}
-        <ChevronDown className="size-4" />
+        <ChevronDown className="size-4 transition-transform duration-200 group-hover/nav:translate-y-0.5 group-data-[state=open]/nav:rotate-180" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="min-w-44">
         {links.map((l) => (
@@ -184,12 +184,12 @@ export function Header() {
       {/* desktop nav row */}
       <nav className="hidden border-t border-cream-300 md:block">
         <div className="mx-auto flex max-w-6xl items-center justify-center gap-7 px-6 py-4">
-          <Link href="/" className="text-sm font-medium text-ink hover:text-neem-deep">
+          <Link href="/" className="text-[15px] font-medium text-ink transition-all duration-200 hover:-translate-y-0.5 hover:text-neem-deep">
             Home
           </Link>
           <Link
             href="/collections/all"
-            className="text-sm font-medium text-ink hover:text-neem-deep"
+            className="text-[15px] font-medium text-ink transition-all duration-200 hover:-translate-y-0.5 hover:text-neem-deep"
           >
             All Products
           </Link>
@@ -199,7 +199,7 @@ export function Header() {
             <Link
               key={l.href}
               href={l.href}
-              className="text-sm font-medium text-ink hover:text-neem-deep"
+              className="text-[15px] font-medium text-ink transition-all duration-200 hover:-translate-y-0.5 hover:text-neem-deep"
             >
               {l.labelBn}
             </Link>
