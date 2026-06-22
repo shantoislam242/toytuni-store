@@ -1,3 +1,5 @@
+import { SlidersHorizontal } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -7,23 +9,38 @@ import {
 } from "@/components/ui/select";
 import { SORT_OPTIONS, type SortKey } from "@/lib/collection";
 
-// Presentational: shows the live result count and the sort dropdown.
-// (The mobile "Filter" trigger is added in a later step.)
+// Presentational: live result count, a mobile "Filter" trigger, and the
+// sort dropdown. The desktop filter panel lives in a sidebar, not here.
 export function CollectionToolbar({
   count,
   sort,
   onSortChange,
+  onOpenFilters,
 }: {
   count: number;
   sort: SortKey;
   onSortChange: (value: SortKey) => void;
+  onOpenFilters?: () => void;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 border-b border-cream-300 pb-3">
-      <p className="text-sm text-ink-muted">
-        <span className="font-medium text-ink">{count}</span>{" "}
-        {count === 1 ? "product" : "products"}
-      </p>
+    <div className="flex items-center justify-between gap-2 border-b border-cream-300 pb-3">
+      <div className="flex items-center gap-2">
+        {onOpenFilters ? (
+          <Button
+            variant="outline"
+            size="sm"
+            className="lg:hidden"
+            onClick={onOpenFilters}
+          >
+            <SlidersHorizontal className="size-4" />
+            Filter
+          </Button>
+        ) : null}
+        <p className="text-sm text-ink-muted">
+          <span className="font-medium text-ink">{count}</span>{" "}
+          {count === 1 ? "product" : "products"}
+        </p>
+      </div>
 
       <div className="flex items-center gap-2">
         <label htmlFor="sort" className="hidden text-sm text-ink-muted sm:inline">
@@ -33,7 +50,7 @@ export function CollectionToolbar({
           <SelectTrigger
             id="sort"
             aria-label="Sort products"
-            className="w-[170px] sm:w-[190px]"
+            className="w-[148px] sm:w-[190px]"
           >
             <SelectValue />
           </SelectTrigger>
