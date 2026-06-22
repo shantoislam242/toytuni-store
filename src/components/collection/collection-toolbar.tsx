@@ -16,11 +16,13 @@ export function CollectionToolbar({
   sort,
   onSortChange,
   onOpenFilters,
+  activeFilterCount = 0,
 }: {
   count: number;
   sort: SortKey;
   onSortChange: (value: SortKey) => void;
   onOpenFilters?: () => void;
+  activeFilterCount?: number;
 }) {
   return (
     <div className="flex items-center justify-between gap-2 border-b border-cream-300 pb-3">
@@ -34,6 +36,11 @@ export function CollectionToolbar({
           >
             <SlidersHorizontal className="size-4" />
             Filter
+            {activeFilterCount > 0 ? (
+              <span className="ml-1 inline-flex size-5 items-center justify-center rounded-full bg-neem text-[11px] font-semibold text-paper">
+                {activeFilterCount}
+              </span>
+            ) : null}
           </Button>
         ) : null}
         <p className="text-sm text-ink-muted">

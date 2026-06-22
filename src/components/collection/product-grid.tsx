@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/sheet";
 import { CollectionToolbar } from "@/components/collection/collection-toolbar";
 import { FilterPanel } from "@/components/collection/filter-panel";
+import { ActiveFilters } from "@/components/collection/active-filters";
 import {
   applyFilters,
   applySort,
@@ -27,7 +28,7 @@ const LOAD_MORE_STEP = 6; // products revealed per "Load more" click
 /**
  * State owner for the PLP: holds sort / filters / how many are visible,
  * derives the displayed list, and renders the filter sidebar (desktop) or
- * Sheet (mobile), the toolbar, the grid and Load more.
+ * Sheet (mobile), the toolbar, active-filter chips, the grid and Load more.
  */
 export function ProductGrid({ products }: { products: Product[] }) {
   const priceMax = priceCeiling(products);
@@ -35,6 +36,18 @@ export function ProductGrid({ products }: { products: Product[] }) {
   const [filters, setFilters] = useState<Filters>(() => emptyFilters(products));
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [sheetOpen, setSheetOpen] = useState(false);
+
+  // Any filter change restarts pagination so the user isn't stranded mid-list.
+  const updateFilters = (next: Filters) => {
+    setFilters(next);
+    setVisibleCount(PAGE_SIZE);
+  };
+  const resetFilters = () => updateFilters(emptyFilters(products));
+
+  const activeCount =
+    filters.ages.length +
+    filters.badges.length +
+    (filters.maxPrice < priceMax ? 1 : 0);
 
   const filtered = applyFilters(products, filters);
   const sorted = applySort(filtered, sort);
@@ -45,7 +58,7 @@ export function ProductGrid({ products }: { products: Product[] }) {
     <div className="lg:grid lg:grid-cols-[240px_1fr] lg:gap-8">
       {/* Desktop sidebar */}
       <aside className="hidden lg:block">
-        <FilterPanel filters={filters} priceMax={priceMax} onChange={setFilters} />
+        <FilterPanel filters={filters} priceMax={priceMax} onChange={updateFilters} />
       </aside>
 
       {/* Main column */}
@@ -54,25 +67,48 @@ export function ProductGrid({ products }: { products: Product[] }) {
           count={filtered.length}
           sort={sort}
           onSortChange={setSort}
+          activeFilterCount={activeCount}
           onOpenFilters={() => setSheetOpen(true)}
         />
 
-        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
-          {visible.map((product) => (
-            <ProductCard key={product.slug} product={product} />
-          ))}
-        </div>
+        <ActiveFilters
+          filters={filters}
+          priceMax={priceMax}
+          onChange={updateFilters}
+        />
 
-        {hasMore ? (
-          <div className="mt-8 flex justify-center">
-            <Button
-              variant="outline"
-              onClick={() => setVisibleCount((c) => c + LOAD_MORE_STEP)}
-            >
-              Load more
+        {filtered.length === 0 ? (
+          <div className="mt-10 flex flex-col items-center rounded-xl border border-dashed border-cream-300 px-6 py-16 text-center">
+            <p className="font-display text-xl font-bold text-ink">
+              No toys match these filters
+            </p>
+            <p className="mt-2 max-w-sm text-sm text-ink-muted">
+              Try widening the price range or clearing a filter to see more.
+            </p>
+            <Button variant="outline" className="mt-6" onClick={resetFilters}>
+              Reset filters
             </Button>
           </div>
-        ) : null}
+        ) : (
+          <>
+            <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
+              {visible.map((product) => (
+                <ProductCard key={product.slug} product={product} />
+              ))}
+            </div>
+
+            {hasMore ? (
+              <div className="mt-8 flex justify-center">
+                <Button
+                  variant="outline"
+                  onClick={() => setVisibleCount((c) => c + LOAD_MORE_STEP)}
+                >
+                  Load more
+                </Button>
+              </div>
+            ) : null}
+          </>
+        )}
       </div>
 
       {/* Mobile filter Sheet — same FilterPanel */}
@@ -85,7 +121,7 @@ export function ProductGrid({ products }: { products: Product[] }) {
             <FilterPanel
               filters={filters}
               priceMax={priceMax}
-              onChange={setFilters}
+              onChange={updateFilters}
             />
           </div>
         </SheetContent>
