@@ -24,7 +24,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Separator } from "@/components/ui/separator";
 import {
   Accordion,
   AccordionContent,
@@ -34,7 +33,13 @@ import {
 import { mainNav, ageNav, categoryNav, type NavLink } from "@/lib/mock/nav";
 import { BRAND_NAME } from "@/lib/config";
 import { CartBadge } from "@/components/cart/cart-badge";
+import { WishlistBadge } from "@/components/product/wishlist-badge";
 import { cn } from "@/lib/utils";
+
+// Shared style for every top-level drawer item (accordion triggers + direct
+// links) so the mobile menu reads as one consistent list.
+const drawerItemClass =
+  "px-2 py-2.5 text-sm font-medium text-ink transition-colors hover:text-neem-deep hover:no-underline";
 
 function SearchBox({ className }: { className?: string }) {
   return (
@@ -84,32 +89,13 @@ function DrawerList({
           <Link
             href={l.href}
             onClick={onNavigate}
-            className="block rounded-md px-2 py-2 text-ink-muted hover:bg-cream-200 hover:text-ink"
+            className="block rounded-md py-2 pl-4 pr-2 text-sm text-ink-muted hover:bg-cream-200 hover:text-ink"
           >
             {l.labelBn}
           </Link>
         </li>
       ))}
     </ul>
-  );
-}
-
-function DrawerSection({
-  title,
-  links,
-  onNavigate,
-}: {
-  title: string;
-  links: NavLink[];
-  onNavigate: () => void;
-}) {
-  return (
-    <div className="py-2">
-      <p className="px-2 pb-1 font-display text-sm font-semibold text-wood-deep">
-        {title}
-      </p>
-      <DrawerList links={links} onNavigate={onNavigate} />
-    </div>
   );
 }
 
@@ -188,29 +174,40 @@ export function Header() {
               <div className="overflow-y-auto px-4 pb-8">
                 <SearchBox className="py-3" />
 
-                {/* Collapsible sections — only one open at a time (type=single) */}
-                <Accordion type="single" collapsible className="w-full">
-                  <AccordionItem value="age" className="border-cream-300">
-                    <AccordionTrigger className="px-2 font-display text-sm font-semibold text-wood-deep hover:no-underline">
-                      By Age
-                    </AccordionTrigger>
-                    <AccordionContent className="pb-1">
-                      <DrawerList links={ageNav} onNavigate={close} />
-                    </AccordionContent>
-                  </AccordionItem>
+                {/* One uniform list. By Age / By Category expand in place; the
+                    rest are direct links — all share the same top-level style. */}
+                <nav className="flex flex-col pt-1">
+                  <Accordion type="single" collapsible className="w-full">
+                    <AccordionItem value="age" className="border-none">
+                      <AccordionTrigger className={drawerItemClass}>
+                        By Age
+                      </AccordionTrigger>
+                      <AccordionContent className="pb-1">
+                        <DrawerList links={ageNav} onNavigate={close} />
+                      </AccordionContent>
+                    </AccordionItem>
 
-                  <AccordionItem value="category" className="border-cream-300">
-                    <AccordionTrigger className="px-2 font-display text-sm font-semibold text-wood-deep hover:no-underline">
-                      By Category
-                    </AccordionTrigger>
-                    <AccordionContent className="pb-1">
-                      <DrawerList links={categoryNav} onNavigate={close} />
-                    </AccordionContent>
-                  </AccordionItem>
-                </Accordion>
+                    <AccordionItem value="category" className="border-none">
+                      <AccordionTrigger className={drawerItemClass}>
+                        By Category
+                      </AccordionTrigger>
+                      <AccordionContent className="pb-1">
+                        <DrawerList links={categoryNav} onNavigate={close} />
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
 
-                <Separator className="my-2" />
-                <DrawerSection title="More" links={mainNav} onNavigate={close} />
+                  {mainNav.map((l) => (
+                    <Link
+                      key={l.href}
+                      href={l.href}
+                      onClick={close}
+                      className={drawerItemClass}
+                    >
+                      {l.labelBn}
+                    </Link>
+                  ))}
+                </nav>
               </div>
             </SheetContent>
           </Sheet>
@@ -226,8 +223,8 @@ export function Header() {
         {/* center: search (desktop) — width + opacity collapse on scroll-down */}
         <div
           className={cn(
-            "mx-auto hidden min-w-0 overflow-hidden transition-all duration-300 md:block",
-            collapsed ? "max-w-0 opacity-0" : "w-full max-w-md opacity-100",
+            "mx-auto hidden w-full min-w-0 overflow-hidden transition-all duration-300 ease-in-out md:block",
+            collapsed ? "max-w-0 opacity-0" : "max-w-md opacity-100",
           )}
         >
           <SearchBox className="w-full" />
@@ -246,23 +243,26 @@ export function Header() {
               <Search className="size-5" />
             </Link>
           </Button>
+          {/* Wishlist — visible on all sizes (mobile reaches Cart via the
+              bottom bar, so the header surfaces Wishlist instead). */}
           <Button
             asChild
             variant="ghost"
             size="icon"
-            className="hidden md:inline-flex"
             aria-label="Wishlist"
           >
-            <Link href="/wishlist">
+            <Link href="/wishlist" className="relative">
               <Heart className="size-5" />
+              <WishlistBadge className="absolute -right-0.5 -top-0.5 size-4" />
             </Link>
           </Button>
+          {/* Cart — desktop only (mobile uses the fixed bottom bar). */}
           <Button
             asChild
             variant="ghost"
             size="icon"
             aria-label="Cart"
-            className="relative ml-2"
+            className="relative ml-2 hidden md:inline-flex"
           >
             <Link href="/cart">
               <ShoppingCart className="size-5" />
