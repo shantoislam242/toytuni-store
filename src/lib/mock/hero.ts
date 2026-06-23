@@ -9,6 +9,7 @@ export const heroSlides: HeroSlide[] = [
     ctaBn: "Shop the collection",
     href: "/collections/all",
     tone: "neem-soft",
+    image: "/images/image1.png",
   },
   {
     id: "hero-bestseller",
@@ -18,6 +19,7 @@ export const heroSlides: HeroSlide[] = [
     ctaBn: "Shop now",
     href: "/collections/stacking",
     tone: "mustard",
+    image: "/images/image2.png",
   },
   {
     id: "hero-bulk",
@@ -27,5 +29,6 @@ export const heroSlides: HeroSlide[] = [
     ctaBn: "Know more",
     href: "/bulk",
     tone: "dusty-blue",
+    image: "/images/image3.png",
   },
 ];

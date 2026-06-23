@@ -62,7 +62,8 @@ export type HeroSlide = {
   subtitleBn: string;
   ctaBn: string;
   href: string;
-  tone: Tone;
+  tone: Tone; // used for the text-legibility gradient over the image
+  image: string; // background image path under /public
 };
 
 /** Trust-strip stat. */

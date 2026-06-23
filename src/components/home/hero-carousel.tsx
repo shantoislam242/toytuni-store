@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import Autoplay from "embla-carousel-autoplay";
 import {
   Carousel,
@@ -11,21 +12,8 @@ import {
   CarouselPrevious,
   type CarouselApi,
 } from "@/components/ui/carousel";
-import { Button } from "@/components/ui/button";
 import { heroSlides } from "@/lib/mock/hero";
 import { cn } from "@/lib/utils";
-import type { Tone } from "@/lib/types";
-
-const toneClass: Record<Tone, string> = {
-  cream: "bg-cream-200 text-ink",
-  neem: "bg-neem text-paper",
-  "neem-soft": "bg-neem-soft text-ink",
-  wood: "bg-wood-light text-ink",
-  terracotta: "bg-terracotta text-ink",
-  mustard: "bg-mustard text-ink",
-  "dusty-blue": "bg-dusty-blue text-ink",
-  blush: "bg-blush text-ink",
-};
 
 export function HeroCarousel() {
   const [api, setApi] = useState<CarouselApi>();
@@ -56,26 +44,25 @@ export function HeroCarousel() {
         plugins={[autoplay]}
       >
         <CarouselContent>
-          {heroSlides.map((s) => (
+          {heroSlides.map((s, i) => (
             <CarouselItem key={s.id}>
-              <div className={cn("relative w-full overflow-hidden", toneClass[s.tone])}>
-                <div className="mx-auto flex min-h-[440px] max-w-6xl flex-col justify-center px-6 py-12 sm:min-h-[560px] sm:px-10 lg:max-w-[90rem]">
-                  <span className="w-fit rounded-full bg-paper/80 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.16em] text-neem-deep">
-                    {s.eyebrowBn}
-                  </span>
-                  <h2 className="mt-5 max-w-xl font-display text-4xl font-bold leading-[1.1] tracking-tight sm:text-6xl">
-                    {s.titleBn}
-                  </h2>
-                  <p className="mt-4 max-w-md text-base opacity-90 sm:text-lg">
-                    {s.subtitleBn}
-                  </p>
-                  <div className="mt-7">
-                    <Button asChild size="lg" variant="secondary">
-                      <Link href={s.href}>{s.ctaBn} →</Link>
-                    </Button>
-                  </div>
-                </div>
-              </div>
+              {/* image-only slide (links through, no overlay text).
+                  Mobile keeps the banner's true 16:9 ratio so the whole
+                  artwork shows un-cropped; sm+ preserves the taller desktop
+                  hero with object-cover. */}
+              <Link
+                href={s.href}
+                className="relative block aspect-video w-full overflow-hidden sm:aspect-auto sm:min-h-[440px] md:min-h-[560px]"
+              >
+                <Image
+                  src={s.image}
+                  alt=""
+                  fill
+                  priority={i === 0}
+                  sizes="100vw"
+                  className="object-cover"
+                />
+              </Link>
             </CarouselItem>
           ))}
         </CarouselContent>
