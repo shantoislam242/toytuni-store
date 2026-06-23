@@ -24,7 +24,10 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: `${BRAND_NAME} — ${BRAND_TAGLINE}`,
+  title: {
+    default: "Montessori Wooden Toys",
+    template: "%s | Montessori Wooden Toys",
+  },
   description:
     "Bangladesh-made, neem-wood, non-toxic, handmade children's toys for ages 0–3.",
 };
