@@ -220,11 +220,16 @@ export function Header() {
         collapsed && "shadow-md",
       )}
     >
-      {/* top bar — brand, search, icons. Height shrinks on collapse. */}
+      {/* top bar — brand, search, icons. Height condenses on scroll only on
+          md+ (where the search/nav actually collapse). On mobile there's
+          nothing to condense, so the height stays constant — otherwise the
+          shrink makes the bar appear to jump/clip while scrolling. */}
       <div
         className={cn(
-          "mx-auto flex max-w-6xl items-center gap-4 px-4 transition-all duration-300 sm:px-6",
-          collapsed ? "h-16" : "h-20 md:h-24",
+          "mx-auto flex max-w-6xl items-center gap-4 px-4 transition-[height] duration-300 sm:px-6",
+          // Mobile height is constant (h-20) so the sticky bar never shrinks /
+          // clips while scrolling; only md+ condenses (where search/nav shrink).
+          collapsed ? "h-20 md:h-16" : "h-20 md:h-24",
         )}
       >
         {/* left: hamburger (mobile) + brand */}
@@ -305,19 +310,9 @@ export function Header() {
           <SearchBox className="w-full" />
         </div>
 
-        {/* right: search (mobile) + wishlist (desktop) + cart */}
+        {/* right: wishlist (all sizes) + cart (desktop). Mobile search lives
+            in the hamburger drawer, so no standalone search icon here. */}
         <div className="ml-auto flex items-center gap-2 md:gap-4">
-          <Button
-            asChild
-            variant="ghost"
-            size="icon"
-            className="md:hidden"
-            aria-label="Search"
-          >
-            <Link href="/search">
-              <Search className="size-6" />
-            </Link>
-          </Button>
           {/* Wishlist — visible on all sizes (mobile reaches Cart via the
               bottom bar, so the header surfaces Wishlist instead). */}
           <Button
