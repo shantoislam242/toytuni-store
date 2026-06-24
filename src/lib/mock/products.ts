@@ -1,4 +1,5 @@
 import type { Product } from "@/lib/types";
+import { giftKits, giftCards } from "./gifts";
 
 const neemTeak = [
   { name: "Neem", tone: "neem-soft" as const },
@@ -222,5 +223,8 @@ export const neemWood = products.filter((p) =>
   ].includes(p.slug),
 );
 
+// Everything the cart can resolve: catalogue products + gift kits + gift cards.
+const sellable: Product[] = [...products, ...giftKits, ...giftCards];
+
 export const productBySlug = (slug: string) =>
-  products.find((p) => p.slug === slug);
+  sellable.find((p) => p.slug === slug);

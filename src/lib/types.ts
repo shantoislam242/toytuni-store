@@ -51,6 +51,8 @@ export type Product = {
   /** at least two tones → hover-swap "image" */
   imageTones: [Tone, Tone];
   imageLabelBn: string; // shown on the placeholder
+  /** "What's inside" — shown on gift-kit cards only (optional). */
+  kitContents?: string[];
   variants?: Variant[];
 };
 
