@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import { Bricolage_Grotesque, Inter } from "next/font/google";
 import "./globals.css";
-import { BRAND_NAME, BRAND_TAGLINE } from "@/lib/config";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { MobileBottomBar } from "@/components/layout/mobile-bottom-bar";
 import { WhatsAppButton } from "@/components/layout/whatsapp-button";
 import { CartProvider } from "@/lib/cart/cart-context";
 import { WishlistProvider } from "@/lib/wishlist/wishlist-context";
+import { Toaster } from "@/components/ui/sonner";
 
 // Display / headings
 const bricolage = Bricolage_Grotesque({
@@ -50,6 +50,7 @@ export default function RootLayout({
             <Footer />
             <MobileBottomBar />
             <WhatsAppButton />
+            <Toaster />
           </WishlistProvider>
         </CartProvider>
       </body>

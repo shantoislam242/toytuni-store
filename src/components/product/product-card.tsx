@@ -118,7 +118,7 @@ export function ProductCard({ product }: { product: Product }) {
               </span>
             ) : null}
           </div>
-          <AddToCartButton slug={product.slug} />
+          <AddToCartButton slug={product.slug} title={product.titleBn} />
         </div>
       </div>
     </div>

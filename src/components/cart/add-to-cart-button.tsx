@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "sonner";
 import { Check, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/cart/cart-context";
@@ -14,18 +15,27 @@ import { cn } from "@/lib/utils";
  */
 export function AddToCartButton({
   slug,
+  title,
   className,
 }: {
   slug: string;
+  title?: string;
   className?: string;
 }) {
   const { items, addItem } = useCart();
   const inCart = items.some((it) => it.product.slug === slug);
 
+  const onAdd = () => {
+    addItem(slug);
+    toast.success("Added to Cart", {
+      description: title,
+    });
+  };
+
   return (
     <Button
       size="sm"
-      onClick={() => addItem(slug)}
+      onClick={onAdd}
       disabled={inCart}
       aria-label={inCart ? "Added to cart" : "Add to cart"}
       // Keep full colour when locked (override the default disabled fade).
