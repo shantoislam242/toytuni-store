@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PlaceholderImage } from "@/components/placeholder-image";
 import { categories } from "@/lib/mock/categories";
 import { bulkPrograms } from "@/lib/mock/bulk";
 import { cn } from "@/lib/utils";
@@ -17,14 +16,20 @@ const toneBg: Record<Tone, string> = {
   blush: "bg-blush text-ink",
 };
 
-function Tile({ href, label, tone }: { href: string; label: string; tone: Tone }) {
+function Tile({ href, label, slug }: { href: string; label: string; slug: string }) {
   return (
-    <Link href={href} className="group flex flex-col gap-2">
-      <PlaceholderImage
-        tone={tone}
-        label={label}
-        className="aspect-square w-full rounded-xl border border-cream-300 transition-all group-hover:-translate-y-0.5 group-hover:shadow-md"
+    <Link
+      href={href}
+      className="group relative block aspect-square overflow-hidden rounded-xl border border-cream-300 bg-card transition-all hover:-translate-y-0.5 hover:shadow-md"
+    >
+      <img
+        src={`/images/category/${slug}/1.png`}
+        alt={label}
+        className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
       />
+      <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink/70 to-transparent px-4 pb-4 pt-12 text-center font-display text-sm font-bold text-paper sm:text-base">
+        {label}
+      </span>
     </Link>
   );
 }
@@ -32,7 +37,7 @@ function Tile({ href, label, tone }: { href: string; label: string; tone: Tone }
 function TileGrid({
   items,
 }: {
-  items: { href: string; label: string; tone: Tone }[];
+  items: { href: string; label: string; slug: string }[];
 }) {
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
@@ -47,7 +52,7 @@ export function BrowseTabs() {
   const categoryItems = categories.map((c) => ({
     href: c.href,
     label: c.nameBn,
-    tone: c.tone,
+    slug: c.slug,
   }));
 
   return (
