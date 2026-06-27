@@ -2,7 +2,6 @@ import { HeroCarousel } from "@/components/home/hero-carousel";
 import { TrustStrip } from "@/components/home/trust-strip";
 import { ShopByAge } from "@/components/home/shop-by-age";
 import { ProductTabs } from "@/components/home/product-tabs";
-import { BrowseTabs } from "@/components/home/browse-tabs";
 import { Testimonials } from "@/components/home/testimonials";
 
 export default function Home() {
@@ -19,9 +18,6 @@ export default function Home() {
 
       {/* tabbed product module */}
       <ProductTabs />
-
-      {/* tabbed browse module (age / category / bulk) */}
-      <BrowseTabs />
 
       {/* testimonials */}
       <Testimonials />

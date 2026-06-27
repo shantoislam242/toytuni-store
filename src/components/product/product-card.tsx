@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import Link from "next/link";
 import { motion, type Transition } from "framer-motion";
 import { Star } from "lucide-react";
@@ -45,6 +46,76 @@ const wishlistVariants = {
   hover: { scale: 1.05 },
 };
 
+/**
+ * Displays a product image from /public/images/products/{slug}/{num}.{ext}
+ * Dynamically finds the correct extension (.jpg, .png, .webp, etc.)
+ * Falls back to PlaceholderImage if the image doesn't exist.
+ */
+function ProductImage({
+  slug,
+  imageNum,
+  label,
+  fallbackTone,
+  className,
+}: {
+  slug: string;
+  imageNum: number;
+  label: string;
+  fallbackTone: Tone;
+  className?: string;
+}) {
+  const [imagePath, setImagePath] = React.useState<string | null>(null);
+  const [imageExists, setImageExists] = React.useState(false);
+
+  React.useEffect(() => {
+    // Try common image extensions
+    const extensions = [".png", ".jpg", ".jpeg", ".webp", ".gif"];
+    let attemptCount = 0;
+
+    const tryExtension = (index: number) => {
+      if (index >= extensions.length) {
+        setImageExists(false);
+        return;
+      }
+
+      const ext = extensions[index];
+      const path = `/images/products/${slug}/${imageNum}${ext}`;
+      const img = new Image();
+
+      img.onload = () => {
+        setImagePath(path);
+        setImageExists(true);
+      };
+
+      img.onerror = () => {
+        tryExtension(index + 1);
+      };
+
+      img.src = path;
+    };
+
+    tryExtension(0);
+  }, [slug, imageNum]);
+
+  if (!imageExists || !imagePath) {
+    return (
+      <PlaceholderImage
+        tone={fallbackTone}
+        label={label}
+        className={className}
+      />
+    );
+  }
+
+  return (
+    <img
+      src={imagePath}
+      alt={`${label} - Image ${imageNum}`}
+      className={cn("h-full w-full object-cover", className)}
+    />
+  );
+}
+
 function Stars({ rating }: { rating: number }) {
   const rounded = Math.round(rating);
   return (
@@ -88,14 +159,20 @@ export function ProductCard({ product }: { product: Product }) {
             whileHover="hover"
             transition={cardHoverTransition}
           >
-            <PlaceholderImage
-              tone={product.imageTones[0]}
+            {/* Primary image */}
+            <ProductImage
+              slug={product.slug}
+              imageNum={1}
               label={product.imageLabelBn}
+              fallbackTone={product.imageTones[0]}
               className="absolute inset-0 size-full transition-opacity duration-300 group-hover/card:opacity-0"
             />
-            <PlaceholderImage
-              tone={product.imageTones[1]}
+            {/* Hover image */}
+            <ProductImage
+              slug={product.slug}
+              imageNum={2}
               label={product.imageLabelBn}
+              fallbackTone={product.imageTones[1]}
               className="absolute inset-0 size-full opacity-0 transition-opacity duration-300 group-hover/card:opacity-100"
             />
           </motion.div>
