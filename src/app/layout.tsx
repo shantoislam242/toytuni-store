@@ -42,7 +42,10 @@ export default function RootLayout({
       lang="en"
       className={`${bricolage.variable} ${inter.variable} h-full antialiased`}
     >
-      <body className="flex min-h-full flex-col bg-background pb-14 font-sans text-foreground md:pb-0">
+      <body
+        suppressHydrationWarning
+        className="flex min-h-full flex-col bg-background pb-14 font-sans text-foreground md:pb-0"
+      >
         <CartProvider>
           <WishlistProvider>
             <Header />
