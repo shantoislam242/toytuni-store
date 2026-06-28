@@ -204,8 +204,25 @@
   animation: kenburns 18s ease-in-out infinite alternate;
   will-change: transform;
 }
+
+@keyframes trust-accent-float {
+  from {
+    transform: translate3d(-1px, 1px, 0);
+  }
+  to {
+    transform: translate3d(2px, -3px, 0);
+  }
+}
+.animate-trust-accent-float {
+  animation: trust-accent-float 5.5s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-kenburns {
+    animation: none;
+  }
+  .animate-trust-accent-float {
     animation: none;
   }
 }
