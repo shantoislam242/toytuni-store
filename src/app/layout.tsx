@@ -8,6 +8,7 @@ import { WhatsAppButton } from "@/components/layout/whatsapp-button";
 import { CartProvider } from "@/lib/cart/cart-context";
 import { WishlistProvider } from "@/lib/wishlist/wishlist-context";
 import { Toaster } from "@/components/ui/sonner";
+import { CursorSparkleTrail } from "@/components/home/cursor-sparkle-trail";
 
 // Display / headings
 const bricolage = Bricolage_Grotesque({
@@ -53,6 +54,7 @@ export default function RootLayout({
             <Footer />
             <MobileBottomBar />
             <WhatsAppButton />
+            <CursorSparkleTrail />
             <Toaster />
           </WishlistProvider>
         </CartProvider>
