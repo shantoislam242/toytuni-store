@@ -56,6 +56,17 @@ export type Product = {
   variants?: Variant[];
 };
 
+/** Product detail content used by the product detail page. */
+export type ProductDetail = {
+  slug: string;
+  description: string;
+  features: string[];
+  benefits: string[];
+  imageSrcs: string[];
+  deliveryEstimate: string;
+  saleCountdown: string;
+};
+
 /** Hero banner slide. */
 export type HeroSlide = {
   id: string;
