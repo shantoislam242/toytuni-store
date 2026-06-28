@@ -3,10 +3,13 @@ import { TrustStrip } from "@/components/home/trust-strip";
 import { ShopByAge } from "@/components/home/shop-by-age";
 import { ProductTabs } from "@/components/home/product-tabs";
 import { Testimonials } from "@/components/home/testimonials";
+import { CursorSparkleTrail } from "@/components/home/cursor-sparkle-trail";
 
 export default function Home() {
   return (
     <>
+      <CursorSparkleTrail />
+
       {/* hero (full-bleed) */}
       <HeroCarousel />
 

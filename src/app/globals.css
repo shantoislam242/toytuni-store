@@ -209,3 +209,23 @@
     animation: none;
   }
 }
+
+@keyframes cursor-sparkle {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) translate(-50%, -50%) scale(0.65)
+      rotate(0deg);
+  }
+  18% {
+    opacity: 0.82;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--sparkle-x), var(--sparkle-y), 0)
+      translate(-50%, -50%) scale(0.2) rotate(42deg);
+  }
+}
+.animate-cursor-sparkle {
+  animation: cursor-sparkle 760ms ease-out forwards;
+  will-change: opacity, transform;
+}
