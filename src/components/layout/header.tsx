@@ -291,10 +291,7 @@ export function Header() {
 
   return (
     <header
-      className={cn(
-        "sticky top-0 z-50 bg-background pb-3 transition-shadow duration-300",
-        collapsed && "shadow-md",
-      )}
+      className="sticky top-0 z-50 bg-paper pb-3"
     >
       {/* top bar — brand, search, icons. Height condenses on scroll only on
           md+ (where the search/nav actually collapse). On mobile there's
@@ -438,7 +435,7 @@ export function Header() {
       </div>
 
       {/* desktop nav row — shrinks its vertical padding on collapse */}
-      <nav className="hidden border-t border-cream-300 md:block">
+      <nav className="hidden md:block">
         <div
           className={cn(
             "mx-auto flex max-w-6xl items-center justify-center gap-10 px-6 transition-all duration-300 lg:gap-14",

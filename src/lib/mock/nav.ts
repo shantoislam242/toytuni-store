@@ -35,13 +35,64 @@ export const footerInfo: NavLink[] = [
   { labelBn: "FAQs", href: "/faqs" },
 ];
 
-export type Social = { label: string; href: string; icon: "facebook" | "instagram" | "youtube" | "globe" };
+/** Footer link columns. Unknown /collections and /policy slugs render graceful
+ *  stub pages, so every link resolves without a 404. */
+export const footerShop: NavLink[] = [
+  { labelBn: "All Products", href: "/collections/all" },
+  { labelBn: "Shop by Age", href: "/collections/by-age" },
+  { labelBn: "Shop by Category", href: "/collections/by-category" },
+  { labelBn: "New Arrivals", href: "/collections/new-arrivals" },
+  { labelBn: "Best Sellers", href: "/collections/best-sellers" },
+  { labelBn: "Gift Ideas", href: "/gift" },
+  { labelBn: "Bulk Orders", href: "/bulk" },
+];
 
+export const footerCustomerCare: NavLink[] = [
+  { labelBn: "My Account", href: "/account" },
+  { labelBn: "Sign In", href: "/signin" },
+  { labelBn: "Create Account", href: "/signin" },
+  { labelBn: "Wishlist", href: "/wishlist" },
+  { labelBn: "Cart", href: "/cart" },
+  { labelBn: "Shipping", href: "/policy/shipping" },
+  { labelBn: "Returns", href: "/policy/returns" },
+  { labelBn: "FAQ", href: "/faqs" },
+  { labelBn: "Contact Us", href: "/contact" },
+];
+
+export const footerAbout: NavLink[] = [
+  { labelBn: "About Us", href: "/policy/about-us" },
+  { labelBn: "Blog", href: "/blog" },
+  { labelBn: "Safety Standards", href: "/policy/safety-standards" },
+  { labelBn: "Sustainability", href: "/policy/sustainability" },
+  { labelBn: "Careers", href: "/policy/careers" },
+];
+
+export const footerSupport: NavLink[] = [
+  { labelBn: "Privacy Policy", href: "/policy/privacy" },
+  { labelBn: "Terms & Conditions", href: "/policy/terms" },
+  { labelBn: "Refund Policy", href: "/policy/refund" },
+  { labelBn: "Contact Information", href: "/contact" },
+];
+
+/** Policy links shown in the bottom copyright bar. */
+export const policyLinks: NavLink[] = [
+  { labelBn: "Privacy Policy", href: "/policy/privacy" },
+  { labelBn: "Terms & Conditions", href: "/policy/terms" },
+  { labelBn: "Refund Policy", href: "/policy/refund" },
+];
+
+export type Social = {
+  label: string;
+  href: string;
+  icon: "facebook" | "instagram" | "tiktok" | "youtube" | "globe";
+};
+
+/** "Follow us" socials — Facebook, Instagram, TikTok, YouTube. */
 export const socials: Social[] = [
   { label: "Facebook", href: "#", icon: "facebook" },
   { label: "Instagram", href: "#", icon: "instagram" },
+  { label: "TikTok", href: "#", icon: "tiktok" },
   { label: "YouTube", href: "#", icon: "youtube" },
-  { label: "Website", href: "#", icon: "globe" },
 ];
 
 /** Mobile bottom navigation bar. */
