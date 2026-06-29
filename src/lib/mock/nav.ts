@@ -49,5 +49,5 @@ export const bottomNav = [
   { labelBn: "Home", href: "/", icon: "home" as const },
   { labelBn: "Category", href: "/collections/all", icon: "grid" as const },
   { labelBn: "Cart", href: "/cart", icon: "cart" as const },
-  { labelBn: "Profile", href: "/account", icon: "user" as const },
+  { labelBn: "Profile", href: "/signin", icon: "user" as const },
 ];

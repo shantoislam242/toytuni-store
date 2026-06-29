@@ -2,6 +2,60 @@ import Link from "next/link";
 import { Globe, Phone, Mail, Clock, ArrowRight } from "lucide-react";
 import { footerInfo, socials, type Social } from "@/lib/mock/nav";
 import { BRAND_NAME } from "@/lib/config";
+import { cn } from "@/lib/utils";
+
+// ── Copyright-bar building blocks (babies.co.nz style) ──────────────────────
+
+// Outlined multi-colour dots that run edge-to-edge above the copyright row.
+// Colours cycle pink → green → blue → purple, matching the brand play accents.
+const DOT_COLORS = [
+  "border-blush",
+  "border-neem-soft",
+  "border-dusty-blue",
+  "border-[#b09bd8]",
+];
+
+function DottedDivider() {
+  return (
+    <div className="flex justify-between overflow-hidden px-4 py-4 sm:px-6">
+      {Array.from({ length: 44 }).map((_, i) => (
+        <span
+          key={i}
+          className={cn(
+            "size-2 shrink-0 rounded-full border-2 bg-transparent",
+            DOT_COLORS[i % DOT_COLORS.length],
+          )}
+        />
+      ))}
+    </div>
+  );
+}
+
+// Scalloped top trim — a row of coloured half-circle "domes" hanging from the
+// footer's top edge. Fixed-width so the dome proportions stay consistent; the
+// row overflows and clips at the screen edges (same look as the reference).
+const SCALLOP_COLORS = [
+  "bg-[#9385d4]", // purple
+  "bg-[#86d07f]", // green
+  "bg-[#ec6a8d]", // pink
+  "bg-[#6fa3e0]", // blue
+];
+
+function ScallopTop() {
+  return (
+    <div className="flex overflow-hidden" aria-hidden>
+      {Array.from({ length: 60 }).map((_, i) => (
+        <span
+          key={i}
+          className={cn(
+            "h-9 w-16 shrink-0 rounded-b-full",
+            SCALLOP_COLORS[i % SCALLOP_COLORS.length],
+          )}
+        />
+      ))}
+    </div>
+  );
+}
 
 // lucide dropped brand icons, so social glyphs are inline SVG (simple-icons paths).
 const brandPath: Record<Exclude<Social["icon"], "globe">, string> = {
@@ -22,29 +76,30 @@ function SocialIcon({ icon }: { icon: Social["icon"] }) {
   );
 }
 
-const cardClass = "rounded-2xl bg-white/5 p-6 sm:p-8";
+const cardClass = "rounded-2xl bg-cream-50 p-6 sm:p-8";
 
 export function Footer() {
   return (
-    <footer className="bg-ink text-cream-200">
+    <footer className="bg-cream-200 text-ink">
+      <ScallopTop />
       <div className="mx-auto grid max-w-6xl gap-5 px-4 py-12 sm:px-6 lg:grid-cols-3">
         {/* Keep In Touch (newsletter) */}
         <div className={cardClass}>
-          <h2 className="font-display text-2xl font-bold text-paper">Keep In Touch</h2>
-          <p className="mt-2 text-sm text-cream-300">
+          <h2 className="font-display text-2xl font-bold text-ink">Keep In Touch</h2>
+          <p className="mt-2 text-sm text-ink-muted">
             Our conversation is just getting started
           </p>
-          <div className="mt-5 flex items-center gap-2 rounded-full bg-white/10 p-1.5 pl-4">
+          <div className="mt-5 flex items-center gap-2 rounded-full border border-cream-300 bg-paper p-1.5 pl-4">
             <input
               type="email"
               placeholder="Enter your email"
               aria-label="Email address"
-              className="flex-1 bg-transparent text-sm text-paper outline-none placeholder:text-cream-300"
+              className="flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-ink-soft"
             />
             <button
               type="button"
               aria-label="Subscribe"
-              className="flex size-9 shrink-0 items-center justify-center rounded-full bg-blush text-ink transition-colors hover:bg-paper"
+              className="flex size-9 shrink-0 items-center justify-center rounded-full bg-neem text-paper transition-colors hover:bg-neem-deep"
             >
               <ArrowRight className="size-4" />
             </button>
@@ -53,19 +108,19 @@ export function Footer() {
 
         {/* Company */}
         <div className={cardClass}>
-          <h2 className="font-display text-2xl font-bold text-paper">{BRAND_NAME}</h2>
-          <div className="mt-4 space-y-2.5 text-sm text-cream-300">
+          <h2 className="font-display text-2xl font-bold text-ink">{BRAND_NAME}</h2>
+          <div className="mt-4 space-y-2.5 text-sm text-ink-muted">
             <p>BIN: XXX-XXX-XXXX</p>
             <p>Trade License: XXXXXXXX</p>
             <p className="flex items-center gap-2">
-              <Phone className="size-4 text-neem-soft" /> +880 13XX-XXXXXX
+              <Phone className="size-4 text-neem" /> +880 13XX-XXXXXX
             </p>
             <p className="flex items-center gap-2">
-              <Mail className="size-4 text-neem-soft" /> hello@example.com
+              <Mail className="size-4 text-neem" /> hello@example.com
             </p>
             <p>Bulk Orders: +880 13XX-XXXXXX</p>
             <p className="flex items-start gap-2">
-              <Clock className="mt-0.5 size-4 shrink-0 text-neem-soft" />
+              <Clock className="mt-0.5 size-4 shrink-0 text-neem" />
               <span>Sat–Thu · 10:00 AM – 7:00 PM</span>
             </p>
           </div>
@@ -73,11 +128,11 @@ export function Footer() {
 
         {/* Information */}
         <div className={cardClass}>
-          <h2 className="font-display text-2xl font-bold text-paper">Information</h2>
+          <h2 className="font-display text-2xl font-bold text-ink">Information</h2>
           <ul className="mt-4 space-y-2.5 text-sm">
             {footerInfo.map((l) => (
               <li key={l.href}>
-                <Link href={l.href} className="text-cream-300 hover:text-paper">
+                <Link href={l.href} className="text-ink-muted hover:text-ink">
                   {l.labelBn}
                 </Link>
               </li>
@@ -86,22 +141,24 @@ export function Footer() {
         </div>
       </div>
 
-      {/* social + copyright */}
-      <div className="border-t border-white/10">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 py-5 sm:flex-row">
+      {/* copyright bar — social icons left, brand/copyright right. */}
+      <div className="bg-cream-100 text-ink-muted">
+        <DottedDivider />
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-5 px-6 pb-8 sm:flex-row sm:gap-4">
           <div className="flex items-center gap-2">
             {socials.map((s) => (
               <Link
                 key={s.label}
                 href={s.href}
                 aria-label={s.label}
-                className="flex size-9 items-center justify-center rounded-full bg-white/10 text-cream-200 transition-colors hover:bg-neem hover:text-paper"
+                className="flex size-9 items-center justify-center rounded-full bg-ink/5 text-ink-muted transition-colors hover:bg-neem hover:text-paper"
               >
                 <SocialIcon icon={s.icon} />
               </Link>
             ))}
           </div>
-          <p className="text-xs text-ink-soft">
+
+          <p className="text-sm text-ink-muted">
             © 2026 {BRAND_NAME} · All rights reserved
           </p>
         </div>
