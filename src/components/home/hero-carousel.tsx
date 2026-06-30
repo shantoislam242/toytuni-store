@@ -27,6 +27,22 @@ export function HeroCarousel() {
     Autoplay({ delay: 3000, stopOnInteraction: false, stopOnMouseEnter: true }),
   );
 
+  // Hero fills the first viewport: height = window height minus the
+  // (non-collapsed) header, measured on mount + resize so the whole banner and
+  // CTA are visible without scrolling. The CSS heights below are the pre-measure
+  // fallback (and the no-JS value).
+  const [heroHeight, setHeroHeight] = useState<number | null>(null);
+  useEffect(() => {
+    const measure = () => {
+      const header = document.querySelector("header");
+      const headerH = header?.getBoundingClientRect().height ?? 0;
+      setHeroHeight(Math.max(280, window.innerHeight - headerH));
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, []);
+
   useEffect(() => {
     if (!api) return;
     setCount(api.scrollSnapList().length);
@@ -49,13 +65,15 @@ export function HeroCarousel() {
           {heroSlides.map((s, i) => (
             <CarouselItem key={s.id}>
               {/* image-only slide (no overlay text — the banners carry their
-                  own copy). The container keeps the images' true 16:9 ratio at
-                  every breakpoint, so the whole artwork is always visible with
-                  no cropping or letterboxing. The image slowly zooms (Ken
-                  Burns) via a GPU-only CSS transform; overflow-hidden clips the
-                  zoom. */}
+                  own copy). The container fills the first viewport — its height
+                  is window height minus the header (measured at runtime) — so
+                  the whole banner + CTA are visible without scrolling. The CSS
+                  heights (320/380/450) are the pre-measure / no-JS fallback. The
+                  image fills via object-cover (cropping as needed) and slowly
+                  zooms (Ken Burns); overflow-hidden clips the zoom. */}
               <motion.div
-                className="relative block aspect-video w-full overflow-hidden"
+                className="relative block h-[320px] w-full overflow-hidden md:h-[380px] lg:h-[450px]"
+                style={heroHeight ? { height: heroHeight } : undefined}
                 whileHover={{ scale: 1.02 }}
                 transition={{ duration: 0.45, ease: "easeOut" }}
               >
