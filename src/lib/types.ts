@@ -150,3 +150,25 @@ export type VideoCallBanner = {
   ctaBn: string;
   href: string;
 };
+
+/** A content block inside a blog post body. */
+export type BlogBlock =
+  | { type: "h2"; text: string }
+  | { type: "p"; text: string }
+  | { type: "ul"; items: string[] };
+
+/** Blog category for the hub filter chips. */
+export type BlogCategory = { slug: string; name: string };
+
+/** A blog post (mock). Clean English field names (no legacy `Bn` suffix). */
+export type BlogPost = {
+  slug: string;
+  title: string;
+  excerpt: string;
+  category: string; // BlogCategory.slug
+  dateISO: string; // "2026-05-12"
+  readMins: number;
+  coverTone: Tone; // PlaceholderImage tone
+  coverLabel: string; // PlaceholderImage label
+  body: BlogBlock[];
+};
