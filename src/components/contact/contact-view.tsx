@@ -31,33 +31,43 @@ export function ContactView() {
   return (
     <main className="flex-1 bg-paper">
       {/* hero */}
-      <section className="mx-auto w-full max-w-[92rem] px-4 pt-12 pb-8 text-center sm:px-6 lg:px-8">
-        <p className="inline-flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-terracotta">
-          Get in touch
+      <section className="relative mx-auto w-full max-w-[80rem] overflow-hidden px-4 pt-12 pb-8 text-center sm:px-6 lg:px-8">
+        {/* decorative leaves */}
+        <Leaf
+          className="pointer-events-none absolute left-6 top-24 size-8 -rotate-12 text-neem/15 sm:left-16"
+          aria-hidden
+        />
+        <Leaf
+          className="pointer-events-none absolute right-8 top-10 size-10 rotate-45 text-neem/15 sm:right-24"
+          aria-hidden
+        />
+
+        <span className="inline-flex items-center gap-2 rounded-full border border-neem/20 bg-neem/10 px-4 py-1.5 text-sm font-semibold text-neem-deep">
           <Sparkles className="size-4" />
-        </p>
-        <h1 className="mt-3 font-display text-4xl font-bold text-ink sm:text-5xl">
-          We&apos;d Love to Hear From You
+          We&apos;re Here to Help
+        </span>
+        <h1 className="mt-4 font-display text-4xl font-bold text-ink sm:text-5xl">
+          Get in Touch
         </h1>
         <p className="mx-auto mt-4 max-w-xl text-base text-ink-muted">
-          Have a question about our toys, your order, or anything else? We&apos;re here to help!
+          Have a question about our toys, your order, or anything else? We&apos;d love to hear from you!
         </p>
       </section>
 
-      {/* body: form / details / image */}
-      <section className="mx-auto grid w-full max-w-[92rem] gap-8 px-4 pb-12 sm:px-6 lg:grid-cols-[1.15fr_0.85fr_1fr] lg:gap-10 lg:px-8">
+      {/* body: message form + contact information (two cards) */}
+      <section className="mx-auto grid w-full max-w-[80rem] gap-6 px-4 pb-10 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:gap-8 lg:px-8">
         <ContactForm />
 
-        {/* contact details */}
-        <div>
-          <h2 className="font-display text-2xl font-bold text-neem-deep">Get in Touch</h2>
+        {/* contact information card */}
+        <div className="rounded-2xl border border-cream-200 bg-neem/5 p-6 sm:p-8">
+          <h2 className="font-display text-xl font-bold text-ink">Contact Information</h2>
           <dl className="mt-6 space-y-5">
             {contactInfo.map((item, i) => {
               const Icon = infoIcon[item.icon];
               return (
                 <div
                   key={item.id}
-                  className={i > 0 ? "border-t border-cream-200 pt-5" : undefined}
+                  className={i > 0 ? "border-t border-cream-200/70 pt-5" : undefined}
                 >
                   <div className="flex items-start gap-4">
                     <span className="flex size-11 flex-none items-center justify-center rounded-full bg-neem/10 text-neem">
@@ -77,15 +87,15 @@ export function ContactView() {
             })}
           </dl>
         </div>
+      </section>
 
-        {/* hero image */}
-        <div className="min-h-[340px] lg:min-h-0">
-          <ContactImage />
-        </div>
+      {/* full-width hero image band */}
+      <section className="mx-auto w-full max-w-[80rem] px-4 pb-12 sm:px-6 lg:px-8">
+        <ContactImage />
       </section>
 
       {/* trust strip */}
-      <section className="mx-auto w-full max-w-[92rem] px-4 pb-16 sm:px-6 lg:px-8">
+      <section className="mx-auto w-full max-w-[80rem] px-4 pb-16 sm:px-6 lg:px-8">
         <div className="grid grid-cols-2 gap-6 rounded-2xl border border-cream-200 bg-cream-50/50 px-6 py-10 lg:grid-cols-4">
           {contactTrust.map((f) => {
             const Icon = featureIcon[f.icon];

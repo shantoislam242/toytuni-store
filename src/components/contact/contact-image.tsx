@@ -18,7 +18,7 @@ export function ContactImage() {
       <PlaceholderImage
         tone="neem-soft"
         label="Wooden Montessori toys"
-        className="size-full min-h-[320px] rounded-2xl"
+        className="h-[240px] w-full rounded-2xl sm:h-[320px] lg:h-[420px]"
       />
     );
   }
@@ -27,10 +27,10 @@ export function ContactImage() {
     <Image
       src="/images/contact/contact-hero.png"
       alt="Handmade wooden Montessori toys"
-      width={900}
-      height={1100}
+      width={1600}
+      height={600}
       onError={() => setFailed(true)}
-      className="size-full rounded-2xl object-cover"
+      className="h-[240px] w-full rounded-2xl object-cover sm:h-[320px] lg:h-[420px]"
     />
   );
 }
