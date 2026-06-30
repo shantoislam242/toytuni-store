@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import {
   Baby,
   BadgeCheck,
@@ -204,33 +205,33 @@ export function ProductDetailsView({
           </div>
 
           {/* rating */}
-          <div className="mt-6 flex items-center gap-3">
+          <div className="mt-4 flex items-center gap-3">
             <Stars rating={product.rating} />
-            <span className="text-base font-semibold text-ink-muted">
+            <span className="text-sm font-semibold text-ink-muted">
               {product.reviewCount} reviews
             </span>
           </div>
 
-          <h1 className="mt-4 font-display text-4xl font-bold leading-tight text-ink sm:text-5xl">
+          <h1 className="mt-3 font-display text-3xl font-bold leading-tight text-ink sm:text-4xl">
             {product.titleBn}
           </h1>
 
-          <p className="mt-5 max-w-2xl text-lg leading-8 text-ink-muted">
+          <p className="mt-3 max-w-2xl text-base leading-7 text-ink-muted">
             {detail.description}
           </p>
 
-          <p className="mt-4 text-sm font-bold text-terracotta">
+          <p className="mt-3 text-sm font-bold text-terracotta">
             300k+ babies growing with our product
           </p>
 
           {/* price */}
-          <div className="mt-5 flex flex-wrap items-end gap-3">
+          <div className="mt-4 flex flex-wrap items-end gap-3">
             {product.compareAtPrice ? (
               <span className="text-lg text-ink line-through">
                 {formatTk(product.compareAtPrice)}
               </span>
             ) : null}
-            <span className="font-display text-3xl font-bold text-danger">
+            <span className="font-display text-2xl font-bold text-danger">
               {formatTk(product.price)}
             </span>
             {discount ? (
@@ -242,10 +243,10 @@ export function ProductDetailsView({
           <p className="mt-1 text-sm text-ink-muted">Taxes included.</p>
 
           {/* quantity + actions */}
-          <div className="mt-7 grid gap-5">
+          <div className="mt-5 grid gap-4">
             <div>
               <p className="mb-2 text-sm font-medium text-ink-muted">Quantity</p>
-              <div className="inline-grid h-12 grid-cols-3 overflow-hidden rounded-md border border-ink-soft/60 bg-paper">
+              <div className="inline-grid h-11 grid-cols-3 overflow-hidden rounded-md border border-ink-soft/60 bg-paper">
                 <button
                   type="button"
                   onClick={() => setQuantity((current) => Math.max(1, current - 1))}
@@ -272,14 +273,14 @@ export function ProductDetailsView({
               <Button
                 type="button"
                 onClick={addSelectedToCart}
-                className="h-12 bg-neem text-base font-bold text-paper hover:bg-neem-deep"
+                className="h-11 bg-neem text-sm font-bold text-paper hover:bg-neem-deep"
               >
                 Add to Cart
               </Button>
               <Button
                 type="button"
                 onClick={buyNow}
-                className="h-12 bg-ink text-base font-bold text-paper hover:bg-ink/90"
+                className="h-11 bg-ink text-sm font-bold text-paper hover:bg-ink/90"
               >
                 Buy Now
               </Button>
@@ -287,7 +288,7 @@ export function ProductDetailsView({
           </div>
 
           {/* social share */}
-          <div className="mt-7 flex flex-wrap items-center gap-3 border-t border-cream-200 pt-6">
+          <div className="mt-5 flex flex-wrap items-center gap-3">
             <span className="text-sm font-semibold text-ink-muted">
               9K shares
             </span>
@@ -309,7 +310,7 @@ export function ProductDetailsView({
           </div>
 
           {/* trust strip */}
-          <div className="mt-7 grid grid-cols-2 gap-3 border-t border-cream-200 pt-6 sm:grid-cols-3">
+          <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-3">
             {certifications.map((cert) => {
               const Icon = certIcon[cert.icon];
               return (
@@ -327,8 +328,21 @@ export function ProductDetailsView({
         </div>
       </section>
 
+      {/* ===== certified logo ===== */}
+      <section className="mx-auto -mt-20 w-full max-w-[92rem] px-4 pb-2 sm:px-6 lg:px-8">
+        <div className="flex justify-center">
+          <Image
+            src="/images/certified%20Logo/certlogo.png"
+            alt="Product certifications"
+            width={1885}
+            height={834}
+            className="h-auto w-full max-w-2xl object-contain"
+          />
+        </div>
+      </section>
+
       {/* ===== details tabs ===== */}
-      <section className="mx-auto w-full max-w-[92rem] border-t border-cream-200 px-4 py-10 sm:px-6 lg:px-8">
+      <section className="mx-auto -mt-12 w-full max-w-[92rem] px-4 pb-10 pt-0 sm:px-6 lg:px-8">
         <ProductTabs detail={detail} />
       </section>
 

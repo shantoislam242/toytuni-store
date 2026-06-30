@@ -53,11 +53,15 @@ const DOT_COLORS = [
 
 function DottedDivider() {
   return (
+    // Enough dots to always overrun the widest footer, centred so the row
+    // bleeds off BOTH edges (clipped by overflow-hidden). This keeps the dotted
+    // line edge-to-edge and "connected" at any width — including narrow mobile,
+    // where a fixed count would otherwise stop short / clip on one side.
     <div
-      className="flex justify-between overflow-hidden px-4 py-4 sm:px-6"
+      className="flex justify-center gap-2 overflow-hidden px-4 py-4 sm:px-6"
       aria-hidden
     >
-      {Array.from({ length: 52 }).map((_, i) => (
+      {Array.from({ length: 120 }).map((_, i) => (
         <span
           key={i}
           className={cn(
@@ -117,19 +121,6 @@ function Payments() {
           <circle cx="13" cy="10" r="7" fill="#EB001B" />
           <circle cx="19" cy="10" r="7" fill="#F79E1B" fillOpacity="0.85" />
         </svg>
-      </PaymentBadge>
-      {/* American Express */}
-      <PaymentBadge>
-        <span className="text-[11px] font-bold tracking-tight text-[#2E77BC]">
-          AMEX
-        </span>
-      </PaymentBadge>
-      {/* PayPal */}
-      <PaymentBadge>
-        <span className="text-[12px] font-bold italic">
-          <span className="text-[#003087]">Pay</span>
-          <span className="text-[#0099DE]">Pal</span>
-        </span>
       </PaymentBadge>
       {/* Apple Pay */}
       <PaymentBadge>
@@ -226,7 +217,15 @@ export function Footer() {
             </div>
 
             {/* newsletter */}
-            <div className="mt-6 flex max-w-sm items-center gap-2 rounded-full border border-cream-300 bg-paper p-1.5 pl-4">
+            <div className="mt-6 max-w-sm">
+              <h3 className="font-display text-base font-bold text-ink">
+                Join our newsletter
+              </h3>
+              <p className="mt-1 text-sm text-ink-muted">
+                Get early access to new toys, offers, and parenting tips.
+              </p>
+            </div>
+            <div className="mt-3 flex max-w-sm items-center gap-2 rounded-full border border-cream-300 bg-paper p-1.5 pl-4">
               <input
                 type="email"
                 placeholder="Enter your email"

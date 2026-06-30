@@ -45,7 +45,7 @@ export function WishlistView() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 sm:py-10 lg:max-w-[90rem] lg:px-8">
+    <main className="mx-auto w-full max-w-6xl flex-1 px-4 pt-8 pb-24 sm:px-6 sm:py-10 lg:max-w-[90rem] lg:px-8">
       <header className="flex items-end justify-between">
         <div>
           <h1 className="font-display text-3xl font-bold tracking-tight text-ink sm:text-4xl">

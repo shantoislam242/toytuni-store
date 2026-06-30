@@ -1,25 +1,13 @@
-import { Check, Heart } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { ProductDetail } from "@/lib/types";
 
-function BulletList({
-  items,
-  icon = "check",
-}: {
-  items: string[];
-  icon?: "check" | "heart";
-}) {
-  if (!items.length) return <p className="text-sm text-ink-muted">No information yet.</p>;
+function BulletList({ items }: { items: string[] }) {
+  if (!items.length) return <p className="text-[15px] text-ink-muted">No information yet.</p>;
   return (
-    <ul className="space-y-2.5 text-sm leading-6 text-ink-muted">
+    <ul className="list-disc space-y-3 pl-5 text-[15px] leading-7 text-ink-muted marker:text-ink-muted">
       {items.map((item) => (
-        <li key={item} className="flex gap-2">
-          {icon === "check" ? (
-            <Check className="mt-0.5 size-4 flex-none text-neem" />
-          ) : (
-            <Heart className="mt-0.5 size-4 flex-none text-terracotta" />
-          )}
-          <span>{item}</span>
+        <li key={item} className="pl-1">
+          {item}
         </li>
       ))}
     </ul>
@@ -37,62 +25,67 @@ function SpecRow({ label, value }: { label: string; value?: string }) {
   );
 }
 
+/** Pill-style tab trigger: outlined when idle, filled (blush) when active. */
+const pillClass =
+  "h-auto flex-none rounded-full border border-cream-300 px-5 py-2 text-sm font-medium text-ink-muted shadow-none transition-colors hover:border-neem-soft hover:text-ink data-active:border-neem data-active:bg-neem/15 data-active:font-bold data-active:text-neem-deep data-active:shadow-none";
+
 /**
- * Tabbed product information: Description, Why Play, How Play, Details, and
- * Return & Exchange. Falls back gracefully when optional fields are missing.
+ * Tabbed product information shown as side-by-side pills: Description, Why Play,
+ * How to Play, Details, and Return & Exchange. Falls back gracefully when
+ * optional fields are missing.
  */
 export function ProductTabs({ detail }: { detail: ProductDetail }) {
   const specs = detail.specs;
 
   return (
-    <Tabs defaultValue="description" className="gap-6">
-      <TabsList variant="line" className="flex h-auto w-full flex-wrap justify-start gap-1 bg-transparent">
-        <TabsTrigger value="description" className="text-sm font-semibold text-ink">
+    <Tabs defaultValue="description" className="mx-auto max-w-3xl gap-6">
+      <TabsList className="flex h-auto w-full flex-wrap justify-center gap-2 bg-transparent p-0">
+        <TabsTrigger value="description" className={pillClass}>
           Description
         </TabsTrigger>
-        <TabsTrigger value="why" className="text-sm font-semibold text-ink">
-          Why Play
+        <TabsTrigger value="why" className={pillClass}>
+          Learning Benefits
         </TabsTrigger>
-        <TabsTrigger value="how" className="text-sm font-semibold text-ink">
+        <TabsTrigger value="how" className={pillClass}>
           How to Play
         </TabsTrigger>
-        <TabsTrigger value="details" className="text-sm font-semibold text-ink">
-          Details
+        <TabsTrigger value="details" className={pillClass}>
+          Specifications
         </TabsTrigger>
-        <TabsTrigger value="return" className="text-sm font-semibold text-ink">
-          Return &amp; Exchange
+        <TabsTrigger value="return" className={pillClass}>
+          Shipping &amp; Returns
         </TabsTrigger>
       </TabsList>
 
       <TabsContent value="description" className="space-y-6">
-        <p className="max-w-2xl text-sm leading-7 text-ink-muted sm:text-base">
+        <p className="max-w-2xl text-[15px] leading-7 text-ink-muted">
           {detail.description}
         </p>
         {detail.features.length ? (
           <div>
-            <h3 className="mb-3 font-display text-base font-bold text-ink">Features</h3>
-            <BulletList items={detail.features} icon="check" />
+            <h3 className="mb-3 font-display text-lg font-bold text-ink">Features</h3>
+            <BulletList items={detail.features} />
           </div>
         ) : null}
         {detail.benefits.length ? (
           <div>
-            <h3 className="mb-3 font-display text-base font-bold text-ink">Benefits</h3>
-            <BulletList items={detail.benefits} icon="heart" />
+            <h3 className="mb-3 font-display text-lg font-bold text-ink">Benefits</h3>
+            <BulletList items={detail.benefits} />
           </div>
         ) : null}
       </TabsContent>
 
       <TabsContent value="why">
         <div className="max-w-2xl">
-          <h3 className="mb-3 font-display text-base font-bold text-ink">Why your child will love it</h3>
-          <BulletList items={detail.whyPlay ?? []} icon="heart" />
+          <h3 className="mb-3 font-display text-lg font-bold text-ink">Why your child will love it</h3>
+          <BulletList items={detail.whyPlay ?? []} />
         </div>
       </TabsContent>
 
       <TabsContent value="how">
         <div className="max-w-2xl">
-          <h3 className="mb-3 font-display text-base font-bold text-ink">How to play</h3>
-          <BulletList items={detail.howPlay ?? []} icon="check" />
+          <h3 className="mb-3 font-display text-lg font-bold text-ink">How to play</h3>
+          <BulletList items={detail.howPlay ?? []} />
         </div>
       </TabsContent>
 

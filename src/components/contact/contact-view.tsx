@@ -32,15 +32,37 @@ export function ContactView() {
     <main className="flex-1 bg-paper">
       {/* hero */}
       <section className="relative mx-auto w-full max-w-[80rem] overflow-hidden px-4 pt-12 pb-8 text-center sm:px-6 lg:px-8">
-        {/* decorative leaves */}
+        {/* decorative leaf sprig (bottom-left) */}
         <Leaf
-          className="pointer-events-none absolute left-6 top-24 size-8 -rotate-12 text-neem/15 sm:left-16"
+          className="pointer-events-none absolute left-6 top-28 size-8 -rotate-12 text-neem/20 sm:left-16"
           aria-hidden
         />
-        <Leaf
-          className="pointer-events-none absolute right-8 top-10 size-10 rotate-45 text-neem/15 sm:right-24"
+
+        {/* paper-plane doodle with a dotted, looping flight trail */}
+        <svg
+          viewBox="0 0 130 130"
           aria-hidden
-        />
+          className="pointer-events-none absolute right-[20%] top-1 hidden h-24 w-24 text-neem/50 sm:block"
+        >
+          {/* paper plane, pointing up-right */}
+          <path
+            d="M70 46 L112 14 L96 54 L86 44 Z"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinejoin="round"
+          />
+          <path d="M86 44 L112 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          {/* dotted trail looping downward */}
+          <path
+            d="M78 54 C 68 78, 98 80, 92 100 C 88 114, 68 112, 76 96 C 81 84, 98 88, 102 74"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.4"
+            strokeDasharray="0.5 7"
+            strokeLinecap="round"
+          />
+        </svg>
 
         <span className="inline-flex items-center gap-2 rounded-full border border-neem/20 bg-neem/10 px-4 py-1.5 text-sm font-semibold text-neem-deep">
           <Sparkles className="size-4" />
