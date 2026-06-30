@@ -27,15 +27,21 @@ export function HeroCarousel() {
     Autoplay({ delay: 3000, stopOnInteraction: false, stopOnMouseEnter: true }),
   );
 
-  // Hero fills the first viewport: height = window height minus the
-  // (non-collapsed) header, measured on mount + resize so the whole banner and
-  // CTA are visible without scrolling. The CSS heights below are the pre-measure
-  // fallback (and the no-JS value).
+  // Tablet/desktop (>=768px): the hero fills the first viewport — height =
+  // window height minus the (non-collapsed) header — so the whole banner + CTA
+  // are visible without scrolling. Mobile (<768px): we keep heroHeight null and
+  // fall back to the compact CSS height below, so the hero doesn't swallow the
+  // whole phone screen and the next section peeks through. Re-measured on
+  // resize/orientation change.
   const [heroHeight, setHeroHeight] = useState<number | null>(null);
   useEffect(() => {
     const measure = () => {
-      const header = document.querySelector("header");
-      const headerH = header?.getBoundingClientRect().height ?? 0;
+      if (window.innerWidth < 768) {
+        setHeroHeight(null);
+        return;
+      }
+      const headerH =
+        document.querySelector("header")?.getBoundingClientRect().height ?? 0;
       setHeroHeight(Math.max(280, window.innerHeight - headerH));
     };
     measure();
@@ -65,14 +71,15 @@ export function HeroCarousel() {
           {heroSlides.map((s, i) => (
             <CarouselItem key={s.id}>
               {/* image-only slide (no overlay text — the banners carry their
-                  own copy). The container fills the first viewport — its height
-                  is window height minus the header (measured at runtime) — so
-                  the whole banner + CTA are visible without scrolling. The CSS
-                  heights (320/380/450) are the pre-measure / no-JS fallback. The
-                  image fills via object-cover (cropping as needed) and slowly
-                  zooms (Ken Burns); overflow-hidden clips the zoom. */}
+                  own copy). Mobile uses the compact CSS height (h-[400px]) so
+                  the hero doesn't fill the whole phone screen; tablet/desktop
+                  get the runtime `heroHeight` (viewport − header) so the banner
+                  + CTA fill the first screen without scrolling. The md/lg CSS
+                  heights are only the pre-measure fallback. The image fills via
+                  object-cover (cropping as needed) and slowly zooms (Ken Burns);
+                  overflow-hidden clips the zoom. */}
               <motion.div
-                className="relative block h-[320px] w-full overflow-hidden md:h-[380px] lg:h-[450px]"
+                className="relative block h-[400px] w-full overflow-hidden md:h-[420px] lg:h-[460px]"
                 style={heroHeight ? { height: heroHeight } : undefined}
                 whileHover={{ scale: 1.02 }}
                 transition={{ duration: 0.45, ease: "easeOut" }}
