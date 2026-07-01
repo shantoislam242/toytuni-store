@@ -11,7 +11,7 @@ export const contactInfo: ContactDetail[] = [
     id: "address",
     icon: "map-pin",
     label: "Our Address",
-    lines: ["House 23, Road 12, Banani", "Dhaka 1213, Bangladesh"],
+    lines: ["House 21, Lake Drive Road, Sector 07", "Uttara, Dhaka-1230, Bangladesh"],
   },
   {
     id: "phone",
