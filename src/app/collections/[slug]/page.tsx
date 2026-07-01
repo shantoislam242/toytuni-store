@@ -4,6 +4,7 @@ import { AgeCollectionView } from "@/components/collection/age-collection-view";
 import { CategoryCollectionView } from "@/components/collection/category-collection-view";
 import { StubPage } from "@/components/stub-page";
 import { AgeHubView } from "@/components/collection/age-hub-view";
+import { CategoryHubView } from "@/components/collection/category-hub-view";
 import { ageTierBySlug } from "@/lib/mock/age-tiers";
 import { categoryBySlug } from "@/lib/mock/categories";
 import { BRAND_NAME } from "@/lib/config";
@@ -25,6 +26,13 @@ export async function generateMetadata({
       title: `Shop by Age — ${BRAND_NAME}`,
       description:
         "Browse handmade, non-toxic wooden Montessori toys by your child's age and developmental stage.",
+    };
+  }
+  if (slug === "by-category") {
+    return {
+      title: `Shop by Category — ${BRAND_NAME}`,
+      description:
+        "Browse handmade, non-toxic wooden Montessori toys by play type — teethers, stackers, blocks, ride-ons and more.",
     };
   }
   const tier = ageTierBySlug(slug);
@@ -61,6 +69,10 @@ export default async function Page({
 
   if (slug === "by-age") {
     return <AgeHubView />;
+  }
+
+  if (slug === "by-category") {
+    return <CategoryHubView />;
   }
 
   const tier = ageTierBySlug(slug);
