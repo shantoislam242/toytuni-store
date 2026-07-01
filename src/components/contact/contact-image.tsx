@@ -27,8 +27,8 @@ export function ContactImage() {
     <Image
       src="/images/contact/contact-hero.png"
       alt="Handmade wooden Montessori toys"
-      width={1600}
-      height={600}
+      width={2172}
+      height={724}
       onError={() => setFailed(true)}
       className="h-[240px] w-full rounded-2xl object-cover sm:h-[320px] lg:h-[420px]"
     />
