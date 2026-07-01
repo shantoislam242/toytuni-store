@@ -49,7 +49,7 @@ export function ProductRail({
           {products.map((p) => (
             <CarouselItem
               key={p.slug}
-              className="basis-[72%] pl-2 min-[420px]:basis-[48%] sm:basis-1/3 sm:pl-3 lg:basis-1/4"
+              className="basis-[47%] pl-2 sm:basis-1/3 sm:pl-3 lg:basis-1/4"
             >
               <ProductCard product={p} />
             </CarouselItem>

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Minus, Plus, Trash2, ShoppingBag, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { PlaceholderImage } from "@/components/placeholder-image";
+import { ProductImage } from "@/components/product/product-image";
 import { useCart } from "@/lib/cart/cart-context";
 import { formatTk } from "@/lib/format";
 
@@ -105,15 +105,16 @@ export function CartView() {
               key={product.slug}
               className="flex gap-4 border-b border-cream-300 py-4 first:pt-0"
             >
-              <Link
-                href={`/products/${product.slug}`}
-                className="shrink-0"
-              >
-                <PlaceholderImage
-                  tone={product.imageTones[0]}
-                  label={product.imageLabelBn}
-                  className="size-24 rounded-lg border border-cream-300 text-xs sm:size-28"
-                />
+              <Link href={`/products/${product.slug}`} className="shrink-0">
+                <div className="size-24 overflow-hidden rounded-lg border border-cream-300 bg-cream-100 sm:size-28">
+                  <ProductImage
+                    slug={product.slug}
+                    imageNum={1}
+                    label={product.imageLabelBn}
+                    fallbackTone={product.imageTones[0]}
+                    className="size-full p-1.5 text-xs"
+                  />
+                </div>
               </Link>
 
               <div className="flex flex-1 flex-col">

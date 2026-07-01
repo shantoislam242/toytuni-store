@@ -1,13 +1,12 @@
 "use client";
 
-import React from "react";
 import Link from "next/link";
 import { motion, type Transition } from "framer-motion";
 import { Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { AddToCartButton } from "@/components/cart/add-to-cart-button";
 import { WishlistButton } from "@/components/product/wishlist-button";
-import { PlaceholderImage } from "@/components/placeholder-image";
+import { ProductImage } from "@/components/product/product-image";
 import { ageTierBySlug } from "@/lib/mock/age-tiers";
 import { formatTk } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -45,75 +44,6 @@ const wishlistVariants = {
   rest: { scale: 1 },
   hover: { scale: 1.05 },
 };
-
-/**
- * Displays a product image from /public/images/products/{slug}/{num}.{ext}
- * Dynamically finds the correct extension (.jpg, .png, .webp, etc.)
- * Falls back to PlaceholderImage if the image doesn't exist.
- */
-function ProductImage({
-  slug,
-  imageNum,
-  label,
-  fallbackTone,
-  className,
-}: {
-  slug: string;
-  imageNum: number;
-  label: string;
-  fallbackTone: Tone;
-  className?: string;
-}) {
-  const [imagePath, setImagePath] = React.useState<string | null>(null);
-  const [imageExists, setImageExists] = React.useState(false);
-
-  React.useEffect(() => {
-    // Try common image extensions
-    const extensions = [".png", ".jpg", ".jpeg", ".webp", ".gif"];
-
-    const tryExtension = (index: number) => {
-      if (index >= extensions.length) {
-        setImageExists(false);
-        return;
-      }
-
-      const ext = extensions[index];
-      const path = `/images/products/${slug}/${imageNum}${ext}`;
-      const img = new Image();
-
-      img.onload = () => {
-        setImagePath(path);
-        setImageExists(true);
-      };
-
-      img.onerror = () => {
-        tryExtension(index + 1);
-      };
-
-      img.src = path;
-    };
-
-    tryExtension(0);
-  }, [slug, imageNum]);
-
-  if (!imageExists || !imagePath) {
-    return (
-      <PlaceholderImage
-        tone={fallbackTone}
-        label={label}
-        className={className}
-      />
-    );
-  }
-
-  return (
-    <img
-      src={imagePath}
-      alt={`${label} - Image ${imageNum}`}
-      className={cn("h-full w-full object-contain", className)}
-    />
-  );
-}
 
 function Stars({ rating }: { rating: number }) {
   const rounded = Math.round(rating);

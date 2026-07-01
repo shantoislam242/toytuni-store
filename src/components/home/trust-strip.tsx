@@ -39,7 +39,7 @@ export function TrustStrip() {
           return (
             <div
               key={s.id}
-              className="relative isolate flex min-h-24 items-center justify-center gap-3 overflow-visible py-4 sm:min-h-20 sm:py-0"
+              className="relative isolate flex min-h-28 items-center justify-center gap-3 overflow-visible py-5 sm:min-h-20 sm:py-0"
             >
               <div
                 aria-hidden="true"

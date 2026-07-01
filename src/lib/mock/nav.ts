@@ -58,7 +58,7 @@ export const footerCustomerCare: NavLink[] = [
 ];
 
 export const footerAbout: NavLink[] = [
-  { labelBn: "About Us", href: "/policy/about-us" },
+  { labelBn: "About Us", href: "/about" },
   { labelBn: "Blog", href: "/blog" },
   { labelBn: "Safety Standards", href: "/policy/safety-standards" },
   { labelBn: "Sustainability", href: "/policy/sustainability" },

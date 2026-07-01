@@ -79,7 +79,7 @@ export function HeroCarousel() {
                   object-cover (cropping as needed) and slowly zooms (Ken Burns);
                   overflow-hidden clips the zoom. */}
               <motion.div
-                className="relative block h-[400px] w-full overflow-hidden md:h-[420px] lg:h-[460px]"
+                className="relative block h-[280px] w-full overflow-hidden sm:h-[360px] md:h-[420px] lg:h-[460px]"
                 style={heroHeight ? { height: heroHeight } : undefined}
                 whileHover={{ scale: 1.02 }}
                 transition={{ duration: 0.45, ease: "easeOut" }}
@@ -100,11 +100,12 @@ export function HeroCarousel() {
         <CarouselNext className="right-4 hidden border-none bg-paper/80 sm:flex" />
       </Carousel>
 
-      {/* Shop Now CTA — centred over the hero, gently fades + slides up on
-          mount (Framer Motion). The overlay is click-through (pointer-events-
-          none) so carousel swipe/arrows still work; only the pill is
-          interactive. Points at the current slide's target. */}
-      <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-end pr-6 sm:pr-16 lg:pr-24">
+      {/* Shop Now CTA — anchored near the bottom-right of the hero (a little up
+          from the edge, clear of the dots), gently fades + slides up on mount
+          (Framer Motion). The overlay is click-through (pointer-events-none) so
+          carousel swipe/arrows still work; only the pill is interactive. Points
+          at the current slide's target. */}
+      <div className="pointer-events-none absolute inset-0 z-10 flex items-end justify-end pb-14 pr-6 sm:pb-16 sm:pr-16 lg:pr-24">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

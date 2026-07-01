@@ -3,6 +3,7 @@ import { TrustStrip } from "@/components/home/trust-strip";
 import { ShopByAge } from "@/components/home/shop-by-age";
 import { ProductTabs } from "@/components/home/product-tabs";
 import { Testimonials } from "@/components/home/testimonials";
+import { AboutTeaser } from "@/components/home/about-teaser";
 
 export default function Home() {
   return (
@@ -21,6 +22,9 @@ export default function Home() {
 
       {/* testimonials */}
       <Testimonials />
+
+      {/* about teaser — sits just above the footer */}
+      <AboutTeaser />
 
       {/* newsletter now lives inside the footer (Keep In Touch column) */}
     </>
