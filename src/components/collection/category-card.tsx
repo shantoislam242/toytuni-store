@@ -1,13 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import {
+  ArrowRight,
+  Baby,
+  Bell,
+  Bike,
+  Blocks,
+  Car,
+  GraduationCap,
+  Layers,
+  Puzzle,
+  Shapes,
+  type LucideIcon,
+} from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
-import { PlaceholderImage } from "@/components/placeholder-image";
 import { cn } from "@/lib/utils";
 import type { Tone } from "@/lib/types";
-
-export type PeekTile = { tone: Tone; label: string };
 
 // Soft tone wash for the card background. Tailwind v4 only detects literal class
 // names, so this is a static map covering the whole Tone union.
@@ -22,36 +31,48 @@ const toneWash: Record<Tone, string> = {
   blush: "bg-blush/40",
 };
 
+// Category slug → representative icon. Falls back to a neutral glyph for any
+// slug not listed, so a new category never renders an empty medallion.
+const categoryIcon: Record<string, LucideIcon> = {
+  teethers: Baby,
+  rattles: Bell,
+  stacking: Layers,
+  blocks: Blocks,
+  "push-pull": Bike,
+  puzzles: Puzzle,
+  montessori: GraduationCap,
+  "ride-on": Car,
+};
+
 type CategoryCardProps = {
+  slug: string;
   name: string;
   tagline?: string;
   href: string;
   tone: Tone;
   count: number;
-  peek: PeekTile[];
   feature?: boolean;
   index: number;
 };
 
 /**
  * Premium category card for the "Shop by Category" hub: a tone-tinted panel with
- * a peek of the category's products (tone tiles), its name, tagline, and product
- * count, linking to the category collection page. Subtle motion — staggered
- * scroll entrance + hover lift — disabled under prefers-reduced-motion.
+ * a category icon medallion, name, tagline, and product count, linking to the
+ * category collection page. Subtle motion — staggered scroll entrance + hover
+ * lift — disabled under prefers-reduced-motion.
  */
 export function CategoryCard({
+  slug,
   name,
   tagline,
   href,
   tone,
   count,
-  peek,
   feature = false,
   index,
 }: CategoryCardProps) {
   const reduce = useReducedMotion();
-  // With no products, show a single tile in the card's own tone.
-  const tiles: PeekTile[] = peek.length > 0 ? peek : [{ tone, label: name }];
+  const Icon = categoryIcon[slug] ?? Shapes;
 
   return (
     <motion.div
@@ -70,20 +91,16 @@ export function CategoryCard({
           toneWash[tone],
         )}
       >
-        {/* product peek (decorative tone tiles) */}
-        <div className="flex gap-2" aria-hidden>
-          {tiles.slice(0, 3).map((t, i) => (
-            <PlaceholderImage
-              key={i}
-              tone={t.tone}
-              label=""
-              className={cn(
-                "rounded-xl border border-paper/50 transition-transform duration-300 group-hover:scale-[1.03]",
-                feature ? "size-20 sm:size-24" : "size-14 sm:size-16",
-              )}
-            />
-          ))}
-        </div>
+        {/* category icon medallion */}
+        <span
+          className={cn(
+            "flex flex-none items-center justify-center rounded-2xl bg-paper/80 text-neem-deep shadow-sm ring-1 ring-black/[0.03] transition-transform duration-300 group-hover:scale-[1.04]",
+            feature ? "size-20" : "size-14",
+          )}
+          aria-hidden
+        >
+          <Icon className={feature ? "size-9" : "size-6"} strokeWidth={1.75} />
+        </span>
 
         {/* text + arrow */}
         <div className="flex items-end justify-between gap-3">

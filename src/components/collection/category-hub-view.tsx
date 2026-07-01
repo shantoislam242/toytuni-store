@@ -32,20 +32,16 @@ export function CategoryHubView() {
       {/* bento grid */}
       <div className="mx-auto grid w-full max-w-[92rem] grid-cols-1 gap-4 px-4 pb-16 sm:grid-cols-2 sm:gap-5 sm:px-6 lg:grid-cols-3 lg:px-8">
         {categories.map((cat, index) => {
-          const catProducts = products.filter((p) => p.categorySlug === cat.slug);
-          const peek = catProducts.slice(0, 3).map((p) => ({
-            tone: p.imageTones[0],
-            label: p.imageLabelBn,
-          }));
+          const count = products.filter((p) => p.categorySlug === cat.slug).length;
           return (
             <CategoryCard
               key={cat.slug}
+              slug={cat.slug}
               name={cat.nameBn}
               tagline={cat.taglineBn}
               href={cat.href}
               tone={cat.tone}
-              count={catProducts.length}
-              peek={peek}
+              count={count}
               feature={index === 0}
               index={index}
             />
