@@ -135,6 +135,42 @@ export type BulkProgram = {
   tone: Tone;
 };
 
+/** Icon keys used by the bulk tier + benefit data (mapped to lucide components
+ *  in the view). Only keys referenced by the mock data are included. */
+export type BulkIcon =
+  | "school"
+  | "store"
+  | "globe"
+  | "tag"
+  | "headset"
+  | "shield-check"
+  | "truck";
+
+/** A wholesale program tier (Preschool / Retail / International). */
+export type BulkTier = {
+  id: string; // also the in-page anchor target, e.g. "preschool"
+  icon: BulkIcon;
+  titleBn: string;
+  descBn: string;
+  points: string[]; // 3 short "what you get" bullets
+  tone: Tone;
+};
+
+/** A "why partner with us" benefit. */
+export type BulkBenefit = {
+  id: string;
+  icon: BulkIcon;
+  titleBn: string;
+  descBn: string;
+};
+
+/** A numbered "how it works" step. */
+export type BulkStep = {
+  id: string;
+  titleBn: string;
+  descBn: string;
+};
+
 /** Safety / quality certification badge shown in the trust strip. */
 export type Certification = {
   id: string;
