@@ -42,7 +42,6 @@ export const footerShop: NavLink[] = [
   { labelBn: "Shop by Age", href: "/collections/by-age" },
   { labelBn: "Shop by Category", href: "/collections/by-category" },
   { labelBn: "New Arrivals", href: "/collections/new-arrivals" },
-  { labelBn: "Best Sellers", href: "/collections/best-sellers" },
   { labelBn: "Gift Ideas", href: "/gift" },
   { labelBn: "Bulk Orders", href: "/bulk" },
 ];
@@ -64,7 +63,6 @@ export const footerAbout: NavLink[] = [
   { labelBn: "Blog", href: "/blog" },
   { labelBn: "Safety Standards", href: "/policy/safety-standards" },
   { labelBn: "Sustainability", href: "/policy/sustainability" },
-  { labelBn: "Careers", href: "/policy/careers" },
 ];
 
 export const footerSupport: NavLink[] = [
