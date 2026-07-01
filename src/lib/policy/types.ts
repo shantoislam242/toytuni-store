@@ -22,7 +22,17 @@ export type PolicyIcon =
   | "credit-card"
   | "package"
   | "info"
-  | "alert-triangle";
+  | "alert-triangle"
+  | "lock"
+  | "file-text"
+  | "eye"
+  | "cookie"
+  | "settings"
+  | "scale"
+  | "users"
+  | "globe"
+  | "refresh-cw"
+  | "wrench";
 
 export type CalloutTone = "info" | "success" | "warning";
 
