@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
+import { toast } from "sonner";
 import {
   Clock,
   CornerDownLeft,
@@ -29,14 +30,20 @@ import { cn } from "@/lib/utils";
 import type { Category, Product } from "@/lib/types";
 
 const POPULAR_SEARCHES = ["Rattle", "Teether", "Stacking", "Montessori", "Building blocks", "Puzzle"];
-const MAX_PRODUCTS = 5;
-const MAX_CATEGORIES = 3;
+// Combined product + category suggestions are capped at this total. Products take
+// priority; up to 2 slots are reserved for categories so both types stay visible
+// when both match, and categories expand to fill spare slots when products are few.
+const MAX_SUGGESTIONS = 6;
+const RESERVED_CATEGORY_SLOTS = 2;
+// Left-column word suggestions (query completions built from the catalogue).
+const MAX_TERM_SUGGESTIONS = 6;
 
 // --- Minimal Web Speech API typings (not in the standard DOM lib) ---
 type SpeechAlternative = { transcript: string };
 type SpeechResult = ArrayLike<SpeechAlternative>;
 type SpeechResultList = ArrayLike<SpeechResult>;
 type SpeechEventLike = { results: SpeechResultList };
+type SpeechErrorLike = { error?: string };
 type SpeechRecognitionLike = {
   lang: string;
   interimResults: boolean;
@@ -44,7 +51,7 @@ type SpeechRecognitionLike = {
   continuous: boolean;
   onresult: ((event: SpeechEventLike) => void) | null;
   onend: (() => void) | null;
-  onerror: (() => void) | null;
+  onerror: ((event: SpeechErrorLike) => void) | null;
   start: () => void;
   stop: () => void;
 };
@@ -154,25 +161,54 @@ export function SmartSearch({
   const q = debounced.trim().toLowerCase();
   const isSearching = query.trim().length > 0;
 
-  const productResults = useMemo(
-    () =>
-      q ? products.filter((p) => p.titleBn.toLowerCase().includes(q)).slice(0, MAX_PRODUCTS) : [],
+  // All matches first, then trim to a combined cap of MAX_SUGGESTIONS.
+  const matchedProducts = useMemo(
+    () => (q ? products.filter((p) => p.titleBn.toLowerCase().includes(q)) : []),
     [q],
   );
-  const categoryResults = useMemo(
+  const matchedCategories = useMemo(
     () =>
       q
-        ? categories
-            .filter(
-              (c) =>
-                c.nameBn.toLowerCase().includes(q) ||
-                (c.taglineBn?.toLowerCase().includes(q) ?? false),
-            )
-            .slice(0, MAX_CATEGORIES)
+        ? categories.filter(
+            (c) =>
+              c.nameBn.toLowerCase().includes(q) ||
+              (c.taglineBn?.toLowerCase().includes(q) ?? false),
+          )
         : [],
     [q],
   );
-  const hasResults = productResults.length > 0 || categoryResults.length > 0;
+
+  // Reserve a couple of slots for categories (when any match) so both types show;
+  // products fill the rest, and categories expand into any slots products leave.
+  const { productResults, categoryResults } = useMemo(() => {
+    const reserved = Math.min(matchedCategories.length, RESERVED_CATEGORY_SLOTS);
+    const prods = matchedProducts.slice(0, MAX_SUGGESTIONS - reserved);
+    const cats = matchedCategories.slice(0, MAX_SUGGESTIONS - prods.length);
+    return { productResults: prods, categoryResults: cats };
+  }, [matchedProducts, matchedCategories]);
+
+  // Left-column word suggestions: a de-duplicated pool of product titles,
+  // category names and popular terms, filtered by the query. These are query
+  // completions (clicking one refines the search — it does not navigate).
+  const suggestionPool = useMemo(() => {
+    const pool = new Set<string>();
+    products.forEach((p) => pool.add(p.titleBn));
+    categories.forEach((c) => pool.add(c.nameBn));
+    POPULAR_SEARCHES.forEach((t) => pool.add(t));
+    return [...pool];
+  }, []);
+  const termSuggestions = useMemo(
+    () =>
+      q
+        ? suggestionPool
+            .filter((t) => t.toLowerCase().includes(q))
+            .slice(0, MAX_TERM_SUGGESTIONS)
+        : [],
+    [q, suggestionPool],
+  );
+
+  const hasResults =
+    termSuggestions.length > 0 || productResults.length > 0 || categoryResults.length > 0;
 
   // Flat list of keyboard-navigable items (order must match render order).
   type NavItem =
@@ -183,6 +219,8 @@ export function SmartSearch({
   const navItems: NavItem[] = useMemo(() => {
     if (isSearching) {
       return [
+        // order must match render: left word suggestions, then products, then categories
+        ...termSuggestions.map((term) => ({ kind: "term" as const, term })),
         ...productResults.map((product) => ({ kind: "product" as const, product })),
         ...categoryResults.map((category) => ({ kind: "category" as const, category })),
       ];
@@ -191,7 +229,7 @@ export function SmartSearch({
       ...recent.map((term) => ({ kind: "term" as const, term })),
       ...POPULAR_SEARCHES.map((term) => ({ kind: "term" as const, term })),
     ];
-  }, [isSearching, productResults, categoryResults, recent]);
+  }, [isSearching, termSuggestions, productResults, categoryResults, recent]);
 
   useEffect(() => setActiveIndex(-1), [debounced, open]);
 
@@ -205,11 +243,13 @@ export function SmartSearch({
   };
   const goToProduct = (p: Product) => {
     saveIfSearching();
+    setQuery(p.titleBn); // fill the input with the chosen suggestion
     closeDropdown();
     router.push(`/products/${p.slug}`);
   };
   const goToCategory = (c: Category) => {
     saveIfSearching();
+    setQuery(c.nameBn); // fill the input with the chosen suggestion
     closeDropdown();
     router.push(c.href);
   };
@@ -218,6 +258,14 @@ export function SmartSearch({
     setQuery(term);
     setOpen(true);
     inputRef.current?.focus();
+  };
+  // Same as applyTerm but without the ref refocus — the word-suggestion buttons
+  // keep the input focused via onMouseDown preventDefault, so no refocus is
+  // needed (and it keeps this ref-free for the render-safety lint rule).
+  const selectTerm = (term: string) => {
+    setRecent(addRecentSearch(term));
+    setQuery(term);
+    setOpen(true);
   };
   const activate = (item: NavItem) => {
     if (item.kind === "product") goToProduct(item.product);
@@ -264,32 +312,52 @@ export function SmartSearch({
     setRecent([]);
   };
 
-  // Voice search via the Web Speech API.
+  // Voice search via the Web Speech API. Surfaces why it failed (permissions,
+  // insecure origin, unsupported) instead of silently doing nothing.
   const toggleVoice = () => {
     if (listening) {
       recognitionRef.current?.stop();
       return;
     }
     const Ctor = getSpeechCtor();
-    if (!Ctor) return;
-    const rec = new Ctor();
-    rec.lang = "en-US";
-    rec.interimResults = false;
-    rec.maxAlternatives = 1;
-    rec.continuous = false;
-    rec.onresult = (event) => {
-      const transcript = event.results?.[0]?.[0]?.transcript ?? "";
-      if (transcript) {
-        setQuery(transcript);
-        setOpen(true);
-      }
-    };
-    rec.onend = () => setListening(false);
-    rec.onerror = () => setListening(false);
-    recognitionRef.current = rec;
-    setListening(true);
-    setOpen(true);
-    rec.start();
+    if (!Ctor) {
+      toast.error("Voice search isn't supported in this browser.");
+      return;
+    }
+    if (typeof window !== "undefined" && !window.isSecureContext) {
+      toast.error("Voice search needs a secure (https) or localhost connection.");
+      return;
+    }
+    try {
+      const rec = new Ctor();
+      rec.lang = "en-US";
+      rec.interimResults = false;
+      rec.maxAlternatives = 1;
+      rec.continuous = false;
+      rec.onresult = (event) => {
+        const transcript = event.results?.[0]?.[0]?.transcript ?? "";
+        if (transcript) {
+          setQuery(transcript);
+          setOpen(true);
+        }
+      };
+      rec.onend = () => setListening(false);
+      rec.onerror = (event) => {
+        setListening(false);
+        if (event?.error === "not-allowed" || event?.error === "service-not-allowed") {
+          toast.error("Microphone access is blocked. Allow it in your browser settings.");
+        } else if (event?.error === "no-speech") {
+          toast.info("Didn't catch that — tap the mic and try again.");
+        }
+      };
+      recognitionRef.current = rec;
+      setListening(true);
+      setOpen(true);
+      rec.start();
+    } catch {
+      setListening(false);
+      toast.error("Couldn't start voice search. Please try again.");
+    }
   };
 
   // Keyboard shortcuts: ⌘/Ctrl + K, or "/" — focus the search from anywhere.
@@ -432,79 +500,126 @@ export function SmartSearch({
                 </div>
               ) : isSearching ? (
                 hasResults ? (
-                  <>
-                    {productResults.length ? (
-                      <>
-                        <SectionLabel>Products</SectionLabel>
-                        {productResults.map((p, i) => (
-                          <Link
-                            key={p.slug}
-                            href={`/products/${p.slug}`}
+                  <div className="grid sm:grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)]">
+                    {/* left column: word / query suggestions */}
+                    <div className="border-b border-cream-200 sm:border-b-0 sm:border-r sm:border-cream-200">
+                      <SectionLabel>Suggestions</SectionLabel>
+                      {termSuggestions.length ? (
+                        termSuggestions.map((term, i) => (
+                          <button
+                            key={term}
+                            type="button"
                             {...optionProps(i)}
-                            onClick={() => {
-                              saveIfSearching();
-                              closeDropdown();
-                            }}
-                            className={cn("flex items-center gap-3 px-3 py-2.5", optionCls(i))}
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => selectTerm(term)}
+                            className={cn(
+                              "flex w-full items-center gap-2.5 px-3 py-2.5 text-left",
+                              optionCls(i),
+                            )}
                           >
-                            <div className="relative size-12 flex-none overflow-hidden rounded-xl bg-cream-100">
-                              <ProductImage
-                                slug={p.slug}
-                                imageNum={1}
-                                label={p.imageLabelBn}
-                                fallbackTone={p.imageTones[0]}
-                                className="size-full p-1"
-                              />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="truncate text-sm font-medium text-ink">
-                                <Highlight text={p.titleBn} query={debounced} />
-                              </p>
-                              <p className="mt-0.5 text-sm text-ink-soft">
-                                {formatTk(p.price)}
-                              </p>
-                            </div>
-                          </Link>
-                        ))}
-                      </>
-                    ) : null}
+                            <Search className="size-3.5 flex-none text-ink-soft" />
+                            <span className="flex-1 truncate text-sm text-ink">
+                              <Highlight text={term} query={debounced} />
+                            </span>
+                          </button>
+                        ))
+                      ) : (
+                        <p className="px-3 pb-3 text-sm text-ink-soft">No suggestions</p>
+                      )}
+                    </div>
 
-                    {categoryResults.length ? (
-                      <>
-                        <SectionLabel>Categories</SectionLabel>
-                        {categoryResults.map((c, i) => {
-                          const index = productResults.length + i;
-                          return (
-                            <Link
-                              key={c.slug}
-                              href={c.href}
-                              {...optionProps(index)}
-                              onClick={() => {
-                                saveIfSearching();
-                                closeDropdown();
-                              }}
-                              className={cn(
-                                "flex items-center gap-3 px-3 py-2.5",
-                                optionCls(index),
-                              )}
-                            >
-                              <span className="flex size-10 flex-none items-center justify-center rounded-xl bg-neem/10 text-neem-deep">
-                                <Tag className="size-4" />
-                              </span>
-                              <div className="min-w-0 flex-1">
-                                <p className="truncate text-sm font-medium text-ink">
-                                  <Highlight text={c.nameBn} query={debounced} />
-                                </p>
-                                <p className="truncate text-xs text-ink-soft">
-                                  Browse collection
-                                </p>
-                              </div>
-                            </Link>
-                          );
-                        })}
-                      </>
-                    ) : null}
-                  </>
+                    {/* right column: matching products + categories (with images) */}
+                    <div>
+                      {productResults.length ? (
+                        <>
+                          <SectionLabel>Products</SectionLabel>
+                          {productResults.map((p, i) => {
+                            const index = termSuggestions.length + i;
+                            return (
+                              <Link
+                                key={p.slug}
+                                href={`/products/${p.slug}`}
+                                {...optionProps(index)}
+                                onClick={() => {
+                                  saveIfSearching();
+                                  setQuery(p.titleBn);
+                                  closeDropdown();
+                                }}
+                                className={cn(
+                                  "flex items-center gap-3 px-3 py-2.5",
+                                  optionCls(index),
+                                )}
+                              >
+                                <div className="relative size-12 flex-none overflow-hidden rounded-xl bg-cream-100">
+                                  <ProductImage
+                                    slug={p.slug}
+                                    imageNum={1}
+                                    label={p.imageLabelBn}
+                                    fallbackTone={p.imageTones[0]}
+                                    className="size-full p-1"
+                                  />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <p className="truncate text-sm font-medium text-ink">
+                                    <Highlight text={p.titleBn} query={debounced} />
+                                  </p>
+                                  <p className="mt-0.5 text-sm text-ink-soft">
+                                    {formatTk(p.price)}
+                                  </p>
+                                </div>
+                              </Link>
+                            );
+                          })}
+                        </>
+                      ) : null}
+
+                      {categoryResults.length ? (
+                        <>
+                          <SectionLabel>Categories</SectionLabel>
+                          {categoryResults.map((c, i) => {
+                            const index = termSuggestions.length + productResults.length + i;
+                            return (
+                              <Link
+                                key={c.slug}
+                                href={c.href}
+                                {...optionProps(index)}
+                                onClick={() => {
+                                  saveIfSearching();
+                                  setQuery(c.nameBn);
+                                  closeDropdown();
+                                }}
+                                className={cn(
+                                  "flex items-center gap-3 px-3 py-2.5",
+                                  optionCls(index),
+                                )}
+                              >
+                                <span className="flex size-10 flex-none items-center justify-center rounded-xl bg-neem/10 text-neem-deep">
+                                  <Tag className="size-4" />
+                                </span>
+                                <div className="min-w-0 flex-1">
+                                  <p className="truncate text-sm font-medium text-ink">
+                                    <Highlight text={c.nameBn} query={debounced} />
+                                  </p>
+                                  <p className="truncate text-xs text-ink-soft">
+                                    Browse collection
+                                  </p>
+                                </div>
+                              </Link>
+                            );
+                          })}
+                        </>
+                      ) : null}
+
+                      {!productResults.length && !categoryResults.length ? (
+                        <div className="flex h-full flex-col items-center justify-center px-3 py-8 text-center">
+                          <p className="text-sm text-ink-muted">No matching products.</p>
+                          <p className="mt-1 text-xs text-ink-soft">
+                            Pick a suggestion on the left.
+                          </p>
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
                 ) : (
                   <div className="flex flex-col items-center px-4 py-10 text-center">
                     <span className="flex size-12 items-center justify-center rounded-full bg-cream-100 text-ink-soft">

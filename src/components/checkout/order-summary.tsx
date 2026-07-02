@@ -35,7 +35,7 @@ export function OrderSummary({
       <ul className="mt-4 space-y-4">
         {items.map(({ product, qty, lineTotal }) => (
           <li key={product.slug} className="flex items-center gap-3">
-            <div className="relative size-14 flex-none overflow-hidden rounded-xl border border-cream-300 bg-cream-100">
+            <div className="size-14 flex-none overflow-hidden rounded-xl border border-cream-300 bg-cream-100">
               <ProductImage
                 slug={product.slug}
                 imageNum={1}
@@ -43,9 +43,6 @@ export function OrderSummary({
                 fallbackTone={product.imageTones[0]}
                 className="size-full p-1"
               />
-              <span className="absolute -right-1.5 -top-1.5 flex size-5 items-center justify-center rounded-full bg-neem text-[11px] font-bold text-paper">
-                {qty}
-              </span>
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-ink">{product.titleBn}</p>

@@ -368,7 +368,7 @@ export function Header() {
                       <AccordionTrigger className={drawerItemClass}>
                         By Age
                       </AccordionTrigger>
-                      <AccordionContent className="pb-1">
+                      <AccordionContent className="pb-1 [&_a]:no-underline">
                         <DrawerList links={ageNav} onNavigate={close} />
                       </AccordionContent>
                     </AccordionItem>
@@ -377,7 +377,7 @@ export function Header() {
                       <AccordionTrigger className={drawerItemClass}>
                         By Category
                       </AccordionTrigger>
-                      <AccordionContent className="pb-1">
+                      <AccordionContent className="pb-1 [&_a]:no-underline">
                         <DrawerList links={categoryNav} onNavigate={close} />
                       </AccordionContent>
                     </AccordionItem>

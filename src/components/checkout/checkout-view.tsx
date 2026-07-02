@@ -154,24 +154,32 @@ export function CheckoutView() {
             while scrolling the form; a normal block on mobile/tablet. The grid
             column stretches to the row height, giving the sticky card room to
             travel and stop naturally at the container's end (never the footer).
-            Opacity-only entrance avoids a leftover transform that would break
-            position: sticky. */}
+            The top offset must clear the site header, which is a two-row sticky
+            bar (~112px tall when collapsed on scroll) — a smaller offset let the
+            card slide UNDER the header and clipped its top. The inner wrapper is
+            capped to the remaining viewport height and scrolls internally only
+            if the card is ever taller than the screen, so nothing is cropped;
+            its padding keeps the card's shadow/rounded corners from being
+            clipped by the scroll box. Opacity-only entrance avoids a leftover
+            transform that would break position: sticky. */}
         <div className="lg:col-span-1">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.4, delay: 0.15, ease: "easeOut" }}
-            className="lg:sticky lg:top-[100px]"
+            className="lg:sticky lg:top-[124px]"
           >
-            <OrderSummary
-              items={items}
-              subtotal={subtotal}
-              delivery={delivery}
-              discount={discount}
-              total={total}
-              ctaLabel={ctaLabel}
-              onCta={onCta}
-            />
+            <div className="lg:max-h-[calc(100vh-140px)] lg:overflow-y-auto lg:overscroll-contain lg:p-1 [scrollbar-width:thin]">
+              <OrderSummary
+                items={items}
+                subtotal={subtotal}
+                delivery={delivery}
+                discount={discount}
+                total={total}
+                ctaLabel={ctaLabel}
+                onCta={onCta}
+              />
+            </div>
           </motion.div>
         </div>
       </div>
