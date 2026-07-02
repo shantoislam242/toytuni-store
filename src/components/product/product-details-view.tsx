@@ -6,7 +6,6 @@ import Image from "next/image";
 import {
   Baby,
   BadgeCheck,
-  CalendarClock,
   FlaskConical,
   Leaf,
   Mail,
@@ -16,7 +15,6 @@ import {
   ShieldCheck,
   Sparkles,
   Star,
-  Video,
 } from "lucide-react";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { Button } from "@/components/ui/button";
@@ -27,7 +25,7 @@ import { ProductRail } from "@/components/product/product-rail";
 import { WishlistButton } from "@/components/product/wishlist-button";
 import { useCart } from "@/lib/cart/cart-context";
 import { formatTk } from "@/lib/format";
-import { certifications, videoCallBanner } from "@/lib/mock/trust";
+import { certifications } from "@/lib/mock/trust";
 import { cn } from "@/lib/utils";
 import type { AgeTier, Category, Product, ProductDetail } from "@/lib/types";
 
@@ -174,15 +172,15 @@ export function ProductDetailsView({
         />
       </div>
 
-      {/* ===== top: gallery + purchase ===== */}
-      <section className="mx-auto grid w-full max-w-[92rem] gap-8 px-4 py-6 sm:px-6 sm:py-10 lg:grid-cols-[minmax(0,560px)_minmax(0,1fr)] lg:gap-12 lg:px-8">
+      {/* ===== top: gallery + purchase (balanced 50/50) ===== */}
+      <section className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-6 sm:px-6 sm:py-10 lg:grid-cols-2 lg:gap-10 lg:px-8">
         <ProductGallery
           images={detail.imageSrcs}
           imageLabel={product.imageLabelBn}
           imageTones={product.imageTones}
         />
 
-        <div className="flex flex-col py-1 lg:py-4">
+        <div className="flex flex-col">
           {/* tags + wishlist */}
           <div className="flex items-start justify-between gap-4">
             <div className="flex flex-wrap items-center gap-2">
@@ -205,27 +203,27 @@ export function ProductDetailsView({
           </div>
 
           {/* rating */}
-          <div className="mt-4 flex items-center gap-3">
+          <div className="mt-3 flex items-center gap-3">
             <Stars rating={product.rating} />
             <span className="text-sm font-semibold text-ink-muted">
               {product.reviewCount} reviews
             </span>
           </div>
 
-          <h1 className="mt-3 font-display text-3xl font-bold leading-tight text-ink sm:text-4xl">
+          <h1 className="mt-2.5 font-display text-3xl font-bold leading-tight text-ink sm:text-4xl">
             {product.titleBn}
           </h1>
 
-          <p className="mt-3 max-w-2xl text-base leading-7 text-ink-muted">
+          <p className="mt-2.5 max-w-2xl text-[15px] leading-7 text-ink-muted">
             {detail.description}
           </p>
 
-          <p className="mt-3 text-sm font-bold text-terracotta">
+          <p className="mt-2 text-sm font-bold text-terracotta">
             300k+ babies growing with our product
           </p>
 
           {/* price */}
-          <div className="mt-4 flex flex-wrap items-end gap-3">
+          <div className="mt-3 flex flex-wrap items-end gap-3">
             {product.compareAtPrice ? (
               <span className="text-lg text-ink line-through">
                 {formatTk(product.compareAtPrice)}
@@ -243,9 +241,9 @@ export function ProductDetailsView({
           <p className="mt-1 text-sm text-ink-muted">Taxes included.</p>
 
           {/* quantity + actions */}
-          <div className="mt-5 grid gap-4">
+          <div className="mt-4 grid gap-3">
             <div>
-              <p className="mb-2 text-sm font-medium text-ink-muted">Quantity</p>
+              <p className="mb-1.5 text-sm font-medium text-ink-muted">Quantity</p>
               <div className="inline-grid h-11 grid-cols-3 overflow-hidden rounded-md border border-ink-soft/60 bg-paper">
                 <button
                   type="button"
@@ -269,18 +267,18 @@ export function ProductDetailsView({
               </div>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 sm:max-w-md sm:grid-cols-2">
               <Button
                 type="button"
                 onClick={addSelectedToCart}
-                className="h-11 bg-neem text-sm font-bold text-paper hover:bg-neem-deep"
+                className="h-11 rounded-lg bg-neem px-4 text-[13px] font-bold text-paper hover:bg-neem-deep"
               >
                 Add to Cart
               </Button>
               <Button
                 type="button"
                 onClick={buyNow}
-                className="h-11 bg-ink text-sm font-bold text-paper hover:bg-ink/90"
+                className="h-11 rounded-lg bg-ink px-4 text-[13px] font-bold text-paper hover:bg-ink/90"
               >
                 Buy Now
               </Button>
@@ -288,7 +286,7 @@ export function ProductDetailsView({
           </div>
 
           {/* social share */}
-          <div className="mt-5 flex flex-wrap items-center gap-3">
+          <div className="mt-4 flex flex-wrap items-center gap-3">
             <span className="text-sm font-semibold text-ink-muted">
               9K shares
             </span>
@@ -310,7 +308,7 @@ export function ProductDetailsView({
           </div>
 
           {/* trust strip */}
-          <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
             {certifications.map((cert) => {
               const Icon = certIcon[cert.icon];
               return (
@@ -329,7 +327,7 @@ export function ProductDetailsView({
       </section>
 
       {/* ===== certified logo ===== */}
-      <section className="mx-auto -mt-20 w-full max-w-[92rem] px-4 pb-2 sm:px-6 lg:px-8">
+      <section className="mx-auto w-full max-w-[92rem] px-4 pb-2 pt-6 sm:px-6 lg:-mt-20 lg:px-8 lg:pt-0">
         <div className="flex justify-center">
           <Image
             src="/images/certified%20Logo/certlogo.png"
@@ -342,35 +340,8 @@ export function ProductDetailsView({
       </section>
 
       {/* ===== details tabs ===== */}
-      <section className="mx-auto -mt-12 w-full max-w-[92rem] px-4 pb-10 pt-0 sm:px-6 lg:px-8">
+      <section className="mx-auto w-full max-w-[92rem] px-4 pb-10 sm:px-6 lg:-mt-12 lg:px-8">
         <ProductTabs detail={detail} />
-      </section>
-
-      {/* ===== video call banner ===== */}
-      <section className="mx-auto w-full max-w-[92rem] px-4 pb-2 sm:px-6 lg:px-8">
-        <div className="flex flex-col items-start gap-4 rounded-2xl bg-ink p-6 text-cream-200 sm:flex-row sm:items-center sm:justify-between sm:p-8">
-          <div className="flex items-start gap-4">
-            <span className="flex size-12 flex-none items-center justify-center rounded-full bg-neem/20 text-neem-soft">
-              <Video className="size-6" />
-            </span>
-            <div>
-              <h2 className="font-display text-xl font-bold text-paper sm:text-2xl">
-                {videoCallBanner.titleBn}
-              </h2>
-              <p className="mt-1 max-w-xl text-sm text-cream-300">{videoCallBanner.descBn}</p>
-            </div>
-          </div>
-          <Button
-            type="button"
-            asChild
-            className="h-12 shrink-0 gap-2 bg-blush px-6 text-ink hover:bg-blush/80"
-          >
-            <a href={videoCallBanner.href}>
-              <CalendarClock className="size-4" />
-              {videoCallBanner.ctaBn}
-            </a>
-          </Button>
-        </div>
       </section>
 
       {/* ===== related products ===== */}

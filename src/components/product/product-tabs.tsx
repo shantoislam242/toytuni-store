@@ -39,7 +39,7 @@ export function ProductTabs({ detail }: { detail: ProductDetail }) {
 
   return (
     <Tabs defaultValue="description" className="mx-auto max-w-3xl gap-6">
-      <TabsList className="flex h-auto w-full flex-wrap justify-center gap-2 bg-transparent p-0">
+      <TabsList className="flex h-auto w-full flex-wrap justify-center gap-2 bg-transparent p-0 group-data-horizontal/tabs:h-auto">
         <TabsTrigger value="description" className={pillClass}>
           Description
         </TabsTrigger>
