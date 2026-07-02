@@ -76,8 +76,11 @@ export function ProductGallery({
             <PlaceholderImage tone={activeItem.tone} label={activeItem.label} className="size-full" />
           )}
 
-          {/* zoom hint */}
-          <div className="pointer-events-none absolute right-3 top-3 flex items-center gap-1 rounded-full bg-paper/90 px-2.5 py-1 text-xs font-medium text-ink-muted opacity-0 shadow-sm transition-opacity group-hover:opacity-100">
+          {/* zoom hint — visible while idle; fades + scales out instantly on
+              hover, and fades back in after a ~250ms delay once the cursor
+              leaves. The asymmetric timing comes from the transition-delay of
+              each target state (delay-0 on hover, delay-[250ms] on idle). */}
+          <div className="pointer-events-none absolute right-3 top-3 flex scale-100 items-center gap-1 rounded-full bg-paper/90 px-2.5 py-1 text-xs font-medium text-ink-muted opacity-100 shadow-sm transition-all delay-[250ms] duration-300 ease-out group-hover:scale-95 group-hover:opacity-0 group-hover:delay-0">
             <ZoomIn className="size-3.5" />
             Hover to zoom
           </div>

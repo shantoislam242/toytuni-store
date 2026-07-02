@@ -27,9 +27,12 @@ export function ProductTabs() {
       </h2>
 
       <Tabs defaultValue="best" className="mt-6">
-        <TabsList className="mx-auto mb-6 flex h-auto max-w-full flex-wrap justify-center gap-1">
+        {/* Mobile: one swipeable row (scrollbar hidden). sm+: centered, wraps
+            only if it must. Triggers size to content (flex-none) so they never
+            cram into a broken 2-row grid. */}
+        <TabsList className="mx-auto mb-6 flex h-auto max-w-full justify-start gap-1 overflow-x-auto [scrollbar-width:none] sm:flex-wrap sm:justify-center [&::-webkit-scrollbar]:hidden">
           {tabs.map((t) => (
-            <TabsTrigger key={t.value} value={t.value}>
+            <TabsTrigger key={t.value} value={t.value} className="flex-none px-3">
               {t.label}
             </TabsTrigger>
           ))}
