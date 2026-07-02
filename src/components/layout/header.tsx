@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -10,10 +10,10 @@ import {
   Heart,
   ChevronDown,
   User,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { PlaceholderImage } from "@/components/placeholder-image";
+import { SmartSearch } from "@/components/search/smart-search";
 import {
   Sheet,
   SheetContent,
@@ -27,7 +27,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { formatTk } from "@/lib/format";
 import {
   Accordion,
   AccordionContent,
@@ -35,7 +34,6 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { mainNav, ageNav, categoryNav, type NavLink } from "@/lib/mock/nav";
-import { products } from "@/lib/mock/products";
 import { BRAND_NAME } from "@/lib/config";
 import { isBareRoute } from "@/lib/routes";
 import { CartBadge } from "@/components/cart/cart-badge";
@@ -86,89 +84,6 @@ function NavItem({
     >
       {label}
     </Link>
-  );
-}
-
-function SearchBox({ className }: { className?: string }) {
-  const [query, setQuery] = useState("");
-  const [active, setActive] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  const results = useMemo(() => {
-    const normalized = query.trim().toLowerCase();
-    if (!normalized) return [];
-    return products.filter((product) =>
-      product.titleBn.toLowerCase().includes(normalized),
-    );
-  }, [query]);
-
-  const showDropdown = active && query.trim().length > 0;
-
-  const handleBlur = (event: React.FocusEvent<HTMLDivElement>) => {
-    if (!containerRef.current?.contains(event.relatedTarget as Node)) {
-      setActive(false);
-    }
-  };
-
-  return (
-    <div
-      ref={containerRef}
-      onBlur={handleBlur}
-      className={className}
-      role="search"
-    >
-      <form
-        onSubmit={(event) => event.preventDefault()}
-        className="relative"
-      >
-        <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-ink-soft" />
-        <Input
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          onFocus={() => setActive(true)}
-          placeholder="Search toys…"
-          aria-label="Search"
-          className="h-9 bg-cream-50 pl-8"
-        />
-      </form>
-
-      {showDropdown ? (
-        <div className="absolute left-0 right-0 z-40 mt-2 max-h-80 overflow-hidden rounded-3xl border border-cream-300 bg-paper shadow-xl shadow-ink/5">
-          <div className="max-h-80 overflow-y-auto">
-            {results.length ? (
-              results.map((product) => (
-                <Link
-                  key={product.slug}
-                  href={`/products/${product.slug}`}
-                  className="group flex items-center gap-3 border-b border-cream-200 px-3 py-3 last:border-b-0 transition-colors hover:bg-cream-100"
-                  onClick={() => setActive(false)}
-                >
-                  <div className="relative h-14 w-14 overflow-hidden rounded-2xl bg-cream-100">
-                    <PlaceholderImage
-                      tone={product.imageTones[0]}
-                      label={product.imageLabelBn}
-                      className="h-full w-full"
-                    />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="line-clamp-2 text-sm font-medium text-ink">
-                      {product.titleBn}
-                    </p>
-                    <p className="mt-1 text-sm text-ink-soft">
-                      {formatTk(product.price)}
-                    </p>
-                  </div>
-                </Link>
-              ))
-            ) : (
-              <div className="px-4 py-4 text-sm text-ink-muted">
-                No products found.
-              </div>
-            )}
-          </div>
-        </div>
-      ) : null}
-    </div>
   );
 }
 
@@ -289,6 +204,8 @@ function DrawerList({
 
 export function Header() {
   const [open, setOpen] = useState(false);
+  // Mobile-only: the header search icon reveals a full-width search bar.
+  const [mobileSearch, setMobileSearch] = useState(false);
   // On scroll-down the search hides and the header shrinks; near the top it
   // expands again.
   //
@@ -362,17 +279,31 @@ export function Header() {
         {/* center: search (desktop) — width + opacity collapse on scroll-down */}
         <div
           className={cn(
-            "mx-auto hidden w-full min-w-0 overflow-hidden transition-all duration-300 ease-in-out md:block",
-            collapsed ? "max-w-0 opacity-0" : "max-w-md opacity-100",
+            "mx-auto hidden w-full min-w-0 transition-all duration-300 ease-in-out md:block",
+            // Clip only while collapsing (width animates to 0); when expanded we
+            // must NOT clip, or the absolute suggestions dropdown gets hidden.
+            collapsed ? "max-w-0 overflow-hidden opacity-0" : "max-w-md opacity-100",
           )}
         >
-          <SearchBox className="w-full" />
+          <SmartSearch className="w-full" />
         </div>
 
         {/* right: wishlist (all sizes) + cart (desktop) + hamburger (mobile).
             On mobile the order reads Wishlist -> Hamburger; search lives in the
             drawer, so there's no standalone search icon. */}
         <div className="ml-auto flex items-center gap-2 md:gap-4">
+          {/* Search — mobile only, sits to the LEFT of the wishlist; toggles the
+              full-width search bar below the top row. */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden"
+            aria-label={mobileSearch ? "Close search" : "Search"}
+            aria-expanded={mobileSearch}
+            onClick={() => setMobileSearch((v) => !v)}
+          >
+            {mobileSearch ? <X className="size-6" /> : <Search className="size-6" />}
+          </Button>
           {/* Wishlist — visible on all sizes (mobile reaches Cart via the
               bottom bar, so the header surfaces Wishlist instead). */}
           <Button
@@ -429,7 +360,7 @@ export function Header() {
                 </SheetTitle>
               </SheetHeader>
               <div className="overflow-y-auto px-4 pb-8">
-                <SearchBox className="py-3" />
+                <SmartSearch className="py-3" />
 
                 {/* One uniform list. By Age / By Category expand in place; the
                     rest are direct links — all share the same top-level style. */}
@@ -477,6 +408,13 @@ export function Header() {
           </Sheet>
         </div>
       </div>
+
+      {/* mobile: full-width search bar, revealed by the header search icon */}
+      {mobileSearch ? (
+        <div className="mx-auto max-w-6xl px-4 pb-2 sm:px-6 md:hidden">
+          <SmartSearch className="w-full" autoFocus />
+        </div>
+      ) : null}
 
       {/* desktop nav row — shrinks its vertical padding on collapse */}
       <nav className="hidden md:block">
