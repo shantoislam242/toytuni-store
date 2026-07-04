@@ -13,11 +13,11 @@ import {
   Plus,
   Recycle,
   ShieldCheck,
-  Sparkles,
   Star,
 } from "lucide-react";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { Button } from "@/components/ui/button";
+import { AgeInsight } from "@/components/product/age-insight";
 import { ProductGallery } from "@/components/product/product-gallery";
 import { ProductTabs } from "@/components/product/product-tabs";
 import { ProductReviews } from "@/components/product/product-reviews";
@@ -25,6 +25,7 @@ import { ProductRail } from "@/components/product/product-rail";
 import { WishlistButton } from "@/components/product/wishlist-button";
 import { useCart } from "@/lib/cart/cart-context";
 import { formatTk } from "@/lib/format";
+import { expertInsightsHref } from "@/lib/routes";
 import { certifications } from "@/lib/mock/trust";
 import { cn } from "@/lib/utils";
 import type { AgeTier, Category, Product, ProductDetail } from "@/lib/types";
@@ -189,15 +190,15 @@ export function ProductDetailsView({
                   {ageTier.labelBn}
                 </span>
               ) : null}
-              {/* Expert Insight — UI only for now; popup/suggestion logic comes later. */}
-              <button
-                type="button"
-                title="Expert Insight"
-                aria-label="Expert Insight"
-                className="inline-flex size-7 items-center justify-center rounded-full bg-neem/10 text-neem-deep transition-colors hover:bg-neem/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neem"
-              >
-                <Sparkles className="size-4" />
-              </button>
+              {/* Expert Insight — info (ⓘ) popover explaining the age fit + benefits. */}
+              {ageTier ? (
+                <AgeInsight
+                  ageLabel={ageTier.labelBn}
+                  focus={ageTier.taglineBn}
+                  benefits={detail.benefits}
+                  learnMoreHref={expertInsightsHref(product.slug)}
+                />
+              ) : null}
             </div>
             <WishlistButton slug={product.slug} className="border border-cream-200 bg-paper" />
           </div>

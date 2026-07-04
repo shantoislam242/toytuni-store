@@ -21,12 +21,10 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { Breadcrumb } from "@/components/breadcrumb";
-import { AboutImage } from "@/components/about/about-image";
 import { Counter } from "@/components/about/counter";
 import { Reveal } from "@/components/policy/reveal";
 import { BRAND_NAME } from "@/lib/config";
 import {
-  aboutGallery,
   aboutJourney,
   aboutMissionVision,
   aboutPhilosophy,
@@ -102,75 +100,40 @@ function FeatureCard({ icon, title, desc }: { icon: AboutIcon; title: string; de
 export function AboutView() {
   return (
     <main className="flex-1 bg-paper">
-      {/* hero */}
-      <section className={`relative ${SECTION} pt-6 pb-10 text-center`}>
-        <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
-          <div className="absolute -top-20 left-1/2 size-72 -translate-x-1/2 rounded-full bg-neem/10 blur-3xl" />
-          <div className="absolute top-8 right-8 size-40 rounded-full bg-mustard/10 blur-3xl" />
-          <div className="absolute top-16 left-8 size-40 rounded-full bg-blush/20 blur-3xl" />
-          <Leaf className="absolute left-[12%] top-24 size-8 -rotate-12 text-neem/20" />
-          <Leaf className="absolute right-[14%] top-16 size-6 rotate-[18deg] text-neem/20" />
-        </div>
-        <div className="relative">
-          <Breadcrumb items={[{ label: "Home", href: "/" }, { label: "About Us" }]} />
-          <Reveal className="mt-6">
-            <span className="inline-flex items-center gap-2 rounded-full border border-neem/20 bg-neem/10 px-4 py-1.5 text-sm font-semibold text-neem-deep">
-              <Sparkles className="size-4" />
-              About Us
-            </span>
-            <h1 className="mx-auto mt-4 max-w-3xl font-display text-4xl font-bold tracking-tight text-ink sm:text-5xl lg:text-6xl">
-              Creating meaningful play experiences for every child.
-            </h1>
-            <p className="mx-auto mt-4 max-w-xl text-ink-muted">
-              We design and handcraft natural, Montessori-inspired wooden toys that help
-              children learn, grow, and imagine — one joyful moment of play at a time.
-            </p>
-          </Reveal>
-        </div>
-
-        <Reveal className="mt-8">
-          <AboutImage
-            src="/images/about/hero.png"
-            alt="Handmade Montessori wooden toys"
-            tone="neem-soft"
-            label="Handmade Montessori toys"
-            priority
-            width={2172}
-            height={900}
-            className="h-[240px] w-full rounded-3xl border border-cream-200 sm:h-[340px] lg:h-[440px]"
-          />
+      {/* page header — text only (hero + imagery to be added later) */}
+      <section className={`${SECTION} pt-6 pb-8 text-center`}>
+        <Breadcrumb items={[{ label: "Home", href: "/" }, { label: "About Us" }]} />
+        <Reveal className="mt-6">
+          <span className="inline-flex items-center gap-2 rounded-full border border-neem/20 bg-neem/10 px-4 py-1.5 text-sm font-semibold text-neem-deep">
+            <Sparkles className="size-4" />
+            About Us
+          </span>
+          <h1 className="mx-auto mt-4 max-w-3xl font-display text-4xl font-bold tracking-tight text-ink sm:text-5xl lg:text-6xl">
+            Creating meaningful play experiences for every child.
+          </h1>
+          <p className="mx-auto mt-4 max-w-xl text-ink-muted">
+            We design and handcraft natural, Montessori-inspired wooden toys that help
+            children learn, grow, and imagine — one joyful moment of play at a time.
+          </p>
         </Reveal>
       </section>
 
       {/* our story */}
       <section className={`${SECTION} py-10`}>
-        <div className="grid items-center gap-8 lg:grid-cols-2 lg:gap-12">
-          <Reveal>
-            <AboutImage
-              src="/images/about/story.png"
-              alt="Crafting wooden toys by hand"
-              tone="wood"
-              label="Crafted by hand"
-              width={1000}
-              height={1000}
-              className="aspect-[4/3] w-full rounded-3xl border border-cream-200 lg:aspect-[5/6]"
-            />
-          </Reveal>
-          <Reveal>
-            <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-neem-deep">
-              Our story
-            </span>
-            <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-ink sm:text-3xl">
-              It began with a search for better play
-            </h2>
-            <div className="mt-4 space-y-4">
-              {aboutStory.map((p) => (
-                <p key={p} className="text-[15px] leading-relaxed text-ink-muted">
-                  {p}
-                </p>
-              ))}
-            </div>
-          </Reveal>
+        <Reveal className="mx-auto max-w-3xl text-center">
+          <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-neem-deep">
+            Our story
+          </span>
+          <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-ink sm:text-3xl">
+            It began with a search for better play
+          </h2>
+        </Reveal>
+        <div className="mx-auto mt-6 max-w-3xl space-y-4">
+          {aboutStory.map((p) => (
+            <p key={p} className="text-[15px] leading-relaxed text-ink-muted">
+              {p}
+            </p>
+          ))}
         </div>
       </section>
 
@@ -297,29 +260,6 @@ export function AboutView() {
             ))}
           </div>
         </Reveal>
-      </section>
-
-      {/* gallery */}
-      <section className={`${SECTION} py-10`}>
-        <Reveal>
-          <SectionHead eyebrow="A peek inside" title="Play, beautifully made" />
-        </Reveal>
-        <div className="mt-8 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
-          {aboutGallery.map((g, i) => (
-            <Reveal key={g.id} delay={Math.min(i * 0.05, 0.25)}>
-              <div className="group overflow-hidden rounded-2xl border border-cream-200">
-                <div className="transition-transform duration-500 ease-out group-hover:scale-105">
-                  <AboutImage
-                    alt={g.label}
-                    tone={g.tone}
-                    label={g.label}
-                    className="aspect-[4/3] w-full"
-                  />
-                </div>
-              </div>
-            </Reveal>
-          ))}
-        </div>
       </section>
 
       {/* testimonials */}

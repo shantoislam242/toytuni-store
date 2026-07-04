@@ -173,9 +173,10 @@ export function ContactForm() {
 
         <button
           type="submit"
-          className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-md bg-neem px-6 text-sm font-bold text-paper transition-colors hover:bg-neem-deep"
+          className="group inline-flex h-12 w-full items-center justify-center gap-2 rounded-md bg-neem px-6 text-sm font-bold text-paper transition-colors hover:bg-neem-deep"
         >
-          <Send className="size-4" />
+          {/* Paper-plane rotates to the right on hover (matches the newsletter). */}
+          <Send className="size-4 transition-transform duration-300 ease-out group-hover:rotate-45" />
           Send Message
         </button>
 

@@ -25,6 +25,41 @@ export const categoryNav: NavLink[] = categories.map((c) => ({
   href: c.href,
 }));
 
+/** A titled column of links for the "By Category" desktop mega-menu. */
+export type NavGroup = { heading: string; links: NavLink[] };
+
+/** Resolve a category slug to its nav link (keeps labels/hrefs in sync with the
+ *  categories source; unknown slugs still resolve to a /collections stub page). */
+const catLink = (slug: string): NavLink => {
+  const c = categories.find((x) => x.slug === slug);
+  return { labelBn: c?.nameBn ?? slug, href: c?.href ?? `/collections/${slug}` };
+};
+
+/**
+ * Grouped taxonomy for the desktop "By Category" mega-menu. The existing eight
+ * category collections are organised under a few headings; every link points at
+ * a real (or graceful-stub) /collections page. The mobile drawer keeps the flat
+ * `categoryNav` list.
+ */
+export const categoryGroups: NavGroup[] = [
+  {
+    heading: "Toys",
+    links: [catLink("teethers"), catLink("rattles"), catLink("blocks")],
+  },
+  {
+    heading: "Puzzles & Sorting",
+    links: [catLink("stacking"), catLink("puzzles")],
+  },
+  {
+    heading: "Developmental Aids",
+    links: [catLink("push-pull"), catLink("ride-on")],
+  },
+  {
+    heading: "Montessori & Learning",
+    links: [catLink("montessori")],
+  },
+];
+
 /** Footer "Information" column. */
 export const footerInfo: NavLink[] = [
   { labelBn: "Search", href: "/search" },

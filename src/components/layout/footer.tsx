@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Globe, ArrowRight } from "lucide-react";
+import { Globe, Send } from "lucide-react";
 import {
   footerShop,
   footerCustomerCare,
@@ -208,7 +208,7 @@ export function Footer() {
                     key={s.label}
                     href={s.href}
                     aria-label={s.label}
-                    className="flex size-9 items-center justify-center rounded-full bg-ink/5 text-ink-muted transition-colors hover:bg-neem hover:text-paper"
+                    className="flex size-9 items-center justify-center rounded-full bg-ink/5 text-ink-muted transition-all duration-500 ease-out hover:-translate-y-1 hover:scale-110 hover:bg-neem hover:text-paper hover:shadow-md hover:shadow-neem/25 active:scale-95"
                   >
                     <SocialIcon icon={s.icon} />
                   </Link>
@@ -232,12 +232,14 @@ export function Footer() {
                 aria-label="Email address"
                 className="flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-ink-soft"
               />
+              <span className="h-6 w-px shrink-0 bg-cream-300" aria-hidden />
               <button
                 type="button"
                 aria-label="Subscribe"
-                className="flex size-9 shrink-0 items-center justify-center rounded-full bg-neem text-paper transition-colors hover:bg-neem-deep"
+                className="group flex size-9 shrink-0 items-center justify-center rounded-full bg-neem text-paper transition-colors hover:bg-neem-deep"
               >
-                <ArrowRight className="size-4" />
+                {/* Paper-plane rotates to the right on hover. */}
+                <Send className="size-4 transition-transform duration-300 ease-out group-hover:rotate-45" />
               </button>
             </div>
           </div>

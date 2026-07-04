@@ -33,7 +33,13 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { mainNav, ageNav, categoryNav, type NavLink } from "@/lib/mock/nav";
+import {
+  mainNav,
+  ageNav,
+  categoryNav,
+  categoryGroups,
+  type NavLink,
+} from "@/lib/mock/nav";
 import { BRAND_NAME } from "@/lib/config";
 import { isBareRoute } from "@/lib/routes";
 import { CartBadge } from "@/components/cart/cart-badge";
@@ -175,6 +181,137 @@ function NavDropdown({
         })}
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+/**
+ * Desktop "By Category" mega-menu: a full-width panel (spanning the sticky
+ * header edge-to-edge) that drops below the nav row and lays the category
+ * taxonomy out in titled columns. Opens on hover for fine pointers and on click
+ * otherwise; closes on Escape, outside click, or when a link is chosen. The
+ * panel stays mounted and animates via opacity/translate so both the open and
+ * the close are smooth. Mobile uses the flat drawer list instead.
+ */
+function CategoryMega({ pathname }: { pathname: string }) {
+  const active = categoryGroups.some((g) =>
+    g.links.some((l) => isActivePath(pathname, l.href)),
+  );
+
+  const [open, setOpen] = useState(false);
+  const [hoverable, setHoverable] = useState(false);
+  const closeTimer = useRef<number | null>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(hover: hover) and (pointer: fine)");
+    setHoverable(mq.matches);
+    const onChange = (e: MediaQueryListEvent) => setHoverable(e.matches);
+    mq.addEventListener("change", onChange);
+    return () => {
+      mq.removeEventListener("change", onChange);
+      if (closeTimer.current) clearTimeout(closeTimer.current);
+    };
+  }, []);
+
+  const cancelClose = () => {
+    if (closeTimer.current) {
+      clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+  };
+  const hoverOpen = () => {
+    if (!hoverable) return;
+    cancelClose();
+    setOpen(true);
+  };
+  // A short delay lets the cursor cross the gap between the trigger and the
+  // panel without the menu flickering shut.
+  const hoverClose = () => {
+    if (!hoverable) return;
+    cancelClose();
+    closeTimer.current = window.setTimeout(() => setOpen(false), 150);
+  };
+
+  // Escape + outside-click close (covers click-opened menus on touch/keyboard).
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    const onDown = (e: MouseEvent) => {
+      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("mousedown", onDown);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("mousedown", onDown);
+    };
+  }, [open]);
+
+  return (
+    <div ref={wrapRef} onMouseEnter={hoverOpen} onMouseLeave={hoverClose}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-haspopup="true"
+        data-state={open ? "open" : "closed"}
+        className={cn(
+          navItemBase,
+          "gap-1 data-[state=open]:text-neem-deep data-[state=open]:after:scale-x-100",
+          active ? "text-neem-deep after:scale-x-100" : "text-ink",
+        )}
+      >
+        By Category
+        <ChevronDown className="size-4 transition-transform duration-200 group-data-[state=open]/navitem:rotate-180" />
+      </button>
+
+      {/* Full-width panel. Its offset parent is the sticky <header>, so it spans
+          the header edge-to-edge and drops just below the nav row. Stays mounted
+          (visibility toggled) so opacity/translate animate on open AND close. */}
+      <div
+        onMouseEnter={hoverOpen}
+        onMouseLeave={hoverClose}
+        aria-hidden={!open}
+        className={cn(
+          "absolute inset-x-0 top-full z-40 border-t border-cream-200 bg-paper shadow-xl shadow-ink/5 transition-all duration-200 ease-out",
+          open
+            ? "visible translate-y-0 opacity-100"
+            : "pointer-events-none invisible -translate-y-2 opacity-0",
+        )}
+      >
+        <div className="mx-auto grid max-w-6xl grid-cols-2 gap-x-8 gap-y-8 px-6 py-8 sm:grid-cols-3 lg:grid-cols-4">
+          {categoryGroups.map((g) => (
+            <div key={g.heading}>
+              <p className="mb-3 font-display text-base font-bold text-ink">
+                {g.heading}
+              </p>
+              <ul className="space-y-2.5">
+                {g.links.map((l) => {
+                  const itemActive = isActivePath(pathname, l.href);
+                  return (
+                    <li key={l.href}>
+                      <Link
+                        href={l.href}
+                        onClick={() => setOpen(false)}
+                        aria-current={itemActive ? "page" : undefined}
+                        className={cn(
+                          "text-sm text-ink-muted transition-colors hover:text-neem-deep",
+                          itemActive && "font-medium text-neem-deep",
+                        )}
+                      >
+                        {l.labelBn}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -433,11 +570,7 @@ export function Header() {
             active={isActivePath(pathname, "/collections/all")}
           />
           <NavDropdown label="By Age" links={ageNav} pathname={pathname} />
-          <NavDropdown
-            label="By Category"
-            links={categoryNav}
-            pathname={pathname}
-          />
+          <CategoryMega pathname={pathname} />
           {mainNav.slice(2).map((l) => (
             <NavItem
               key={l.href}

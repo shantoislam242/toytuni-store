@@ -8,3 +8,12 @@ export const isBareRoute = (pathname: string): boolean =>
   BARE_ROUTES.some(
     (route) => pathname === route || pathname.startsWith(`${route}/`),
   );
+
+/**
+ * Destination for a product's dedicated "Expert Insights" page. Placeholder for
+ * now — change ONLY this function once the real URL is known and every "Learn
+ * More" link updates automatically (the components read from here, not a literal
+ * route). Return a function of the slug so per-product URLs stay possible.
+ */
+export const expertInsightsHref = (slug: string): string =>
+  `/products/${slug}/expert-insights`;

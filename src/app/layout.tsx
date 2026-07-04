@@ -7,6 +7,7 @@ import { FooterGate } from "@/components/layout/footer-gate";
 import { SiteBackground } from "@/components/layout/site-background";
 import { MobileBottomBar } from "@/components/layout/mobile-bottom-bar";
 import { WhatsAppButton } from "@/components/layout/whatsapp-button";
+import { BackToTop } from "@/components/layout/back-to-top";
 import { CartProvider } from "@/lib/cart/cart-context";
 import { WishlistProvider } from "@/lib/wishlist/wishlist-context";
 import { Toaster } from "@/components/ui/sonner";
@@ -67,6 +68,7 @@ export default function RootLayout({
             </FooterGate>
             <MobileBottomBar />
             <WhatsAppButton />
+            <BackToTop />
             <CursorSparkleTrail />
             <Toaster />
           </WishlistProvider>
