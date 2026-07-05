@@ -17,6 +17,8 @@ import {
   Star,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Breadcrumb } from "@/components/breadcrumb";
+import { crumbs } from "@/lib/breadcrumbs";
 import { AgeInsight } from "@/components/product/age-insight";
 import { CartAddedPopup } from "@/components/cart/cart-added-popup";
 import { ProductGallery } from "@/components/product/product-gallery";
@@ -95,6 +97,7 @@ export function ProductDetailsView({
   product,
   detail,
   ageTier,
+  category,
   related,
 }: {
   product: Product;
@@ -178,6 +181,19 @@ export function ProductDetailsView({
 
   return (
     <main className="flex-1 bg-paper">
+      {/* breadcrumb */}
+      <div className="mx-auto w-full max-w-6xl px-4 pt-4 sm:px-6 lg:px-8">
+        <Breadcrumb
+          items={crumbs(
+            { label: "Shop", href: "/collections/all" },
+            ...(category
+              ? [{ label: category.nameBn, href: category.href }]
+              : []),
+            { label: product.titleBn },
+          )}
+        />
+      </div>
+
       {/* ===== top: gallery + purchase (balanced 50/50) ===== */}
       <section className="mx-auto grid w-full max-w-6xl gap-8 px-4 pb-8 pt-3 sm:px-6 sm:pb-10 sm:pt-4 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:gap-10 lg:px-8">
         <ProductGallery

@@ -9,6 +9,8 @@ import {
   Phone,
   Sparkles,
 } from "lucide-react";
+import { Breadcrumb } from "@/components/breadcrumb";
+import { crumbs } from "@/lib/breadcrumbs";
 import { ContactForm } from "@/components/contact/contact-form";
 import { ContactImage } from "@/components/contact/contact-image";
 import { contactInfo, contactTrust } from "@/lib/mock/contact";
@@ -31,7 +33,8 @@ export function ContactView() {
   return (
     <main className="flex-1 bg-paper">
       {/* hero */}
-      <section className="relative mx-auto w-full max-w-[80rem] overflow-hidden px-4 pt-12 pb-8 text-center sm:px-6 lg:px-8">
+      <section className="relative mx-auto w-full max-w-[80rem] overflow-hidden px-4 pt-6 pb-8 text-center sm:px-6 lg:px-8">
+        <Breadcrumb items={crumbs({ label: "Contact" })} />
         {/* decorative leaf sprig (bottom-left) */}
         <Leaf
           className="pointer-events-none absolute left-6 top-28 size-8 -rotate-12 text-neem/20 sm:left-16"
