@@ -4,6 +4,8 @@ import Link from "next/link";
 import { Heart, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ProductCard } from "@/components/product/product-card";
+import { Breadcrumb } from "@/components/breadcrumb";
+import { crumbs } from "@/lib/breadcrumbs";
 import { useWishlist } from "@/lib/wishlist/wishlist-context";
 import { productBySlug } from "@/lib/mock/products";
 
@@ -46,7 +48,8 @@ export function WishlistView() {
 
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 px-4 pt-8 pb-24 sm:px-6 sm:py-10 lg:max-w-[90rem] lg:px-8">
-      <header className="flex items-end justify-between">
+      <Breadcrumb items={crumbs({ label: "Wishlist" })} />
+      <header className="mt-6 flex items-end justify-between">
         <div>
           <h1 className="font-display text-3xl font-bold tracking-tight text-ink sm:text-4xl">
             Your Wishlist

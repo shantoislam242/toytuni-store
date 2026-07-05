@@ -1,23 +1,13 @@
-import Link from "next/link";
-import { ChevronRight } from "lucide-react";
 import { ProductGrid } from "@/components/collection/product-grid";
 import { GiftCardBlock } from "@/components/gift/gift-card-block";
+import { Breadcrumb } from "@/components/breadcrumb";
+import { crumbs } from "@/lib/breadcrumbs";
 import { giftKits } from "@/lib/mock/gifts";
 
 export function GiftView() {
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 sm:py-10 lg:max-w-[90rem] lg:px-8">
-      {/* breadcrumb */}
-      <nav
-        aria-label="Breadcrumb"
-        className="flex items-center gap-1 text-sm text-ink-soft"
-      >
-        <Link href="/" className="hover:text-ink">
-          Home
-        </Link>
-        <ChevronRight className="size-3.5" />
-        <span className="font-medium text-ink-muted">Gifts</span>
-      </nav>
+      <Breadcrumb items={crumbs({ label: "Gifts" })} />
 
       {/* intro */}
       <header className="mt-4 text-center">
