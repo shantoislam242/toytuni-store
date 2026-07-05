@@ -130,7 +130,7 @@ export const socials: Social[] = [
 /** Mobile bottom navigation bar. */
 export const bottomNav = [
   { labelBn: "Home", href: "/", icon: "home" as const },
-  { labelBn: "Category", href: "/collections/all", icon: "grid" as const },
+  { labelBn: "Products", href: "/collections/all", icon: "grid" as const },
   { labelBn: "Cart", href: "/cart", icon: "cart" as const },
   { labelBn: "Profile", href: "/signin", icon: "user" as const },
 ];

@@ -158,7 +158,7 @@ function NavDropdown({
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="start"
-        className="min-w-44 duration-200"
+        className="min-w-44 border border-cream-200 bg-paper ring-0 duration-200"
         onMouseEnter={hoverOpen}
         onMouseLeave={hoverClose}
       >
