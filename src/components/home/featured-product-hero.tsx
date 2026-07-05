@@ -40,7 +40,6 @@ export function FeaturedProductHero() {
               imageNum={1}
               label={product.imageLabelBn}
               fallbackTone={product.imageTones[0]}
-              priority
               className="size-full transition-transform duration-500 ease-out group-hover:scale-105"
             />
           </Link>

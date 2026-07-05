@@ -36,6 +36,8 @@ function Tile({ href, label, slug }: { href: string; label: string; slug: string
       <img
         src={`/images/category/${slug}/1.webp`}
         alt={label}
+        loading="lazy"
+        decoding="async"
         className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
       />
       <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink/70 to-transparent px-4 pb-4 pt-12 text-center font-display text-sm font-bold text-paper sm:text-base">
@@ -121,6 +123,8 @@ function AgeTierImage({
     <img
       src={imagePath}
       alt={label}
+      loading="lazy"
+      decoding="async"
       className={cn("h-full w-full object-cover", className)}
     />
   );
