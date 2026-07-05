@@ -242,7 +242,7 @@ export function CartView() {
 
         {/* order summary */}
         <aside className="lg:col-span-1">
-          <div className="rounded-xl border border-cream-300 bg-card p-5 lg:sticky lg:top-28">
+          <div className="rounded-xl border border-cream-300 bg-card p-5 lg:sticky lg:top-[124px]">
             <h2 className="font-display text-lg font-bold text-ink">
               Order Summary
             </h2>
