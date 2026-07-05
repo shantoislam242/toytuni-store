@@ -623,18 +623,22 @@ export function Header() {
       <nav
         className={cn(
           "hidden md:block",
-          navUp ? "md:flex-1 md:basis-auto" : "md:basis-full",
+          // md:mr-* trims the right edge of the flex-1 box, shifting the nav's
+          // centre (and so the whole menu) left by half the margin — while the
+          // justify-center contraction stays symmetric. Smaller on md so it
+          // can't crowd the brand on narrower desktops.
+          navUp ? "md:mr-16 md:flex-1 md:basis-auto lg:mr-32" : "md:basis-full",
         )}
       >
         <div
           data-collapsed={navUp ? "true" : "false"}
           className={cn(
             "group/navrow flex items-center justify-center transition-all duration-300",
-            // Expanded: centered on its own row with roomy gaps. Collapsed:
-            // left-aligned beside the brand with tighter gaps so the condensed
-            // row reads as one compact group.
+            // Stays centered in both states (no justify-start), so when the gaps
+            // tighten on collapse the row contracts toward its own centre —
+            // pulling in evenly from BOTH sides rather than only the right.
             navUp
-              ? "gap-0.5 py-2 md:justify-start md:gap-0.5 lg:gap-1"
+              ? "gap-0.5 py-2 md:gap-0.5 lg:gap-1"
               : "gap-2 py-4 md:gap-3 lg:gap-4",
           )}
         >
