@@ -7,6 +7,7 @@ import {
   Mail,
   MapPin,
   Phone,
+  Send,
   Sparkles,
 } from "lucide-react";
 import { Breadcrumb } from "@/components/breadcrumb";
@@ -114,9 +115,38 @@ export function ContactView() {
         </div>
       </section>
 
-      {/* full-width hero image band */}
+      {/* full-width hero image band with a newsletter card overlaid on the
+          image's bottom-left corner (uses the empty left space of the artwork) */}
       <section className="mx-auto w-full max-w-[80rem] px-4 pb-12 sm:px-6 lg:px-8">
-        <ContactImage />
+        <div className="relative">
+          <ContactImage />
+
+          <div className="absolute bottom-6 left-1/2 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 text-center sm:bottom-8">
+            <h3 className="font-display text-lg font-bold text-ink sm:text-xl">
+              Stay updated from us
+            </h3>
+            <p className="mt-1 text-sm text-ink-muted">
+              Get early access to new toys, offers, and parenting tips.
+            </p>
+            <div className="mt-4 flex items-center gap-2 rounded-full border border-cream-300 bg-paper p-1.5 pl-4">
+              <input
+                type="email"
+                placeholder="Enter your email"
+                aria-label="Email address"
+                className="flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-ink-soft"
+              />
+              <span className="h-6 w-px shrink-0 bg-cream-300" aria-hidden />
+              <button
+                type="button"
+                aria-label="Subscribe"
+                className="group flex size-9 shrink-0 items-center justify-center rounded-full bg-neem text-paper transition-colors hover:bg-neem-deep"
+              >
+                {/* Paper-plane rotates on hover, matching the footer signup. */}
+                <Send className="size-4 transition-transform duration-300 ease-out group-hover:rotate-45" />
+              </button>
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* trust strip */}

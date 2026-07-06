@@ -67,6 +67,10 @@ function Stars({ rating }: { rating: number }) {
 export function ProductCard({ product }: { product: Product }) {
   const ageTier = ageTierBySlug(product.ageTierSlug);
   const href = `/products/${product.slug}`;
+  const discountPercent =
+    product.compareAtPrice && product.compareAtPrice > product.price
+      ? Math.round((1 - product.price / product.compareAtPrice) * 100)
+      : 0;
 
   return (
     <motion.div
@@ -106,9 +110,24 @@ export function ProductCard({ product }: { product: Product }) {
             />
           </motion.div>
 
-        {/* badge — top-left */}
-        {product.badge ? (
-          <Badge className="absolute left-2 top-2 max-w-[calc(100%-3.5rem)] truncate bg-neem px-2 text-[10px] text-paper sm:left-2.5 sm:top-2.5 sm:text-xs">
+        {/* discount corner ribbon — a solid folded triangle filling the card's
+            top-left corner (cut on the diagonal via clip-path), with upright
+            "NN% / OFF" text tucked into the corner. */}
+        {discountPercent ? (
+          <div className="pointer-events-none absolute left-0 top-0 z-20 size-[80px] [clip-path:polygon(0_0,100%_0,0_100%)] bg-[linear-gradient(135deg,var(--danger),var(--terracotta))] shadow-[1px_1px_5px_rgba(0,0,0,0.2)] sm:size-[88px]">
+            <div className="pl-[7px] pt-[4px] leading-none text-white">
+              <div className="text-[15px] font-extrabold tracking-tight sm:text-[17px]">
+                {discountPercent}%
+              </div>
+              <div className="text-[10px] font-bold tracking-[0.12em]">OFF</div>
+            </div>
+          </div>
+        ) : null}
+
+        {/* category badge — hidden on discounted (deal) cards so the ribbon
+            owns the corner; shown normally on every other card. */}
+        {product.badge && !discountPercent ? (
+          <Badge className="absolute left-2 top-2 z-[1] max-w-[calc(100%-3.5rem)] truncate bg-neem px-2 text-[10px] text-paper sm:left-2.5 sm:top-2.5 sm:text-xs">
             {product.badge}
           </Badge>
         ) : null}

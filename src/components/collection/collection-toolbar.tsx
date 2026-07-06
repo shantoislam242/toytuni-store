@@ -51,13 +51,13 @@ export function CollectionToolbar({
           <SelectTrigger
             id="sort"
             aria-label="Sort products"
-            className="w-[148px] sm:w-[190px]"
+            className="h-10 w-[168px] rounded-lg border-cream-300 bg-paper px-3.5 text-sm text-ink sm:w-[215px]"
           >
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="min-w-[168px] bg-paper sm:min-w-[215px]">
             {SORT_OPTIONS.map((o) => (
-              <SelectItem key={o.value} value={o.value}>
+              <SelectItem key={o.value} value={o.value} className="py-1.5">
                 {o.label}
               </SelectItem>
             ))}

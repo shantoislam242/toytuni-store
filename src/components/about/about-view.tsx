@@ -13,6 +13,7 @@ import {
   PersonStanding,
   Puzzle,
   Recycle,
+  Send,
   Shield,
   ShieldCheck,
   Sparkles,
@@ -324,6 +325,30 @@ export function AboutView() {
                 >
                   Contact Us
                 </Link>
+              </div>
+
+              {/* stay-connected newsletter signup */}
+              <div className="mx-auto mt-10 max-w-sm">
+                <p className="text-sm font-semibold text-ink">
+                  Connect with us
+                </p>
+                <div className="mt-3 flex items-center gap-2 rounded-full border border-cream-300 bg-paper p-1.5 pl-4">
+                  <input
+                    type="email"
+                    placeholder="Enter your email"
+                    aria-label="Email address"
+                    className="flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-ink-soft"
+                  />
+                  <span className="h-6 w-px shrink-0 bg-cream-300" aria-hidden />
+                  <button
+                    type="button"
+                    aria-label="Subscribe"
+                    className="group flex size-9 shrink-0 items-center justify-center rounded-full bg-neem text-paper transition-colors hover:bg-neem-deep"
+                  >
+                    {/* Paper-plane rotates on hover, matching the footer signup. */}
+                    <Send className="size-4 transition-transform duration-300 ease-out group-hover:rotate-45" />
+                  </button>
+                </div>
               </div>
             </div>
           </div>

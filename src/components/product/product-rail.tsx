@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   Carousel,
@@ -5,6 +8,7 @@ import {
   CarouselItem,
   CarouselNext,
   CarouselPrevious,
+  type CarouselApi,
 } from "@/components/ui/carousel";
 import { ProductCard } from "@/components/product/product-card";
 import { SectionHeading } from "@/components/section-heading";
@@ -17,11 +21,16 @@ type Props = {
   products: Product[];
   viewAllHref?: string;
   viewAllLabel?: string;
+  /** When true the rail auto-advances (loops, pauses on hover). */
+  autoplay?: boolean;
 };
+
+const AUTOPLAY_DELAY = 3500;
 
 /**
  * Section heading + horizontally scrollable product carousel.
  * Mobile: swipe (peek of next card). Desktop: arrows.
+ * Optionally auto-slides (opt-in via `autoplay`).
  */
 export function ProductRail({
   title,
@@ -29,7 +38,39 @@ export function ProductRail({
   products,
   viewAllHref,
   viewAllLabel = "View all",
+  autoplay = false,
 }: Props) {
+  const [api, setApi] = useState<CarouselApi>();
+
+  // Auto-advance driven directly off the carousel API (rather than the embla
+  // autoplay plugin, which permanently bails if the carousel measures 0 width
+  // on first mount inside a tab). Pauses on hover, resumes on leave.
+  useEffect(() => {
+    if (!autoplay || !api) return;
+
+    let timer: ReturnType<typeof setInterval> | undefined;
+    const stop = () => {
+      if (timer) clearInterval(timer);
+      timer = undefined;
+    };
+    const play = () => {
+      stop();
+      // loop is on, so scrollNext wraps seamlessly with no dead-end.
+      timer = setInterval(() => api.scrollNext(), AUTOPLAY_DELAY);
+    };
+
+    play();
+    const root = api.rootNode();
+    root.addEventListener("mouseenter", stop);
+    root.addEventListener("mouseleave", play);
+
+    return () => {
+      stop();
+      root.removeEventListener("mouseenter", stop);
+      root.removeEventListener("mouseleave", play);
+    };
+  }, [api, autoplay]);
+
   return (
     <section className="py-2">
       {title ? (
@@ -44,7 +85,11 @@ export function ProductRail({
           </Link>
         </div>
       ) : null}
-      <Carousel opts={{ align: "start", loop: false }} className="w-full">
+      <Carousel
+        setApi={setApi}
+        opts={{ align: "start", loop: autoplay }}
+        className="w-full"
+      >
         <CarouselContent className="-ml-2 overflow-visible sm:-ml-3">
           {products.map((p) => (
             <CarouselItem

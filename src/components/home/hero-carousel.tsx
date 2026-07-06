@@ -98,18 +98,51 @@ export function HeroCarousel() {
         <CarouselNext className="right-4 hidden border-none bg-paper/80 sm:flex" />
       </Carousel>
 
-      {/* Shop Now CTA — anchored near the bottom-right of the hero (a little up
+      {/* CTA cluster — anchored near the bottom-right of the hero (a little up
           from the edge, clear of the dots), gently fades + slides up on mount
           (Framer Motion). The overlay is click-through (pointer-events-none) so
-          carousel swipe/arrows still work; only the pill is interactive. Points
-          at the current slide's target. */}
+          carousel swipe/arrows still work; only the pills are interactive.
+          "Shop Now" is the primary CTA (points at the current slide's target);
+          "Explore by Age" is the secondary CTA (frosted outline) that smoothly
+          scrolls to the Shop by Age section. On narrow screens the pair stacks. */}
       <div className="pointer-events-none absolute inset-0 z-10 flex items-end justify-end pb-14 pr-6 sm:pb-16 sm:pr-16 lg:pr-24">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: "easeOut", delay: 0.3 }}
-          className="pointer-events-auto"
+          className="pointer-events-auto flex flex-col-reverse items-end gap-2.5 sm:flex-row sm:items-end sm:gap-3"
         >
+          {/* secondary CTA — Explore by Age. Same float + shine-sweep motion as
+              Shop Now; only the box colour differs (frosted outline). */}
+          <motion.div
+            className="relative"
+            animate={{ y: [0, -4, 0], rotate: [0, 0.2, 0] }}
+            transition={{ duration: 4.2, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}
+            whileHover={{ scale: 1.05, y: -5, boxShadow: "0 20px 45px rgba(31, 41, 20, 0.18)" }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <div className="absolute inset-x-3 -bottom-2 h-3 rounded-full bg-ink/15 blur-xl" />
+            <Link
+              href="/collections/by-age"
+              className="group relative inline-flex w-60 items-center justify-center overflow-hidden whitespace-nowrap rounded-full border border-white/60 bg-paper/80 px-7 py-3.5 text-xs font-semibold uppercase tracking-[0.1em] text-neem-deep shadow-[0_10px_28px_rgba(31,41,20,0.14)] backdrop-blur-md transition-colors duration-300 ease-out hover:border-neem hover:bg-paper sm:w-64 sm:px-8 sm:py-4 sm:text-sm"
+            >
+              <motion.span
+                className="absolute inset-y-0 -left-1/3 w-1/3 -skew-x-12 bg-[linear-gradient(110deg,transparent_0%,rgba(255,255,255,0.85)_50%,transparent_100%)] blur-[2px]"
+                animate={{ x: ["0%", "460%"] }}
+                transition={{ duration: 3.8, repeat: Infinity, repeatDelay: 2.4, ease: "linear" }}
+              />
+              <span className="relative z-10 inline-flex items-center">
+                {/* arrow appears at the beginning of the text on hover… */}
+                <ArrowRight className="pointer-events-none absolute left-0 top-1/2 size-4 -translate-x-8 -translate-y-1/2 opacity-0 transition-all duration-300 ease-out group-hover:translate-x-0 group-hover:opacity-100" />
+                {/* …and the text slides a little to the right to make room */}
+                <span className="transition-transform duration-300 ease-out group-hover:translate-x-6">
+                  Explore by Age
+                </span>
+              </span>
+            </Link>
+          </motion.div>
+
+          {/* primary CTA — Shop Now (gradient pill, gentle float) */}
           <motion.div
             className="relative"
             animate={{ y: [0, -4, 0], rotate: [0, 0.2, 0] }}
@@ -120,22 +153,20 @@ export function HeroCarousel() {
             <div className="absolute inset-x-3 -bottom-2 h-3 rounded-full bg-neem/25 blur-xl" />
             <Link
               href={heroSlides[selected]?.href ?? "/collections/all"}
-              className="group relative inline-flex items-center overflow-hidden rounded-full border border-white/20 bg-[linear-gradient(135deg,#8fb466_0%,#5f7e3d_100%)] px-7 py-3.5 text-xs font-semibold uppercase tracking-[0.1em] text-paper shadow-[0_14px_34px_rgba(83,117,57,0.24)] transition-all duration-300 ease-out hover:bg-[linear-gradient(135deg,#9cc56f_0%,#6d8f45_100%)] sm:px-8 sm:py-4 sm:text-sm"
+              className="group relative inline-flex w-60 items-center justify-center overflow-hidden whitespace-nowrap rounded-full border border-white/20 bg-[linear-gradient(135deg,#8fb466_0%,#5f7e3d_100%)] px-7 py-3.5 text-xs font-semibold uppercase tracking-[0.1em] text-paper shadow-[0_14px_34px_rgba(83,117,57,0.24)] transition-all duration-300 ease-out hover:bg-[linear-gradient(135deg,#9cc56f_0%,#6d8f45_100%)] sm:w-64 sm:px-8 sm:py-4 sm:text-sm"
             >
               <motion.span
                 className="absolute inset-0 rounded-full bg-[linear-gradient(110deg,transparent_0%,rgba(255,255,255,0.35)_45%,transparent_100%)]"
                 animate={{ x: ["-140%", "140%"] }}
                 transition={{ duration: 3.8, repeat: Infinity, repeatDelay: 2.4, ease: "linear" }}
               />
-              <span className="relative z-10 inline-flex items-center gap-2">
-                Shop Now
-                <motion.span
-                  className="inline-flex"
-                  whileHover={{ x: 4 }}
-                  transition={{ duration: 0.25, ease: "easeOut" }}
-                >
-                  <ArrowRight className="size-4" />
-                </motion.span>
+              <span className="relative z-10 inline-flex items-center">
+                {/* arrow appears at the beginning of the text on hover… */}
+                <ArrowRight className="pointer-events-none absolute left-0 top-1/2 size-4 -translate-x-8 -translate-y-1/2 opacity-0 transition-all duration-300 ease-out group-hover:translate-x-0 group-hover:opacity-100" />
+                {/* …and the text slides a little to the right to make room */}
+                <span className="transition-transform duration-300 ease-out group-hover:translate-x-6">
+                  Shop Now
+                </span>
               </span>
             </Link>
           </motion.div>

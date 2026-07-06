@@ -134,7 +134,10 @@ function AgeTierImage({
 
 export function ShopByAge() {
   return (
-    <section className="mx-auto w-full max-w-6xl px-4 py-12 sm:px-6 sm:py-16 lg:max-w-[90rem] lg:px-8">
+    <section
+      id="shop-by-age"
+      className="mx-auto w-full max-w-6xl scroll-mt-28 px-4 py-12 sm:px-6 sm:py-16 lg:max-w-[90rem] lg:px-8"
+    >
       {/* heading */}
       <div className="flex flex-col items-center text-center">
         <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-neem-deep">

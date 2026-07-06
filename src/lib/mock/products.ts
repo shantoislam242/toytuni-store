@@ -277,6 +277,23 @@ export function relatedProducts(slug: string, limit = 10): Product[] {
 
 // Curated tab selections for the homepage product module.
 export const giftPicks = products.filter((p) => p.price >= 1000);
+// Deterministic "random" discount from a slug seed, so the server and client
+// render the same value (no hydration mismatch). UI-only — no pricing backend.
+function seededDiscountPct(slug: string): number {
+  let h = 0;
+  for (let i = 0; i < slug.length; i += 1) h = (h * 31 + slug.charCodeAt(i)) >>> 0;
+  const choices = [10, 15, 20, 25, 30, 35];
+  return choices[h % choices.length];
+}
+
+// Deals tab — a spread of products shown at a discount. Items already marked
+// down keep their real compareAtPrice; the rest get a deterministic mock
+// discount so the whole rail reads as on-sale (UI demo, not backend pricing).
+export const deals: Product[] = products.slice(0, 10).map((p) => {
+  if (p.compareAtPrice != null && p.compareAtPrice > p.price) return p;
+  const pct = seededDiscountPct(p.slug);
+  return { ...p, compareAtPrice: Math.round(p.price / (1 - pct / 100)) };
+});
 export const neemWood = products.filter((p) =>
   [
     "neem-rattle-set",
