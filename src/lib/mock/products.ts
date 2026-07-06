@@ -375,6 +375,7 @@ const detailCopy: Record<string, Omit<ProductDetail, "slug" | "imageSrcs">> = {
     benefits: ["Encourages grasping", "Supports auditory tracking", "Gentle on gums and palms"],
     deliveryEstimate: "Dhaka: 1-2 days, outside Dhaka: 3-5 days",
     saleCountdown: "1D 13H 57M 44S",
+    videoUrl: "https://www.youtube.com/shorts/72S8XD2g7-8",
   },
   "stacking-ring-tower": {
     description:
@@ -383,6 +384,7 @@ const detailCopy: Record<string, Omit<ProductDetail, "slug" | "imageSrcs">> = {
     benefits: ["Builds fine motor control", "Introduces sequencing", "Rewards focused independent play"],
     deliveryEstimate: "Dhaka: 1-2 days, outside Dhaka: 3-5 days",
     saleCountdown: "1D 09H 22M 18S",
+    videoUrl: "https://www.youtube.com/watch?v=AdwKN_689cE",
   },
   "wooden-shape-sorter": {
     description:

@@ -96,6 +96,8 @@ export type ProductDetail = {
   returnPolicy?: string;
   specs?: ProductSpecs;
   reviews?: Review[];
+  /** Optional product video (YouTube watch/shorts/embed URL) shown on the PDP. */
+  videoUrl?: string;
 };
 
 /** Hero banner slide. */
