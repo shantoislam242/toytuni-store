@@ -369,6 +369,18 @@ export function Header() {
   const pathname = usePathname();
   const close = () => setOpen(false);
 
+  // Collapsed-state search affordance: the centre search bar is hidden once the
+  // header condenses, so the search icon scrolls back to the top (which expands
+  // the header) and then focuses the revealed search input.
+  const revealSearch = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.setTimeout(() => {
+      document
+        .querySelector<HTMLInputElement>('input[aria-label="Search"]')
+        ?.focus({ preventScroll: true });
+    }, 400);
+  };
+
   useEffect(() => {
     let ticking = false;
     const update = () => {
@@ -455,21 +467,23 @@ export function Header() {
           >
             {mobileSearch ? <X className="size-6" /> : <Search className="size-6" />}
           </Button>
-          {/* Wishlist + Sign in + Cart. On scroll-down these condense away on
-              md+ (width + opacity collapse, mirroring the search) leaving just
-              the brand and nav; near the top they restore. Mobile is untouched
-              — the md-scoped collapse classes are inert below md, so the
-              constant-height mobile bar keeps its Wishlist as before.
-              Clip only while collapsing (width animates to 0); when expanded we
-              must NOT clip, or the absolute wishlist/cart badges get hidden. */}
-          <div
-            className={cn(
-              "flex items-center gap-2 transition-all duration-200 ease-out md:gap-4",
-              collapsed
-                ? "md:pointer-events-none md:max-w-0 md:overflow-hidden md:opacity-0"
-                : "md:max-w-40 md:opacity-100",
-            )}
-          >
+          {/* Wishlist + Sign in + Cart. These stay pinned to the right in BOTH
+              states — so on scroll-down, once the brand row condenses and the nav
+              rises into it, the icons remain beside the nav: brand (left), nav
+              (centred), icons (right). Only the search collapses away. */}
+          <div className="flex items-center gap-2 md:gap-4">
+            {/* Search — desktop, shown only when collapsed (the centre search
+                bar is hidden then). Sits before the wishlist; clicking it
+                scrolls to the top to reveal + focus the full search bar. */}
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Search"
+              onClick={revealSearch}
+              className={cn("hidden", collapsed && "md:inline-flex")}
+            >
+              <Search className="size-6" />
+            </Button>
             {/* Wishlist — visible on all sizes (mobile reaches Cart via the
                 bottom bar, so the header surfaces Wishlist instead). */}
             <Button

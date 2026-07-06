@@ -3,9 +3,10 @@
 import { useRef, useState } from "react";
 import Link from "next/link";
 import { Dialog } from "radix-ui";
-import { Minus, Plus, Trash2, ShoppingBag, ArrowRight, Loader2 } from "lucide-react";
+import { Minus, Plus, ShoppingBag, ArrowRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { AnimatedTrashIcon } from "@/components/ui/animated-trash-icon";
 import { Separator } from "@/components/ui/separator";
 import { ProductImage } from "@/components/product/product-image";
 import { OrderOptions } from "@/components/cart/order-options";
@@ -17,6 +18,15 @@ const FREE_SHIPPING_THRESHOLD = 2000;
 const FLAT_SHIPPING = 60;
 const ACTION_TOAST_DURATION = 8000;
 const CART_ACTION_DELAY_MS = 180;
+
+// Shared "danger chip" for the cart's destructive actions (Remove selected /
+// Clear cart). Neutral but clearly-affordanced at rest (bordered pill, icon,
+// readable text) so both are actually visible; on hover/focus it fills with a
+// soft danger tint, reddens the border + text, and lifts a touch — a clear,
+// cohesive signal of intent without a loud always-red button fighting the
+// Checkout CTA. Accessible focus ring + press feedback included.
+const dangerActionClass =
+  "trash-host inline-flex items-center gap-1.5 rounded-full border border-cream-300 bg-paper px-3.5 py-1.5 text-sm font-semibold text-ink-muted transition-all duration-150 hover:-translate-y-px hover:border-danger/50 hover:bg-danger/10 hover:text-danger hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger/40 focus-visible:ring-offset-2 focus-visible:ring-offset-paper active:translate-y-0 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40";
 
 type ConfirmAction = "remove-selected" | "clear-cart";
 type RemovedLine = { slug: string; qty: number };
@@ -154,6 +164,10 @@ export function CartView() {
   const [deselected, setDeselected] = useState<Set<string>>(new Set());
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
   const [processingAction, setProcessingAction] = useState(false);
+  // Bumped on each delete click to play the trash-icon drop animation (purely
+  // cosmetic — the confirm/remove flow below is unchanged).
+  const [removeAnimKey, setRemoveAnimKey] = useState(0);
+  const [clearAnimKey, setClearAnimKey] = useState(0);
 
   // Avoid rendering the empty state during the pre-hydration flash.
   if (!hydrated) {
@@ -295,13 +309,18 @@ export function CartView() {
         </h1>
         <button
           type="button"
-          onClick={() => openConfirmAction("clear-cart")}
+          onClick={() => {
+            setClearAnimKey((k) => k + 1);
+            openConfirmAction("clear-cart");
+          }}
           disabled={items.length === 0 || processingAction}
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-ink-soft underline-offset-4 transition-colors hover:text-danger hover:underline disabled:pointer-events-none disabled:opacity-40"
+          className={dangerActionClass}
         >
           {processingAction && confirmAction === "clear-cart" ? (
-            <Loader2 className="size-3.5 animate-spin" />
-          ) : null}
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <AnimatedTrashIcon className="size-4" playKey={clearAnimKey} />
+          )}
           Clear cart
         </button>
       </header>
@@ -329,14 +348,17 @@ export function CartView() {
               </label>
               <button
                 type="button"
-                onClick={() => openConfirmAction("remove-selected")}
+                onClick={() => {
+                  setRemoveAnimKey((k) => k + 1);
+                  openConfirmAction("remove-selected");
+                }}
                 disabled={selectedCount === 0 || processingAction}
-                className="inline-flex items-center gap-1.5 text-sm font-medium text-ink-soft transition-colors hover:text-danger disabled:pointer-events-none disabled:opacity-40"
+                className={dangerActionClass}
               >
                 {processingAction && confirmAction === "remove-selected" ? (
                   <Loader2 className="size-4 animate-spin" />
                 ) : (
-                  <Trash2 className="size-4" />
+                  <AnimatedTrashIcon className="size-4" playKey={removeAnimKey} />
                 )}
                 Remove selected
               </button>

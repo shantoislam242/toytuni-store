@@ -240,6 +240,74 @@
   }
 }
 
+/* ===== Animated delete (trash) icon =====
+   A premium micro-interaction for delete buttons: the lid tilts open on hover
+   (of the button `.trash-host` or the icon itself), and on `.is-dropping` an
+   item falls into the can and the lid swings shut. GPU transforms only, and
+   fully disabled under prefers-reduced-motion. Purely decorative. */
+.trash-lid {
+  transform-box: fill-box;
+  transform-origin: 0% 100%; /* hinge at the left end of the rim */
+  transition: transform 0.28s cubic-bezier(0.22, 0.68, 0.15, 1);
+}
+.trash-host:hover .trash-lid,
+.trash-host:focus-visible .trash-lid,
+.trash-icon:hover .trash-lid {
+  transform: translateY(-1px) rotate(-18deg);
+}
+.trash-item {
+  transform-box: fill-box;
+  transform-origin: center;
+  opacity: 0; /* only visible mid-drop */
+}
+.trash-icon.is-dropping .trash-lid {
+  animation: trash-lid-drop 0.6s cubic-bezier(0.22, 0.68, 0.15, 1);
+}
+.trash-icon.is-dropping .trash-item {
+  animation: trash-item-drop 0.6s ease-in;
+}
+@keyframes trash-lid-drop {
+  0%,
+  55% {
+    transform: translateY(-1px) rotate(-20deg);
+  }
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+}
+@keyframes trash-item-drop {
+  0% {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.9);
+  }
+  25% {
+    opacity: 1;
+    transform: translateY(-3px) scale(1);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(3px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(4px) scale(0.8);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .trash-lid {
+    transition: none;
+  }
+  .trash-host:hover .trash-lid,
+  .trash-host:focus-visible .trash-lid,
+  .trash-icon:hover .trash-lid {
+    transform: none;
+  }
+  .trash-icon.is-dropping .trash-lid,
+  .trash-icon.is-dropping .trash-item {
+    animation: none;
+  }
+}
+
 @keyframes cursor-sparkle {
   0% {
     opacity: 0;
