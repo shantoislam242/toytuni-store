@@ -18,7 +18,7 @@ export function BlogHub() {
   const chips = [{ slug: "all", name: "All" }, ...blogCategories];
 
   return (
-    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 sm:py-10">
+    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 sm:py-10 lg:max-w-[90rem] lg:px-8">
       <Breadcrumb items={[{ label: "Home", href: "/" }, { label: "Blog" }]} />
 
       {/* intro */}

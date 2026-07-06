@@ -18,7 +18,7 @@ export function AboutTeaser() {
         <Leaf className="absolute right-[8%] top-10 size-8 rotate-12 text-neem/15" />
       </div>
 
-      <div className="relative mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:px-8 lg:py-20">
+      <div className="relative mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:max-w-[90rem] lg:px-8 lg:py-20">
         {/* centered section header */}
         <Reveal className="text-center">
           <h2 className="font-display text-3xl font-bold tracking-tight text-ink sm:text-4xl">

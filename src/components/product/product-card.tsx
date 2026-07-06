@@ -129,8 +129,9 @@ export function ProductCard({ product }: { product: Product }) {
         <WishlistButton slug={product.slug} className="transition-transform duration-300" />
       </motion.div>
 
-      {/* body */}
-      <div className="flex flex-1 min-w-0 flex-col px-2.5 pb-3 pt-2.5 sm:px-3 sm:pb-4 sm:pt-3">
+      {/* body — extra bottom padding lifts the price / cart row (pinned to the
+          bottom by mt-auto) up off the card edge so it doesn't look stuck to it. */}
+      <div className="flex flex-1 min-w-0 flex-col px-2.5 pb-6 pt-2.5 sm:px-3 sm:pb-7 sm:pt-3">
         <Link
           href={href}
           className="line-clamp-2 min-h-[2.5rem] text-sm font-medium leading-5 text-ink transition-colors duration-300 hover:text-neem-deep sm:min-h-0 sm:text-base sm:leading-6"
@@ -168,7 +169,7 @@ export function ProductCard({ product }: { product: Product }) {
 
         {/* price + cart */}
         <motion.div
-          className="mt-auto flex flex-col items-stretch gap-2 pb-0.5 pt-3 min-[420px]:flex-row min-[420px]:items-end min-[420px]:justify-between min-[420px]:gap-3 sm:pt-4"
+          className="mt-auto flex flex-col items-stretch gap-2 pt-2.5 min-[420px]:flex-row min-[420px]:items-end min-[420px]:justify-between min-[420px]:gap-3 sm:pt-3"
           variants={actionVariants}
           transition={cardHoverTransition}
         >
@@ -182,17 +183,16 @@ export function ProductCard({ product }: { product: Product }) {
               </span>
             ) : null}
           </div>
-          <motion.div
-            variants={actionVariants}
-            transition={cardHoverTransition}
-            className="w-full flex-shrink-0 transition-all duration-300 min-[420px]:ml-auto min-[420px]:w-auto"
-          >
+          {/* Plain wrapper (no motion): the parent block already runs the
+              hover rise/fade for the whole price + cart row. A second
+              actionVariants here made the button animate twice. */}
+          <div className="w-full flex-shrink-0 min-[420px]:ml-auto min-[420px]:w-auto">
             <AddToCartButton
               slug={product.slug}
               title={product.titleBn}
               className="w-full min-w-0 px-2 text-[0.76rem] min-[420px]:min-w-[108px] sm:min-w-[118px] sm:px-3 sm:text-[0.8rem]"
             />
-          </motion.div>
+          </div>
         </motion.div>
       </div>
     </div>

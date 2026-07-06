@@ -29,7 +29,7 @@ export function FaqView() {
   return (
     <main className="flex-1 bg-paper">
       {/* hero */}
-      <section className="relative mx-auto w-full max-w-[64rem] px-4 pt-6 pb-8 text-center sm:px-6 lg:px-8">
+      <section className="relative mx-auto w-full max-w-6xl lg:max-w-[90rem] px-4 pt-6 pb-8 text-center sm:px-6 lg:px-8">
         {/* soft decorative background */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
           <div className="absolute -top-20 left-1/2 size-72 -translate-x-1/2 rounded-full bg-neem/10 blur-3xl" />
@@ -58,14 +58,14 @@ export function FaqView() {
       </section>
 
       {/* search + filter + accordion */}
-      <section className="mx-auto w-full max-w-[52rem] px-4 pb-8 sm:px-6 lg:px-8">
+      <section className="mx-auto w-full max-w-6xl lg:max-w-[90rem] px-4 pb-8 sm:px-6 lg:px-8">
         <Reveal>
           <FaqExplorer />
         </Reveal>
       </section>
 
       {/* still need help */}
-      <section className="mx-auto w-full max-w-[64rem] px-4 py-8 sm:px-6 lg:px-8">
+      <section className="mx-auto w-full max-w-6xl lg:max-w-[90rem] px-4 py-8 sm:px-6 lg:px-8">
         <Reveal>
           <div className="rounded-3xl border border-neem/20 bg-neem/5 px-6 py-12 text-center sm:px-10">
             <span className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-neem/10 text-neem">
@@ -98,7 +98,7 @@ export function FaqView() {
       </section>
 
       {/* trust row */}
-      <section className="mx-auto w-full max-w-[64rem] px-4 pb-16 sm:px-6 lg:px-8">
+      <section className="mx-auto w-full max-w-6xl lg:max-w-[90rem] px-4 pb-16 sm:px-6 lg:px-8">
         <Reveal>
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
             {trustCards.map((card) => {

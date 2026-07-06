@@ -66,7 +66,8 @@ const toneSoft: Record<Tone, string> = {
   blush: "bg-blush/40 text-ink",
 };
 
-const SECTION = "mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8";
+// Matches the header / home content width so page edges line up with the nav.
+const SECTION = "mx-auto w-full max-w-6xl px-4 sm:px-6 lg:max-w-[90rem] lg:px-8";
 
 function SectionHead({ eyebrow, title, sub }: { eyebrow: string; title: string; sub?: string }) {
   return (

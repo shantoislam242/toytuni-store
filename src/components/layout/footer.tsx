@@ -183,7 +183,7 @@ export function Footer() {
       <ScallopTop />
 
       {/* Main footer — one unified container, flat columns (no cards) */}
-      <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+      <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:max-w-[90rem] lg:px-8">
         <div className="grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-3 lg:grid-cols-12">
           {/* Brand block — logo, description, newsletter, follow us */}
           <div className="col-span-2 sm:col-span-3 lg:col-span-4">
@@ -268,7 +268,7 @@ export function Footer() {
       {/* Bottom bar — dotted divider, then copyright row */}
       <div>
         <DottedDivider />
-        <div className="mx-auto max-w-6xl px-4 pt-2 pb-10 sm:px-6">
+        <div className="mx-auto max-w-6xl px-4 pt-2 pb-10 sm:px-6 lg:max-w-[90rem] lg:px-8">
           <div className="flex flex-col items-center gap-3 text-sm sm:flex-row sm:justify-between">
             <p className="text-ink-muted">
               © 2026 All Rights Reserved. {BRAND_NAME}
