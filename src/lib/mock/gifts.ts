@@ -7,6 +7,7 @@ import type { Product } from "@/lib/types";
 export const giftKits: Product[] = [
   {
     slug: "newborn-welcome-box",
+    sku: "NWR-G001",
     titleBn: "Newborn Welcome Box",
     price: 2400,
     compareAtPrice: 2800,
@@ -21,6 +22,7 @@ export const giftKits: Product[] = [
   },
   {
     slug: "neem-teether-duo-gift",
+    sku: "NWR-G002",
     titleBn: "Neem Teether Duo Gift",
     price: 1500,
     rating: 4.7,
@@ -33,6 +35,7 @@ export const giftKits: Product[] = [
   },
   {
     slug: "sensory-play-bundle",
+    sku: "NWR-G003",
     titleBn: "Sensory Play Bundle",
     price: 1900,
     rating: 4.8,
@@ -46,6 +49,7 @@ export const giftKits: Product[] = [
   },
   {
     slug: "montessori-starter-set",
+    sku: "NWR-G004",
     titleBn: "Montessori Starter Set",
     price: 2800,
     compareAtPrice: 3200,
@@ -60,6 +64,7 @@ export const giftKits: Product[] = [
   },
   {
     slug: "first-birthday-kit",
+    sku: "NWR-G005",
     titleBn: "First Birthday Kit",
     price: 3200,
     rating: 4.8,
@@ -73,6 +78,7 @@ export const giftKits: Product[] = [
   },
   {
     slug: "big-kid-builder-box",
+    sku: "NWR-G006",
     titleBn: "Big-Kid Builder Box",
     price: 3600,
     rating: 4.7,
@@ -95,6 +101,7 @@ export const giftCardAmounts = [500, 1000, 2000, 3000] as const;
  */
 export const giftCards: Product[] = giftCardAmounts.map((amount) => ({
   slug: `gift-card-${amount}`,
+  sku: `NWR-GC-${amount}`,
   titleBn: `Gift Card — ৳${amount}`,
   price: amount,
   rating: 5,

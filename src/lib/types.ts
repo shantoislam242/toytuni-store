@@ -40,6 +40,8 @@ export type Variant = {
 /** A product as needed by ProductCard. */
 export type Product = {
   slug: string;
+  /** Unique product code / SKU shown on the PDP, e.g. "NWR-0001". */
+  sku: string;
   titleBn: string;
   price: number; // BDT
   compareAtPrice?: number; // struck-through original price

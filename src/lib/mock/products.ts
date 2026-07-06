@@ -9,6 +9,7 @@ const neemTeak = [
 export const products: Product[] = [
   {
     slug: "neem-rattle-set",
+    sku: "NWR-0001",
     titleBn: "Neem Wood Rattle Set",
     price: 850,
     compareAtPrice: 1000,
@@ -23,6 +24,7 @@ export const products: Product[] = [
   },
   {
     slug: "stacking-ring-tower",
+    sku: "NWR-0002",
     titleBn: "Stacking Ring Tower",
     price: 1150,
     rating: 4.9,
@@ -36,6 +38,7 @@ export const products: Product[] = [
   },
   {
     slug: "wooden-shape-sorter",
+    sku: "NWR-0003",
     titleBn: "Wooden Shape Sorter",
     price: 980,
     rating: 4.7,
@@ -47,6 +50,7 @@ export const products: Product[] = [
   },
   {
     slug: "pull-along-duck",
+    sku: "NWR-0004",
     titleBn: "Pull-along Duck",
     price: 1290,
     rating: 4.6,
@@ -59,6 +63,7 @@ export const products: Product[] = [
   },
   {
     slug: "neem-teether-ring",
+    sku: "NWR-0005",
     titleBn: "Neem Teether Ring",
     price: 420,
     rating: 4.9,
@@ -71,6 +76,7 @@ export const products: Product[] = [
   },
   {
     slug: "building-block-set",
+    sku: "NWR-0006",
     titleBn: "Building Block Set (24 pcs)",
     price: 1650,
     compareAtPrice: 1900,
@@ -84,6 +90,7 @@ export const products: Product[] = [
   },
   {
     slug: "object-permanence-box",
+    sku: "NWR-0007",
     titleBn: "Montessori Object Permanence Box",
     price: 1100,
     rating: 4.9,
@@ -96,6 +103,7 @@ export const products: Product[] = [
   },
   {
     slug: "rocker-ride-horse",
+    sku: "NWR-0008",
     titleBn: "Rocker Ride-on Horse",
     price: 3200,
     compareAtPrice: 3600,
@@ -109,6 +117,7 @@ export const products: Product[] = [
   },
   {
     slug: "sensory-ball-set",
+    sku: "NWR-0009",
     titleBn: "Sensory Ball Set",
     price: 760,
     rating: 4.6,
@@ -121,6 +130,7 @@ export const products: Product[] = [
   },
   {
     slug: "animal-puzzle",
+    sku: "NWR-0010",
     titleBn: "Wooden Puzzle — Animals",
     price: 640,
     rating: 4.8,
@@ -132,6 +142,7 @@ export const products: Product[] = [
   },
   {
     slug: "soft-cloth-book",
+    sku: "NWR-0011",
     titleBn: "Soft Cloth Crinkle Book",
     price: 380,
     rating: 4.7,
@@ -144,6 +155,7 @@ export const products: Product[] = [
   },
   {
     slug: "wooden-xylophone",
+    sku: "NWR-0012",
     titleBn: "Wooden Xylophone",
     price: 1450,
     compareAtPrice: 1700,
@@ -158,6 +170,7 @@ export const products: Product[] = [
   },
   {
     slug: "lacing-beads-set",
+    sku: "NWR-0013",
     titleBn: "Lacing Beads Set",
     price: 890,
     rating: 4.6,
@@ -169,6 +182,7 @@ export const products: Product[] = [
   },
   {
     slug: "baby-gym-arch",
+    sku: "NWR-0014",
     titleBn: "Wooden Baby Gym Arch",
     price: 2400,
     compareAtPrice: 2800,
@@ -182,6 +196,7 @@ export const products: Product[] = [
   },
   {
     slug: "counting-abacus",
+    sku: "NWR-0015",
     titleBn: "Counting Abacus",
     price: 1320,
     rating: 4.7,
@@ -195,6 +210,7 @@ export const products: Product[] = [
   },
   {
     slug: "nesting-cups",
+    sku: "NWR-0016",
     titleBn: "Stacking Nesting Cups",
     price: 720,
     rating: 4.8,
@@ -207,6 +223,7 @@ export const products: Product[] = [
   },
   {
     slug: "traditional-push-wagon",
+    sku: "NWR-0017",
     titleBn: "Traditional Push Wagon",
     price: 2850,
     compareAtPrice: 3200,

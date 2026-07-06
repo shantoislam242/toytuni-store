@@ -162,8 +162,18 @@ export function SmartSearch({
   const isSearching = query.trim().length > 0;
 
   // All matches first, then trim to a combined cap of MAX_SUGGESTIONS.
+  // Matches on the product name OR its Product Code (SKU) — partial and
+  // case-insensitive for both, so "NWR-0001" (or just "nwr") finds a product
+  // just like its title does.
   const matchedProducts = useMemo(
-    () => (q ? products.filter((p) => p.titleBn.toLowerCase().includes(q)) : []),
+    () =>
+      q
+        ? products.filter(
+            (p) =>
+              p.titleBn.toLowerCase().includes(q) ||
+              p.sku.toLowerCase().includes(q),
+          )
+        : [],
     [q],
   );
   const matchedCategories = useMemo(
@@ -535,6 +545,10 @@ export function SmartSearch({
                           <SectionLabel>Products</SectionLabel>
                           {productResults.map((p, i) => {
                             const index = termSuggestions.length + i;
+                            // Show the code when the query matched the SKU (so a
+                            // code search visibly confirms which product it hit).
+                            const matchedBySku =
+                              q.length > 0 && p.sku.toLowerCase().includes(q);
                             return (
                               <Link
                                 key={p.slug}
@@ -563,8 +577,16 @@ export function SmartSearch({
                                   <p className="truncate text-sm font-medium text-ink">
                                     <Highlight text={p.titleBn} query={debounced} />
                                   </p>
-                                  <p className="mt-0.5 text-sm text-ink-soft">
-                                    {formatTk(p.price)}
+                                  <p className="mt-0.5 flex items-center gap-1.5 text-sm text-ink-soft">
+                                    <span>{formatTk(p.price)}</span>
+                                    {matchedBySku ? (
+                                      <>
+                                        <span aria-hidden>·</span>
+                                        <span className="truncate font-mono text-xs">
+                                          <Highlight text={p.sku} query={debounced} />
+                                        </span>
+                                      </>
+                                    ) : null}
                                   </p>
                                 </div>
                               </Link>

@@ -249,6 +249,14 @@ export function ProductDetailsView({
             </div>
           </div>
 
+          {/* Product Code (SKU) — sits between the title and description.
+              Label is muted; the code itself uses the primary ink colour with a
+              medium weight. Value is dynamic per product (never hardcoded). */}
+          <p className="mt-2 text-sm text-ink-muted">
+            Product Code:{" "}
+            <span className="font-medium text-ink">{product.sku}</span>
+          </p>
+
           <p className="mt-2 max-w-2xl text-sm leading-6 text-ink-muted">
             {detail.description}
           </p>
