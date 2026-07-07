@@ -365,6 +365,22 @@ const productImageSrcs: Record<string, string[]> = {
     "/images/products/traditional-push-wagon/2.webp",
     "/images/products/traditional-push-wagon/3.webp",
   ],
+  "lacing-beads-set": [
+    "/images/products/lacing-beads-set/1.webp",
+    "/images/products/lacing-beads-set/2.webp",
+  ],
+  "baby-gym-arch": [
+    "/images/products/baby-gym-arch/1.webp",
+    "/images/products/baby-gym-arch/2.jpg",
+  ],
+  "counting-abacus": [
+    "/images/products/counting-abacus/1.webp",
+    "/images/products/counting-abacus/2.jpg",
+  ],
+  "nesting-cups": [
+    "/images/products/nesting-cups/1.jpg",
+    "/images/products/nesting-cups/2.jpg",
+  ],
 };
 
 const detailCopy: Record<string, Omit<ProductDetail, "slug" | "imageSrcs">> = {
