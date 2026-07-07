@@ -90,7 +90,10 @@ export function ProductRail({
         opts={{ align: "start", loop: autoplay }}
         className="w-full"
       >
-        <CarouselContent className="-ml-2 overflow-visible sm:-ml-3">
+        {/* py gives the hover lift/scale room inside embla's overflow-hidden
+            viewport, so the card's top edge isn't clipped (matches the All
+            Products grid, which has no clipping). */}
+        <CarouselContent className="-ml-2 overflow-visible py-4 sm:-ml-3">
           {products.map((p) => (
             <CarouselItem
               key={p.slug}

@@ -4,26 +4,14 @@ import { useState } from "react";
 import Link from "next/link";
 import {
   Award,
-  Check,
   Gift,
   ShieldCheck,
   StickyNote,
-  Ticket,
   Truck,
-  X,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 const GIFT_MESSAGE_MAX = 200;
-
-// Demo-only coupon table (frontend state only — no backend/validation).
-const DEMO_COUPONS: Record<string, string> = {
-  TOY10: "10% off",
-  WELCOME: "৳100 off",
-  NEEM15: "15% off",
-};
 
 // Shared field styling so textareas match the app's Input component.
 const fieldClass =
@@ -139,10 +127,8 @@ function CheckboxRow({
   );
 }
 
-type CouponStatus = { type: "idle" | "success" | "error"; message: string };
-
 /**
- * Cart "Order Options" — delivery method, gift options, coupon, order notes,
+ * Cart "Order Options" — delivery method, gift options, order notes,
  * reward points and Terms agreement. Frontend only: every value lives in local
  * React state, so it persists while the shopper stays on the Cart page. The
  * Terms checkbox is lifted to the parent (via props) so it can gate Checkout.
@@ -164,32 +150,7 @@ export function OrderOptions({
   const [delivery, setDelivery] = useState<"home" | "pickup">("home");
   const [isGift, setIsGift] = useState(false);
   const [giftMessage, setGiftMessage] = useState("");
-  const [coupon, setCoupon] = useState("");
-  const [couponStatus, setCouponStatus] = useState<CouponStatus>({
-    type: "idle",
-    message: "",
-  });
   const [notes, setNotes] = useState("");
-
-  const applyCoupon = (e: React.FormEvent) => {
-    e.preventDefault();
-    const code = coupon.trim().toUpperCase();
-    if (!code) {
-      setCouponStatus({ type: "error", message: "Please enter a coupon code." });
-      return;
-    }
-    if (DEMO_COUPONS[code]) {
-      setCouponStatus({
-        type: "success",
-        message: `Coupon applied — ${DEMO_COUPONS[code]} (demo).`,
-      });
-    } else {
-      setCouponStatus({
-        type: "error",
-        message: "Invalid or expired coupon code.",
-      });
-    }
-  };
 
   return (
     <div className="rounded-xl border border-cream-300 bg-card p-5 sm:p-6">
@@ -248,45 +209,7 @@ export function OrderOptions({
 
         <div className="h-px bg-cream-200" />
 
-        {/* 3. Coupon code */}
-        <OptionSection icon={Ticket} title="Coupon Code">
-          <form onSubmit={applyCoupon} className="flex items-center gap-2">
-            <Input
-              value={coupon}
-              onChange={(e) => {
-                setCoupon(e.target.value);
-                if (couponStatus.type !== "idle") {
-                  setCouponStatus({ type: "idle", message: "" });
-                }
-              }}
-              placeholder="Enter coupon code"
-              aria-label="Coupon code"
-              className="h-10 flex-1"
-            />
-            <Button type="submit" className="h-10 shrink-0" disabled={!coupon.trim()}>
-              Apply
-            </Button>
-          </form>
-          {couponStatus.type !== "idle" ? (
-            <p
-              className={cn(
-                "mt-2 flex items-center gap-1.5 text-xs font-medium",
-                couponStatus.type === "success" ? "text-neem-deep" : "text-danger",
-              )}
-            >
-              {couponStatus.type === "success" ? (
-                <Check className="size-3.5" />
-              ) : (
-                <X className="size-3.5" />
-              )}
-              {couponStatus.message}
-            </p>
-          ) : null}
-        </OptionSection>
-
-        <div className="h-px bg-cream-200" />
-
-        {/* 4. Order notes */}
+        {/* 3. Order notes */}
         <OptionSection icon={StickyNote} title="Order Notes" description="Optional">
           <textarea
             value={notes}
@@ -299,7 +222,7 @@ export function OrderOptions({
 
         <div className="h-px bg-cream-200" />
 
-        {/* 5. Reward points */}
+        {/* 4. Reward points */}
         <OptionSection icon={Award} title="Reward Points">
           {isLoggedIn ? (
             <div className="flex items-center justify-between rounded-lg border border-neem/20 bg-neem/5 p-3">
@@ -325,7 +248,7 @@ export function OrderOptions({
 
         <div className="h-px bg-cream-200" />
 
-        {/* 6. Terms & Conditions */}
+        {/* 5. Terms & Conditions */}
         <OptionSection icon={ShieldCheck} title="Terms & Conditions">
           <CheckboxRow checked={agreedToTerms} onChange={onAgreedToTermsChange}>
             I agree to the{" "}

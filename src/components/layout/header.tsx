@@ -22,12 +22,6 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
   Accordion,
   AccordionContent,
   AccordionItem,
@@ -40,6 +34,8 @@ import {
   categoryGroups,
   type NavLink,
 } from "@/lib/mock/nav";
+import { ageTiers } from "@/lib/mock/age-tiers";
+import type { Tone } from "@/lib/types";
 import { BRAND_NAME } from "@/lib/config";
 import { isBareRoute } from "@/lib/routes";
 import { CartBadge } from "@/components/cart/cart-badge";
@@ -87,8 +83,21 @@ function navClick(
 // Weight is normal by default and turns bold only once the nav condenses onto
 // the brand row — driven by the `group/navrow` data-attribute on the nav row,
 // so it hits just these top-level items (not the dropdown/mega-menu contents).
+// Static tone → dot-colour map (literal classes so Tailwind keeps them) — used
+// by the By Age mega-menu tiers.
+const toneDot: Record<Tone, string> = {
+  cream: "bg-cream-200",
+  neem: "bg-neem",
+  "neem-soft": "bg-neem-soft",
+  wood: "bg-wood-light",
+  terracotta: "bg-terracotta",
+  mustard: "bg-mustard",
+  "dusty-blue": "bg-dusty-blue",
+  blush: "bg-blush",
+};
+
 const navItemBase =
-  "group/navitem relative inline-flex items-center px-2 [font-family:Helvetica,Arial,sans-serif] text-[14px] font-normal leading-[23.1px] tracking-[0.7px] outline-none transition-colors duration-200 group-data-[collapsed=true]/navrow:font-bold " +
+  "group/navitem relative inline-flex items-center px-2 [font-family:Helvetica,Arial,sans-serif] text-[14px] font-bold leading-[23.1px] tracking-[0.7px] outline-none transition-colors duration-200 " +
   "after:pointer-events-none after:absolute after:-bottom-1.5 after:inset-x-2 after:h-0.5 after:origin-center after:scale-x-0 after:rounded-full after:bg-neem after:transition-transform after:duration-300 after:ease-out " +
   "hover:text-neem-deep hover:after:scale-x-100 focus-visible:text-neem-deep focus-visible:after:scale-x-100";
 
@@ -123,23 +132,19 @@ function NavItem({
   );
 }
 
-function NavDropdown({
-  label,
-  links,
-  pathname,
-}: {
-  label: string;
-  links: NavLink[];
-  pathname: string;
-}) {
-  // A dropdown reads as active when the current route is one of its children.
-  const active = links.some((l) => isActivePath(pathname, l.href));
+/**
+ * Desktop "By Age" mega-menu. Uses the SAME centered dropdown card as
+ * CategoryMega (matching size + behaviour), laid out as one column per age
+ * tier — tone dot, label and tagline. Opens on hover (fine pointers) or click;
+ * closes on Escape, outside-click, or link choice. Mobile uses the drawer list.
+ */
+function AgeMega({ pathname }: { pathname: string }) {
+  const active = ageTiers.some((t) => isActivePath(pathname, t.href));
 
-  // Hover-to-open on desktop; click stays the default for touch / coarse
-  // pointers. We detect hover capability so touch devices are unaffected.
   const [open, setOpen] = useState(false);
   const [hoverable, setHoverable] = useState(false);
   const closeTimer = useRef<number | null>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const mq = window.matchMedia("(hover: hover) and (pointer: fine)");
@@ -163,55 +168,90 @@ function NavDropdown({
     cancelClose();
     setOpen(true);
   };
-  // A short delay bridges the gap between the trigger and the menu so the
-  // cursor can cross it without the menu flickering shut.
   const hoverClose = () => {
     if (!hoverable) return;
     cancelClose();
     closeTimer.current = window.setTimeout(() => setOpen(false), 150);
   };
 
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    const onDown = (e: MouseEvent) => {
+      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("mousedown", onDown);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("mousedown", onDown);
+    };
+  }, [open]);
+
   return (
-    <DropdownMenu open={open} onOpenChange={setOpen} modal={false}>
-      <DropdownMenuTrigger
-        onMouseEnter={hoverOpen}
-        onMouseLeave={hoverClose}
+    <div ref={wrapRef} onMouseEnter={hoverOpen} onMouseLeave={hoverClose}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-haspopup="true"
+        data-state={open ? "open" : "closed"}
         className={cn(
           navItemBase,
           "gap-1 data-[state=open]:text-neem-deep data-[state=open]:after:scale-x-100",
           active ? "text-neem-deep after:scale-x-100" : "text-ink",
         )}
-        aria-current={active ? "page" : undefined}
       >
-        {label}
+        By Age
         <ChevronDown className="size-4 transition-transform duration-200 group-data-[state=open]/navitem:rotate-180" />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent
-        align="start"
-        className="min-w-44 border border-cream-200 bg-paper ring-0 duration-200"
+      </button>
+
+      {/* Centered dropdown card — identical shell to CategoryMega. */}
+      <div
         onMouseEnter={hoverOpen}
         onMouseLeave={hoverClose}
+        aria-hidden={!open}
+        className={cn(
+          "absolute left-1/2 top-full z-40 mt-2 w-[min(56rem,calc(100vw-2rem))] -translate-x-1/2 rounded-2xl border border-cream-200 bg-paper shadow-xl shadow-ink/10 transition-all duration-200 ease-out",
+          open
+            ? "visible translate-y-0 opacity-100"
+            : "pointer-events-none invisible -translate-y-1 opacity-0",
+        )}
       >
-        {links.map((l) => {
-          const itemActive = isActivePath(pathname, l.href);
-          return (
-            <DropdownMenuItem key={l.href} asChild>
+        <div className="grid grid-cols-2 gap-4 p-6 lg:grid-cols-4">
+          {ageTiers.map((t) => {
+            const itemActive = isActivePath(pathname, t.href);
+            return (
               <Link
-                href={l.href}
-                onClick={(e) => navClick(e, l.href, pathname)}
+                key={t.href}
+                href={t.href}
+                onClick={(e) => navClick(e, t.href, pathname, () => setOpen(false))}
                 aria-current={itemActive ? "page" : undefined}
                 className={cn(
-                  "cursor-pointer transition-colors",
-                  itemActive && "font-medium text-neem-deep",
+                  "flex flex-col gap-1 rounded-xl border p-4 transition-colors hover:border-neem hover:bg-accent/50 focus-visible:border-neem focus-visible:bg-accent/50 focus-visible:outline-none",
+                  itemActive ? "border-neem bg-accent/50" : "border-cream-200",
                 )}
               >
-                {l.labelBn}
+                <span className="flex items-center gap-2">
+                  <span
+                    className={cn("size-2.5 flex-none rounded-full", toneDot[t.tone])}
+                    aria-hidden
+                  />
+                  <span className="font-display text-base font-bold text-ink">
+                    {t.labelBn}
+                  </span>
+                </span>
+                {t.taglineBn ? (
+                  <span className="text-sm text-ink-muted">{t.taglineBn}</span>
+                ) : null}
               </Link>
-            </DropdownMenuItem>
-          );
-        })}
-      </DropdownMenuContent>
-    </DropdownMenu>
+            );
+          })}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -306,13 +346,16 @@ function CategoryMega({ pathname }: { pathname: string }) {
         onMouseLeave={hoverClose}
         aria-hidden={!open}
         className={cn(
-          "absolute inset-x-0 top-full z-40 border-t border-cream-200 bg-paper shadow-xl shadow-ink/5 transition-all duration-200 ease-out",
+          // Centered dropdown card, width ~ the nav row (Home→Contact) rather
+          // than spanning the whole header. -translate-x-1/2 centers it under
+          // the (centered) nav; translate-y toggles the open/close slide.
+          "absolute left-1/2 top-full z-40 mt-2 w-[min(56rem,calc(100vw-2rem))] -translate-x-1/2 rounded-2xl border border-cream-200 bg-paper shadow-xl shadow-ink/10 transition-all duration-200 ease-out",
           open
             ? "visible translate-y-0 opacity-100"
-            : "pointer-events-none invisible -translate-y-2 opacity-0",
+            : "pointer-events-none invisible -translate-y-1 opacity-0",
         )}
       >
-        <div className="mx-auto grid max-w-6xl grid-cols-2 gap-x-8 gap-y-8 px-6 py-8 sm:grid-cols-3 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-x-8 gap-y-6 p-6 sm:grid-cols-3 lg:grid-cols-4">
           {categoryGroups.map((g) => (
             <div key={g.heading}>
               <p className="mb-3 font-display text-base font-bold text-ink">
@@ -666,7 +709,7 @@ export function Header() {
             active={isActivePath(pathname, "/collections/all")}
             pathname={pathname}
           />
-          <NavDropdown label="By Age" links={ageNav} pathname={pathname} />
+          <AgeMega pathname={pathname} />
           <CategoryMega pathname={pathname} />
           {mainNav.slice(2).map((l) => (
             <NavItem

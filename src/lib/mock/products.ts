@@ -243,7 +243,8 @@ export const bestSellers = products.filter((p) => p.badge === "Best Seller");
 // it's visible up-front, then the rest keep their catalogue order.
 const FEATURED_NEW_SLUG = "traditional-push-wagon";
 export const newLaunches = products
-  .filter((p) => p.badge === "New")
+  // New Arrivals never shows discounted items — a launch isn't "on sale".
+  .filter((p) => p.badge === "New" && !(p.compareAtPrice != null && p.compareAtPrice > p.price))
   .sort((a, b) =>
     a.slug === FEATURED_NEW_SLUG ? -1 : b.slug === FEATURED_NEW_SLUG ? 1 : 0,
   );

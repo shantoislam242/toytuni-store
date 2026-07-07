@@ -10,6 +10,7 @@ import { AnimatedTrashIcon } from "@/components/ui/animated-trash-icon";
 import { Separator } from "@/components/ui/separator";
 import { ProductImage } from "@/components/product/product-image";
 import { OrderOptions } from "@/components/cart/order-options";
+import { CouponCode } from "@/components/cart/coupon-code";
 import { useCart } from "@/lib/cart/cart-context";
 import { formatTk } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -442,8 +443,10 @@ export function CartView() {
           />
         </div>
 
-        {/* order summary */}
-        <aside className="lg:col-span-1">
+        {/* coupon code + order summary */}
+        <aside className="space-y-6 lg:col-span-1">
+          <CouponCode />
+
           <div className="rounded-xl border border-cream-300 bg-card p-5 lg:sticky lg:top-[124px]">
             <h2 className="font-display text-lg font-bold text-ink">
               Order Summary
