@@ -130,7 +130,7 @@ export function RecentlyViewed({
   if (!items.length) return null;
 
   return (
-    <section className="mx-auto w-full max-w-[80rem] px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
+    <section className="mx-auto w-full max-w-6xl px-4 py-12 sm:px-6 lg:max-w-[90rem] lg:px-8 lg:py-16">
       <div className="mb-6">
         <h2 className="font-display text-2xl font-bold tracking-tight text-ink sm:text-3xl">
           {title}

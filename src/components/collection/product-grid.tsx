@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ProductCard } from "@/components/product/product-card";
+import { ProductListItem } from "@/components/product/product-list-item";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -9,7 +10,10 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { CollectionToolbar } from "@/components/collection/collection-toolbar";
+import {
+  CollectionToolbar,
+  type ViewMode,
+} from "@/components/collection/collection-toolbar";
 import { FilterPanel } from "@/components/collection/filter-panel";
 import { ActiveFilters } from "@/components/collection/active-filters";
 import {
@@ -22,8 +26,7 @@ import {
 } from "@/lib/collection";
 import type { Product } from "@/lib/types";
 
-const PAGE_SIZE = 12; // products shown before the first "Load more"
-const LOAD_MORE_STEP = 6; // products revealed per "Load more" click
+const DEFAULT_PAGE_SIZE = 24; // products shown before the first "Load more"
 
 /**
  * State owner for the PLP: holds sort / filters / how many are visible,
@@ -42,15 +45,23 @@ export function ProductGrid({
   const priceMax = priceCeiling(products);
   const [sort, setSort] = useState<SortKey>("featured");
   const [filters, setFilters] = useState<Filters>(() => emptyFilters(products));
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [view, setView] = useState<ViewMode>("grid");
+  const [visibleCount, setVisibleCount] = useState(DEFAULT_PAGE_SIZE);
   const [sheetOpen, setSheetOpen] = useState(false);
 
   // Any filter change restarts pagination so the user isn't stranded mid-list.
   const updateFilters = (next: Filters) => {
     setFilters(next);
-    setVisibleCount(PAGE_SIZE);
+    setVisibleCount(pageSize);
   };
   const resetFilters = () => updateFilters(emptyFilters(products));
+
+  // Changing the page size resets how many are shown to that size.
+  const changePageSize = (next: number) => {
+    setPageSize(next);
+    setVisibleCount(next);
+  };
 
   const activeCount =
     filters.ages.length +
@@ -70,6 +81,10 @@ export function ProductGrid({
         onSortChange={setSort}
         activeFilterCount={activeCount}
         onOpenFilters={() => setSheetOpen(true)}
+        view={view}
+        onViewChange={setView}
+        pageSize={pageSize}
+        onPageSizeChange={changePageSize}
       />
 
       <ActiveFilters
@@ -92,17 +107,25 @@ export function ProductGrid({
         </div>
       ) : (
         <>
-          <div className="mt-6 grid grid-cols-2 gap-x-2 gap-y-4 min-[420px]:gap-4 sm:grid-cols-3 sm:gap-7 lg:grid-cols-4 lg:gap-8">
-            {visible.map((product) => (
-              <ProductCard key={product.slug} product={product} />
-            ))}
-          </div>
+          {view === "list" ? (
+            <div className="mt-6 flex flex-col gap-4">
+              {visible.map((product) => (
+                <ProductListItem key={product.slug} product={product} />
+              ))}
+            </div>
+          ) : (
+            <div className="mt-6 grid grid-cols-2 gap-x-2 gap-y-4 min-[420px]:gap-4 sm:grid-cols-3 sm:gap-7 lg:grid-cols-4 lg:gap-8">
+              {visible.map((product) => (
+                <ProductCard key={product.slug} product={product} />
+              ))}
+            </div>
+          )}
 
           {hasMore ? (
             <div className="mt-8 flex justify-center">
               <Button
                 variant="outline"
-                onClick={() => setVisibleCount((c) => c + LOAD_MORE_STEP)}
+                onClick={() => setVisibleCount((c) => c + pageSize)}
               >
                 Load more
               </Button>

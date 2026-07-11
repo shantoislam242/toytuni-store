@@ -2,6 +2,7 @@ import { Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ProductImage } from "@/components/product/product-image";
+import { GiftCardThumb } from "@/components/cart/gift-card-thumb";
 import { formatTk } from "@/lib/format";
 import type { CartItem } from "@/lib/cart/cart-context";
 
@@ -36,13 +37,17 @@ export function OrderSummary({
         {items.map(({ product, qty, lineTotal }) => (
           <li key={product.slug} className="flex items-center gap-3">
             <div className="size-14 flex-none overflow-hidden rounded-xl border border-cream-300 bg-frame">
-              <ProductImage
-                slug={product.slug}
-                imageNum={1}
-                label={product.imageLabelBn}
-                fallbackTone={product.imageTones[0]}
-                className="size-full"
-              />
+              {product.slug.startsWith("gift-card-") ? (
+                <GiftCardThumb amount={product.price} className="size-full" />
+              ) : (
+                <ProductImage
+                  slug={product.slug}
+                  imageNum={1}
+                  label={product.imageLabelBn}
+                  fallbackTone={product.imageTones[0]}
+                  className="size-full"
+                />
+              )}
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-ink">{product.titleBn}</p>

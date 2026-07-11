@@ -123,7 +123,7 @@ export function ContactView() {
 
           <div className="absolute bottom-6 left-1/2 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 text-center sm:bottom-8">
             <h3 className="font-display text-lg font-bold text-ink sm:text-xl">
-              Stay updated from us
+              Subscribe our newsletter
             </h3>
             <p className="mt-1 text-sm text-ink-muted">
               Get early access to new toys, offers, and parenting tips.

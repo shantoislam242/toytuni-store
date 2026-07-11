@@ -6,7 +6,7 @@ export const categories: Category[] = [
   { slug: "stacking", nameBn: "Stacking & Sorting", href: "/collections/stacking", tone: "neem-soft", taglineBn: "Build, nest & match" },
   { slug: "blocks", nameBn: "Blocks & Building", href: "/collections/blocks", tone: "terracotta", taglineBn: "Open-ended construction play" },
   { slug: "push-pull", nameBn: "Push & Pull Toys", href: "/collections/push-pull", tone: "dusty-blue", taglineBn: "Toys that get them moving" },
-  { slug: "toddler-walking", nameBn: "Toddler Walking & Developmental", href: "/collections/toddler-walking", tone: "neem-soft", taglineBn: "First steps, made steady" },
+  { slug: "toddler-walking", nameBn: "Toddler Walking", href: "/collections/toddler-walking", tone: "neem-soft", taglineBn: "First steps, made steady" },
   { slug: "puzzles", nameBn: "Shape Sorters & Puzzles", href: "/collections/puzzles", tone: "wood", taglineBn: "Shapes, problems & focus" },
   { slug: "montessori", nameBn: "Montessori & Learning", href: "/collections/montessori", tone: "neem", taglineBn: "Purposeful, hands-on learning" },
   { slug: "ride-on", nameBn: "Ride-on & Large Toys", href: "/collections/ride-on", tone: "cream", taglineBn: "Big-kid balance & adventure" },

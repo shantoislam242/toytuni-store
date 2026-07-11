@@ -197,7 +197,7 @@ export function ProductDetailsView({
   return (
     <main className="flex-1 bg-paper">
       {/* breadcrumb */}
-      <div className="mx-auto w-full max-w-6xl px-4 pt-4 sm:px-6 lg:px-8">
+      <div className="mx-auto w-full max-w-6xl px-4 pt-4 sm:px-6 lg:max-w-[90rem] lg:px-8">
         <Breadcrumb
           items={crumbs(
             { label: "Shop", href: "/collections/all" },
@@ -210,7 +210,7 @@ export function ProductDetailsView({
       </div>
 
       {/* ===== top: gallery + purchase (balanced 50/50) ===== */}
-      <section className="mx-auto grid w-full max-w-6xl gap-8 px-4 pb-8 pt-3 sm:px-6 sm:pb-10 sm:pt-4 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:gap-10 lg:px-8">
+      <section className="mx-auto grid w-full max-w-6xl gap-8 px-4 pb-8 pt-3 sm:px-6 sm:pb-10 sm:pt-4 lg:max-w-[90rem] lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:gap-10 lg:px-8">
         <ProductGallery
           images={detail.imageSrcs}
           imageLabel={product.imageLabelBn}
@@ -401,7 +401,7 @@ export function ProductDetailsView({
       {/* pointer-events-none: this section is pulled up (lg:-mt-20) and would
           otherwise overlap — and swallow clicks on — the share row above it.
           It's a purely decorative image, so nothing here needs to be clickable. */}
-      <section className="pointer-events-none mx-auto w-full max-w-[92rem] px-4 pb-2 pt-6 sm:px-6 lg:-mt-20 lg:px-8 lg:pt-0">
+      <section className="pointer-events-none mx-auto w-full max-w-6xl px-4 pb-2 pt-6 sm:px-6 lg:-mt-20 lg:max-w-[90rem] lg:px-8 lg:pt-0">
         <div className="flex justify-center">
           <Image
             src="/images/certified%20Logo/certlogo.webp"
@@ -414,17 +414,18 @@ export function ProductDetailsView({
       </section>
 
       {/* ===== details tabs ===== */}
-      <section className="mx-auto w-full max-w-[92rem] px-4 pb-10 sm:px-6 lg:-mt-12 lg:px-8">
+      <section className="mx-auto w-full max-w-6xl px-4 pb-10 sm:px-6 lg:-mt-12 lg:max-w-[90rem] lg:px-8">
         <ProductTabs detail={detail} />
       </section>
 
       {/* ===== related products ===== */}
-      <section className="mx-auto w-full max-w-[92rem] px-4 py-10 sm:px-6 lg:px-8">
+      {/* width matches the header container (brand ↔ cart) so the rail lines up */}
+      <section className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 lg:max-w-[90rem] lg:px-8">
         <ProductRail title="You may also like" products={related} viewAllHref="/collections/all" />
       </section>
 
       {/* ===== reviews ===== */}
-      <section className="mx-auto w-full max-w-[92rem] px-4 pb-12 sm:px-6 lg:px-8">
+      <section className="mx-auto w-full max-w-6xl px-4 pb-12 sm:px-6 lg:max-w-[90rem] lg:px-8">
         <ProductReviews
           reviews={detail.reviews ?? []}
           rating={product.rating}

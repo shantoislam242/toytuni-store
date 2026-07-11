@@ -7,14 +7,15 @@ import { BRAND_NAME } from "@/lib/config";
 import { ageTierBySlug } from "@/lib/mock/age-tiers";
 import { categoryBySlug } from "@/lib/mock/categories";
 import { productBySlug, productDetailBySlug, products, relatedProducts } from "@/lib/mock/products";
-import { giftKits } from "@/lib/mock/gifts";
+import { GiftCardDetailsView } from "@/components/gift/gift-card-details-view";
+import { giftKits, giftCards } from "@/lib/mock/gifts";
 
 type Props = {
   params: Promise<{ slug: string }>;
 };
 
 export async function generateStaticParams() {
-  return [...products, ...giftKits].map((product) => ({
+  return [...products, ...giftKits, ...giftCards].map((product) => ({
     slug: product.slug,
   }));
 }
@@ -39,6 +40,13 @@ export default async function Page({
   params,
 }: Props) {
   const { slug } = await params;
+
+  // Gift cards get their own dedicated details page (no notFound).
+  const giftCard = giftCards.find((c) => c.slug === slug);
+  if (giftCard) {
+    return <GiftCardDetailsView amount={giftCard.price} />;
+  }
+
   const product = productBySlug(slug);
   const detail = productDetailBySlug(slug);
 

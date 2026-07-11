@@ -19,6 +19,11 @@ const cardGradient: Record<number, string> = {
 const FALLBACK_GRADIENT =
   "bg-[linear-gradient(140deg,var(--neem-deep),var(--neem)_55%,var(--neem-soft))]";
 
+/** The gradient utility class for a denomination (emerald fallback). */
+export function giftCardGradientClass(amount: number) {
+  return cardGradient[amount] ?? FALLBACK_GRADIENT;
+}
+
 /**
  * A self-contained, premium gift-card visual used wherever a gift-card line has
  * no product photo (e.g. the cart). Pure CSS: a tiered gradient "card" with a

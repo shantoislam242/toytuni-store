@@ -58,7 +58,7 @@ export default function RootLayout({
     >
       <body
         suppressHydrationWarning
-        className="flex min-h-full flex-col bg-paper pb-[calc(3.5rem+env(safe-area-inset-bottom))] font-sans text-foreground md:pb-0"
+        className="flex min-h-full flex-col overflow-x-clip bg-paper pb-[calc(3.5rem+env(safe-area-inset-bottom))] font-sans text-foreground md:pb-0"
       >
         <SiteBackground />
         <CartProvider>
