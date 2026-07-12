@@ -215,7 +215,13 @@ export function CollectionToolbar({
           >
             <SelectValue />
           </SelectTrigger>
-          <SelectContent className="min-w-[184px] bg-paper sm:min-w-[236px]">
+          <SelectContent
+            position="popper"
+            align="end"
+            sideOffset={8}
+            arrow
+            className="min-w-(--radix-select-trigger-width) bg-paper"
+          >
             {SORT_OPTIONS.map((o) => (
               <SelectItem key={o.value} value={o.value} className="py-1.5">
                 {o.label}
