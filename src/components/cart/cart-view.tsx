@@ -22,7 +22,7 @@ import { formatTk } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 const FREE_SHIPPING_THRESHOLD = 2000;
-const FLAT_SHIPPING = 60;
+const FLAT_SHIPPING = 80;
 const GIFT_WRAP_CHARGE = 50;
 const ACTION_TOAST_DURATION = 8000;
 const CART_ACTION_DELAY_MS = 180;

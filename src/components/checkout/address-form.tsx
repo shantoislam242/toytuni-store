@@ -9,6 +9,7 @@ export type AddressDraft = {
   fullName: string;
   phone: string;
   altPhone: string;
+  email: string;
   division: string;
   district: string;
   area: string;
@@ -18,14 +19,22 @@ export type AddressDraft = {
 
 export type AddressErrors = Partial<Record<keyof AddressDraft, string>>;
 
-/** BD mobile: exactly 11 digits starting "01". */
-export const PHONE_RE = /^01\d{9}$/;
+/** BD mobile with separate +880 prefix: accepts 01712345678 or 1712345678. */
+export const PHONE_RE = /^0?1\d{9}$/;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export function normalizeBdPhone(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  const local = digits.startsWith("0") ? digits.slice(1) : digits;
+  return `+880${local}`;
+}
 
 export function emptyDraft(): AddressDraft {
   return {
     fullName: "",
     phone: "",
     altPhone: "",
+    email: "",
     division: "",
     district: "",
     area: "",
@@ -40,10 +49,12 @@ export function validateDraft(d: AddressDraft): AddressErrors {
   if (!d.fullName.trim()) e.fullName = "Full name is required.";
   if (!d.phone.trim()) e.phone = "Phone number is required.";
   else if (!PHONE_RE.test(d.phone.trim()))
-    e.phone = "Enter an 11-digit number starting with 01.";
+    e.phone = "Enter a valid BD number, e.g. 01712345678 or 1712345678.";
   // Alternative phone is optional, but validate the shape when provided.
   if (d.altPhone.trim() && !PHONE_RE.test(d.altPhone.trim()))
-    e.altPhone = "Enter an 11-digit number starting with 01.";
+    e.altPhone = "Enter a valid BD number, e.g. 01712345678 or 1712345678.";
+  if (d.email.trim() && !EMAIL_RE.test(d.email.trim()))
+    e.email = "Enter a valid email address.";
   if (!d.division) e.division = "Select a division.";
   if (!d.district) e.district = "Select a district.";
   if (!d.area.trim()) e.area = "Area / thana is required.";
@@ -57,6 +68,12 @@ export function isDraftValid(d: AddressDraft): boolean {
 
 const fieldCls =
   "h-11 w-full rounded-lg border border-cream-300 bg-paper px-3 text-sm text-ink outline-none transition-colors placeholder:text-ink-soft focus-visible:border-neem focus-visible:ring-2 focus-visible:ring-neem/25";
+const phoneInputCls =
+  "h-11 min-w-0 flex-1 rounded-r-lg border border-l-0 border-cream-300 bg-paper px-3 text-sm text-ink outline-none transition-colors placeholder:text-ink-soft focus-visible:border-neem focus-visible:ring-2 focus-visible:ring-neem/25";
+const phonePrefixCls =
+  "flex h-11 shrink-0 items-center gap-1.5 rounded-l-lg border border-cream-300 bg-cream-100 px-2.5 text-sm font-medium text-ink";
+const bdFlagCls =
+  "relative h-3.5 w-4.5 overflow-hidden rounded-[2px] bg-[#006a4e] before:absolute before:left-[42%] before:top-1/2 before:size-2 before:-translate-x-1/2 before:-translate-y-1/2 before:rounded-full before:bg-[#f42a41]";
 const errorFieldCls = "border-danger focus-visible:border-danger focus-visible:ring-danger/25";
 
 function Label({ children, required }: { children: React.ReactNode; required?: boolean }) {
@@ -104,7 +121,7 @@ export function AddressForm({
   const err = (k: keyof AddressDraft) => (showErrors ? errors[k] : undefined);
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2">
+    <div className="grid gap-4 sm:grid-cols-2 lg:gap-x-6">
       {/* full name */}
       <label className="block sm:col-span-2">
         <Label required>Full name</Label>
@@ -121,43 +138,71 @@ export function AddressForm({
       </label>
 
       {/* phone */}
-      <label className="block sm:col-span-2">
+      <label className="block sm:col-span-2 lg:col-span-1">
         <Label required>Phone</Label>
-        <input
-          type="tel"
-          inputMode="numeric"
-          value={value.phone}
-          onChange={(e) =>
-            onChange({ phone: e.target.value.replace(/\D/g, "").slice(0, 11) })
-          }
-          placeholder="01XXXXXXXXX"
-          aria-invalid={Boolean(err("phone"))}
-          aria-describedby="err-phone"
-          className={`${fieldCls} ${err("phone") ? errorFieldCls : ""}`}
-        />
+        <div className="flex">
+          <span className={`${phonePrefixCls} ${err("phone") ? "border-danger" : ""}`}>
+            <span className={bdFlagCls} aria-hidden />
+            +880
+          </span>
+          <input
+            type="tel"
+            inputMode="numeric"
+            value={value.phone}
+            onChange={(e) =>
+              onChange({
+                phone: e.target.value.replace(/\D/g, "").slice(0, 11),
+              })
+            }
+            placeholder="1*********"
+            aria-invalid={Boolean(err("phone"))}
+            aria-describedby="err-phone"
+            className={`${phoneInputCls} ${err("phone") ? errorFieldCls : ""}`}
+          />
+        </div>
         <ErrorText id="err-phone" msg={err("phone")} />
       </label>
 
       {/* alternative phone (optional) */}
-      <label className="block sm:col-span-2">
-        <Label>Alternative Mobile Number</Label>
-        <input
-          type="tel"
-          inputMode="numeric"
-          value={value.altPhone}
-          onChange={(e) =>
-            onChange({ altPhone: e.target.value.replace(/\D/g, "").slice(0, 11) })
-          }
-          placeholder="01XXXXXXXXX"
-          aria-invalid={Boolean(err("altPhone"))}
-          aria-describedby="err-altPhone"
-          className={`${fieldCls} ${err("altPhone") ? errorFieldCls : ""}`}
-        />
+      <label className="block sm:col-span-2 lg:col-span-1">
+        <Label>Alternative Number</Label>
+        <div className="flex">
+          <span className={`${phonePrefixCls} ${err("altPhone") ? "border-danger" : ""}`}>
+            <span className={bdFlagCls} aria-hidden />
+            +880
+          </span>
+          <input
+            type="tel"
+            inputMode="numeric"
+            value={value.altPhone}
+            onChange={(e) =>
+              onChange({
+                altPhone: e.target.value.replace(/\D/g, "").slice(0, 11),
+              })
+            }
+            placeholder="A backup number for delivery."
+            aria-invalid={Boolean(err("altPhone"))}
+            aria-describedby="err-altPhone"
+            className={`${phoneInputCls} ${err("altPhone") ? errorFieldCls : ""}`}
+          />
+        </div>
         <ErrorText id="err-altPhone" msg={err("altPhone")} />
-        <p className="mt-1.5 text-xs leading-relaxed text-ink-soft">
-          Provide another mobile number in case the primary number is unreachable
-          during delivery.
-        </p>
+      </label>
+
+      {/* email (optional) */}
+      <label className="block sm:col-span-2">
+        <Label>Email Address</Label>
+        <input
+          type="email"
+          inputMode="email"
+          value={value.email}
+          onChange={(e) => onChange({ email: e.target.value })}
+          placeholder="you@example.com"
+          aria-invalid={Boolean(err("email"))}
+          aria-describedby="err-email"
+          className={`${fieldCls} ${err("email") ? errorFieldCls : ""}`}
+        />
+        <ErrorText id="err-email" msg={err("email")} />
       </label>
 
       {/* division */}

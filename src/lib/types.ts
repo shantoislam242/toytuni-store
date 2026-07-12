@@ -59,13 +59,14 @@ export type Product = {
 };
 
 /** A delivery address (mock — decoupled so a real address API drops in later).
- *  BD-shaped: division → district → area, with a phone validated as 11 digits
+ *  BD-shaped: division → district → area, with phone normalized after confirm.
  *  starting "01". */
 export type Address = {
   id: string;
   fullName: string;
-  phone: string; // "01XXXXXXXXX" (11 digits)
-  altPhone?: string; // optional secondary contact number
+  phone: string; // "+8801712345678" after checkout address confirmation
+  altPhone?: string; // optional secondary contact number, normalized when entered
+  email?: string;
   division: string;
   district: string;
   area: string; // area / thana

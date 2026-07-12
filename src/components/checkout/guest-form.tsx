@@ -15,16 +15,18 @@ function Field({
   htmlFor,
   optional,
   required,
+  className,
   children,
 }: {
   label: string;
   htmlFor?: string;
   optional?: boolean;
   required?: boolean;
+  className?: string;
   children: React.ReactNode;
 }) {
   return (
-    <div>
+    <div className={className}>
       <label htmlFor={htmlFor} className="mb-1.5 block text-sm font-medium text-ink">
         {label}
         {required ? (
@@ -40,6 +42,43 @@ function Field({
 }
 
 const inputCls = "h-11 bg-paper";
+const phonePrefixCls =
+  "flex h-11 shrink-0 items-center gap-1.5 rounded-l-md border border-input bg-cream-100 px-2.5 text-sm font-medium text-ink";
+const phoneInputCls = "h-11 min-w-0 flex-1 rounded-l-none bg-paper";
+const bdFlagCls =
+  "relative h-3.5 w-4.5 overflow-hidden rounded-[2px] bg-[#006a4e] before:absolute before:left-[42%] before:top-1/2 before:size-2 before:-translate-x-1/2 before:-translate-y-1/2 before:rounded-full before:bg-[#f42a41]";
+
+function PhoneField({
+  id,
+  placeholder = "1*********",
+  required,
+}: {
+  id: string;
+  placeholder?: string;
+  required?: boolean;
+}) {
+  return (
+    <div className="flex">
+      <span className={phonePrefixCls}>
+        <span className={bdFlagCls} aria-hidden />
+        +880
+      </span>
+      <Input
+        id={id}
+        type="tel"
+        inputMode="tel"
+        pattern="0?1[0-9]{9}"
+        maxLength={11}
+        placeholder={placeholder}
+        required={required}
+        onChange={(e) => {
+          e.currentTarget.value = e.currentTarget.value.replace(/\D/g, "").slice(0, 11);
+        }}
+        className={phoneInputCls}
+      />
+    </div>
+  );
+}
 
 /**
  * Guest checkout form: customer information, delivery address, and order notes.
@@ -65,7 +104,7 @@ export function GuestForm({ onSignIn }: { onSignIn?: () => void }) {
       {/* contact information */}
       <section className="mt-6">
         <h3 className="font-display text-base font-bold text-ink">Contact Information</h3>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:gap-x-6">
           <Field label="Full Name" htmlFor="full-name">
             <Input id="full-name" placeholder="Your full name" className={inputCls} />
           </Field>
@@ -78,27 +117,21 @@ export function GuestForm({ onSignIn }: { onSignIn?: () => void }) {
               className={inputCls}
             />
           </Field>
-          <Field label="Primary Mobile Number" htmlFor="primary-mobile" required>
-            <Input
-              id="primary-mobile"
-              type="tel"
-              inputMode="tel"
-              placeholder="+880 1XXX-XXXXXX"
-              className={inputCls}
-            />
+          <Field
+            label="Primary Mobile Number"
+            htmlFor="primary-mobile"
+            required
+            className="sm:col-span-2 lg:col-span-1"
+          >
+            <PhoneField id="primary-mobile" required />
           </Field>
-          <Field label="Alternative Mobile Number" htmlFor="alt-mobile" optional>
-            <Input
-              id="alt-mobile"
-              type="tel"
-              inputMode="tel"
-              placeholder="+880 1XXX-XXXXXX"
-              className={inputCls}
-            />
-            <p className="mt-1.5 text-xs leading-relaxed text-ink-soft">
-              Provide another mobile number in case the primary number is unreachable
-              during delivery.
-            </p>
+          <Field
+            label="Alternative Number"
+            htmlFor="alt-mobile"
+            optional
+            className="sm:col-span-2 lg:col-span-1"
+          >
+            <PhoneField id="alt-mobile" placeholder="A backup number for delivery." />
           </Field>
         </div>
       </section>

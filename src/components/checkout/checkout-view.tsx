@@ -15,7 +15,7 @@ import { ShippingMethod } from "@/components/checkout/shipping-method";
 import { useCart } from "@/lib/cart/cart-context";
 import { useCheckout } from "@/lib/checkout/checkout-context";
 import { shippingOptions } from "@/lib/mock/checkout";
-import { zoneForDistrict } from "@/lib/shipping";
+import { getShippingFee, zoneForDistrict } from "@/lib/shipping";
 
 // Orders at/above this (BDT) ship free, regardless of the chosen method —
 // mirrors the cart's free-shipping threshold.
@@ -55,10 +55,13 @@ export function CheckoutView() {
   // free once it unlocks (matches the cart), and never leave "free" selected on
   // an order that no longer qualifies.
   const freeUnlocked = subtotal >= FREE_SHIPPING_THRESHOLD;
+  const deliveryZone = address ? zoneForDistrict(address.district) : null;
+  const expressAvailable = deliveryZone?.id === "inside_dhaka";
+
   useEffect(() => {
     if (freeUnlocked) setShipping("free");
-    else setShipping((s) => (s === "free" ? "standard" : s));
-  }, [freeUnlocked]);
+    else setShipping((s) => (s === "free" || (s === "express" && !expressAvailable) ? "standard" : s));
+  }, [freeUnlocked, expressAvailable]);
 
   if (!hydrated) {
     return <main className="mx-auto min-h-[50vh] w-full max-w-[80rem] flex-1 px-4 py-10" />;
@@ -91,11 +94,16 @@ export function CheckoutView() {
   // Guard the delivery charge: "free" only counts when the order qualifies,
   // otherwise fall back to Standard (covers the render before the effect syncs).
   const effectiveShippingId =
-    shipping === "free" && !freeUnlocked ? "standard" : shipping;
+    (shipping === "free" && !freeUnlocked) || (shipping === "express" && !expressAvailable)
+      ? "standard"
+      : shipping;
   const deliveryOption =
     shippingOptions.find((o) => o.id === effectiveShippingId) ?? shippingOptions[0];
-  const delivery = deliveryOption.price;
-  const deliveryZoneLabel = address ? zoneForDistrict(address.district).label : null;
+  const delivery =
+    deliveryOption.id === "standard" && address
+      ? getShippingFee(address.district)
+      : deliveryOption.price;
+  const deliveryZoneLabel = deliveryZone?.label ?? null;
   // Mock promotional discount so the summary shows the line (UI only).
   const discount = Math.round(subtotal * 0.1);
   const total = Math.max(0, subtotal - discount + delivery);
@@ -151,6 +159,7 @@ export function CheckoutView() {
               onChange={setShipping}
               subtotal={subtotal}
               freeShippingThreshold={FREE_SHIPPING_THRESHOLD}
+              district={address?.district ?? null}
             />
           </Section>
 

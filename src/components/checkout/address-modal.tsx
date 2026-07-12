@@ -8,6 +8,7 @@ import {
   AddressForm,
   emptyDraft,
   isDraftValid,
+  normalizeBdPhone,
   validateDraft,
   type AddressDraft,
 } from "@/components/checkout/address-form";
@@ -72,7 +73,7 @@ export function AddressModal({
   const fee = activeDistrict ? getShippingFee(activeDistrict) : null;
   const total = subtotal + (fee ?? 0);
 
-  const canConfirm = showForm ? isDraftValid(draft) : Boolean(selectedSaved);
+  const canConfirm = showForm || Boolean(selectedSaved);
   const errors = validateDraft(draft);
 
   const patchDraft = (patch: Partial<AddressDraft>) =>
@@ -90,8 +91,9 @@ export function AddressModal({
     const address: Address = {
       id: `addr-${Date.now()}`,
       fullName: draft.fullName.trim(),
-      phone: draft.phone.trim(),
-      altPhone: draft.altPhone.trim() || undefined,
+      phone: normalizeBdPhone(draft.phone),
+      altPhone: draft.altPhone.trim() ? normalizeBdPhone(draft.altPhone) : undefined,
+      email: draft.email.trim() || undefined,
       division: draft.division,
       district: draft.district,
       area: draft.area.trim(),

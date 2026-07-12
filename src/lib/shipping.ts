@@ -13,8 +13,8 @@ export type ShippingZone = {
 };
 
 export const SHIPPING_ZONES: Record<ShippingZoneId, ShippingZone> = {
-  inside_dhaka: { id: "inside_dhaka", label: "Inside Dhaka", fee: 60 },
-  outside_dhaka: { id: "outside_dhaka", label: "Outside Dhaka", fee: 120 },
+  inside_dhaka: { id: "inside_dhaka", label: "Inside Dhaka", fee: 80 },
+  outside_dhaka: { id: "outside_dhaka", label: "Outside Dhaka", fee: 150 },
 };
 
 // Districts served from the Dhaka metro zone. Everything else — including any

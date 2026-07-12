@@ -23,8 +23,17 @@ export function DeliverySummary({
           ? [
               {
                 icon: PhoneCall,
-                label: "Alternative Mobile Number",
+                label: "Alternative Number",
                 value: address.altPhone,
+              },
+            ]
+          : []),
+        ...(address.email
+          ? [
+              {
+                icon: Mail,
+                label: "Email",
+                value: address.email,
               },
             ]
           : []),
@@ -45,7 +54,7 @@ export function DeliverySummary({
     : [
         { icon: User, label: "Name", value: mockCustomer.name },
         { icon: Phone, label: "Primary Mobile Number", value: mockCustomer.primaryPhone },
-        { icon: PhoneCall, label: "Alternative Mobile Number", value: mockCustomer.altPhone },
+        { icon: PhoneCall, label: "Alternative Number", value: mockCustomer.altPhone },
         { icon: Mail, label: "Email", value: mockCustomer.email },
         { icon: MapPin, label: "Delivery Address", value: mockCustomer.address },
       ];
