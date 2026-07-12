@@ -3,11 +3,10 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Eye, EyeOff, Lock, X } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, Lock, UserPlus, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
 import { BRAND_NAME } from "@/lib/config";
-import { cn } from "@/lib/utils";
 
 // Brand glyphs for the social sign-in buttons. lucide dropped brand icons, so
 // these are inline SVG (simple-icons paths) — same pattern as the footer.
@@ -42,72 +41,23 @@ function FacebookIcon({ className }: { className?: string }) {
   );
 }
 
-// Accessible custom checkbox styled to match the brand (neem check on cream).
-function Checkbox({
-  checked,
-  onChange,
-  label,
-}: {
-  checked: boolean;
-  onChange: (v: boolean) => void;
-  label: string;
-}) {
-  return (
-    <label className="group inline-flex cursor-pointer select-none items-center gap-2.5">
-      <span className="relative inline-flex">
-        <input
-          type="checkbox"
-          checked={checked}
-          onChange={(e) => onChange(e.target.checked)}
-          className="peer sr-only"
-        />
-        <span
-          className={cn(
-            "flex size-5 items-center justify-center rounded-[6px] border transition-colors",
-            checked
-              ? "border-neem bg-neem"
-              : "border-cream-300 bg-paper group-hover:border-neem-soft",
-          )}
-        >
-          {checked ? (
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              className="size-3 text-paper"
-              aria-hidden
-            >
-              <path
-                d="M20 6 9 17l-5-5"
-                stroke="currentColor"
-                strokeWidth="3"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          ) : null}
-        </span>
-      </span>
-      <span className="text-[15px] text-ink">{label}</span>
-    </label>
-  );
-}
-
 export default function SignInPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
-  const [news, setNews] = useState(false);
   const [loading, setLoading] = useState(false);
 
   // Step 2: password popup.
   const [showPassword, setShowPassword] = useState(false);
   const [password, setPassword] = useState("");
   const [revealPw, setRevealPw] = useState(false);
+  const [showSignUp, setShowSignUp] = useState(false);
+  const [acceptedSignUpTerms, setAcceptedSignUpTerms] = useState(false);
 
   // Step 1 → open the password popup once an identifier is entered.
   const handleIdentifierSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     if (!email.trim()) {
-      toast.error("Please enter your email or username.");
+      toast.error("Please enter your email or phone number.");
       return;
     }
     setShowPassword(true);
@@ -117,6 +67,11 @@ export default function SignInPage() {
     setShowPassword(false);
     setPassword("");
     setRevealPw(false);
+  };
+
+  const closeSignUpModal = () => {
+    setShowSignUp(false);
+    setAcceptedSignUpTerms(false);
   };
 
   // Step 2 → placeholder auth. Real authentication is not wired up yet, so we
@@ -138,13 +93,15 @@ export default function SignInPage() {
 
   // Close the popup on Escape.
   useEffect(() => {
-    if (!showPassword) return;
+    if (!showPassword && !showSignUp) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") closePasswordPopup();
+      if (e.key !== "Escape") return;
+      if (showSignUp) closeSignUpModal();
+      if (showPassword) closePasswordPopup();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [showPassword]);
+  }, [showPassword, showSignUp]);
 
   return (
     <main className="flex min-h-screen flex-col bg-paper px-4">
@@ -213,8 +170,8 @@ export default function SignInPage() {
                 autoComplete="username"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="Email or username"
-                aria-label="Email or username"
+                placeholder="Email or Phone Number"
+                aria-label="Email or Phone Number"
                 className="h-12 w-full flex-1 bg-transparent px-4 text-[15px] text-ink outline-none placeholder:text-ink-soft"
               />
               <button
@@ -227,14 +184,16 @@ export default function SignInPage() {
               </button>
             </div>
 
-            {/* news checkbox */}
-            <div className="mt-4">
-              <Checkbox
-                checked={news}
-                onChange={setNews}
-                label="Email me with news and offers"
-              />
-            </div>
+            <p className="mt-4 text-center text-sm text-ink-muted">
+              Don&apos;t have an account?{" "}
+              <button
+                type="button"
+                onClick={() => setShowSignUp(true)}
+                className="font-semibold text-neem-deep underline-offset-2 hover:underline"
+              >
+                Sign up
+              </button>
+            </p>
 
             {/* terms */}
             <p className="mt-4 text-center text-sm text-ink-muted">
@@ -243,7 +202,7 @@ export default function SignInPage() {
                 href="/policy/terms"
                 className="underline underline-offset-2 hover:text-ink"
               >
-                Terms of service
+                Terms and Conditions
               </Link>
             </p>
           </form>
@@ -330,6 +289,174 @@ export default function SignInPage() {
               >
                 Forgot password?
               </button>
+            </motion.div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+
+      {/* sign-up modal: UI only */}
+      <AnimatePresence>
+        {showSignUp ? (
+          <motion.div
+            key="signup-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={closeSignUpModal}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 px-4 py-6 backdrop-blur-sm"
+          >
+            <motion.div
+              role="dialog"
+              aria-modal="true"
+              aria-label="Create your account"
+              onClick={(e) => e.stopPropagation()}
+              initial={{ opacity: 0, scale: 0.94, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 8 }}
+              transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+              className="relative max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-2xl border border-cream-300 bg-paper p-6 shadow-[0_30px_80px_-30px_rgba(15,23,42,0.28)] [scrollbar-width:thin] sm:p-7"
+            >
+              <button
+                type="button"
+                onClick={closeSignUpModal}
+                aria-label="Close"
+                className="absolute right-4 top-4 flex size-9 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-cream-100 hover:text-ink"
+              >
+                <X className="size-5" />
+              </button>
+
+              <span className="flex size-11 items-center justify-center rounded-full bg-neem/10 text-neem-deep">
+                <UserPlus className="size-5" />
+              </span>
+              <h2 className="mt-4 font-display text-2xl font-bold text-ink">
+                Create account
+              </h2>
+              <p className="mt-1 text-sm leading-6 text-ink-muted">
+                Save your details, wishlist, and checkout preferences.
+              </p>
+
+              <div className="mt-5 grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => toast.info("Social sign-up is UI-only for now.")}
+                  className="flex h-11 items-center justify-center gap-2 rounded-lg border border-cream-300 bg-paper text-sm font-semibold text-ink transition hover:bg-cream-100"
+                >
+                  <GoogleIcon className="size-5" />
+                  Google
+                </button>
+                <button
+                  type="button"
+                  onClick={() => toast.info("Social sign-up is UI-only for now.")}
+                  className="flex h-11 items-center justify-center gap-2 rounded-lg border border-cream-300 bg-paper text-sm font-semibold text-ink transition hover:bg-cream-100"
+                >
+                  <FacebookIcon className="size-5 text-[#1877F2]" />
+                  Facebook
+                </button>
+              </div>
+
+              <div className="my-5 flex items-center gap-4">
+                <span className="h-px flex-1 bg-cream-300" />
+                <span className="text-xs font-medium uppercase tracking-wide text-ink-soft">
+                  or
+                </span>
+                <span className="h-px flex-1 bg-cream-300" />
+              </div>
+
+              <form
+                noValidate
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  toast.info("Account creation is UI-only for now.");
+                }}
+                className="space-y-3.5"
+              >
+                <label className="block">
+                  <span className="mb-1.5 block text-sm font-medium text-ink">
+                    Full name
+                  </span>
+                  <input
+                    type="text"
+                    autoComplete="name"
+                    placeholder="Your full name"
+                    className="h-11 w-full rounded-lg border border-cream-300 bg-paper px-3 text-sm text-ink outline-none transition-colors placeholder:text-ink-soft focus:border-neem"
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="mb-1.5 block text-sm font-medium text-ink">
+                    Email or Phone Number
+                  </span>
+                  <input
+                    type="text"
+                    autoComplete="username"
+                    placeholder="Email or Phone Number"
+                    className="h-11 w-full rounded-lg border border-cream-300 bg-paper px-3 text-sm text-ink outline-none transition-colors placeholder:text-ink-soft focus:border-neem"
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="mb-1.5 block text-sm font-medium text-ink">
+                    Password
+                  </span>
+                  <input
+                    type="password"
+                    autoComplete="new-password"
+                    placeholder="Create a password"
+                    className="h-11 w-full rounded-lg border border-cream-300 bg-paper px-3 text-sm text-ink outline-none transition-colors placeholder:text-ink-soft focus:border-neem"
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="mb-1.5 block text-sm font-medium text-ink">
+                    Confirm Password
+                  </span>
+                  <input
+                    type="password"
+                    autoComplete="new-password"
+                    placeholder="Re-enter your password"
+                    className="h-11 w-full rounded-lg border border-cream-300 bg-paper px-3 text-sm text-ink outline-none transition-colors placeholder:text-ink-soft focus:border-neem"
+                  />
+                </label>
+
+              </form>
+
+              <label className="mt-4 flex cursor-pointer items-start gap-2.5">
+                <input
+                  type="checkbox"
+                  checked={acceptedSignUpTerms}
+                  onChange={(e) => setAcceptedSignUpTerms(e.target.checked)}
+                  className="mt-0.5 size-4 flex-none rounded border-cream-300 accent-neem"
+                />
+                <span className="text-sm leading-6 text-ink-muted">
+                  By continuing, you agree to our{" "}
+                  <Link
+                    href="/policy/terms"
+                    className="font-medium text-blue-600 underline-offset-2 hover:underline"
+                  >
+                    Terms and Conditions
+                  </Link>{" "}
+                </span>
+              </label>
+
+              <button
+                type="button"
+                disabled={!acceptedSignUpTerms}
+                onClick={() => toast.info("Account creation is UI-only for now.")}
+                className="mt-4 flex h-12 w-full items-center justify-center rounded-lg bg-neem text-base font-semibold text-paper transition hover:bg-neem-deep disabled:pointer-events-none disabled:opacity-50"
+              >
+                Create account
+              </button>
+
+              <p className="mt-4 text-center text-sm text-ink-muted">
+                Already have an account?{" "}
+                <button
+                  type="button"
+                  onClick={closeSignUpModal}
+                  className="font-semibold text-neem-deep underline-offset-2 hover:underline"
+                >
+                  Sign in
+                </button>
+              </p>
             </motion.div>
           </motion.div>
         ) : null}
