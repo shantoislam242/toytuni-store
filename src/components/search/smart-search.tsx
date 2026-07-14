@@ -19,6 +19,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { ProductImage } from "@/components/product/product-image";
 import { products } from "@/lib/mock/products";
+import { giftKits, giftCards } from "@/lib/mock/gifts";
 import { categories } from "@/lib/mock/categories";
 import {
   addRecentSearch,
@@ -29,7 +30,13 @@ import { formatTk } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { Category, Product } from "@/lib/types";
 
-const POPULAR_SEARCHES = ["Rattle", "Teether", "Stacking", "Montessori", "Building blocks", "Puzzle"];
+// Search spans the FULL catalogue, including gift kits + gift cards. These live
+// outside the main `products` array (so they stay off PLPs / home rails) but
+// should still be discoverable by search — each resolves to a working
+// /products/<slug> page (kit detail, or the dedicated gift-card page).
+const SEARCH_PRODUCTS: Product[] = [...products, ...giftKits, ...giftCards];
+
+const POPULAR_SEARCHES = ["Rattle", "Teether", "Stacking", "Montessori", "Building blocks", "Puzzle", "Gift"];
 // Combined product + category suggestions are capped at this total. Products take
 // priority; up to 2 slots are reserved for categories so both types stay visible
 // when both match, and categories expand to fill spare slots when products are few.
@@ -168,7 +175,7 @@ export function SmartSearch({
   const matchedProducts = useMemo(
     () =>
       q
-        ? products.filter(
+        ? SEARCH_PRODUCTS.filter(
             (p) =>
               p.titleBn.toLowerCase().includes(q) ||
               p.sku.toLowerCase().includes(q),
@@ -202,7 +209,7 @@ export function SmartSearch({
   // completions (clicking one refines the search — it does not navigate).
   const suggestionPool = useMemo(() => {
     const pool = new Set<string>();
-    products.forEach((p) => pool.add(p.titleBn));
+    SEARCH_PRODUCTS.forEach((p) => pool.add(p.titleBn));
     categories.forEach((c) => pool.add(c.nameBn));
     POPULAR_SEARCHES.forEach((t) => pool.add(t));
     return [...pool];

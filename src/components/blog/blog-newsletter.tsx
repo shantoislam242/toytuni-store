@@ -68,11 +68,11 @@ export function BlogNewsletter() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
-              className="h-12 flex-1 rounded-full border border-paper/20 bg-paper px-5 text-sm text-ink outline-none placeholder:text-ink-soft focus-visible:ring-2 focus-visible:ring-mustard"
+              className="h-12 w-full rounded-xl border border-paper/20 bg-paper px-5 text-center text-sm text-ink outline-none placeholder:text-ink-soft focus-visible:ring-2 focus-visible:ring-mustard sm:flex-1 sm:rounded-full sm:text-left"
             />
             <button
               type="submit"
-              className="inline-flex h-12 items-center justify-center gap-1.5 rounded-full bg-mustard px-6 text-sm font-semibold text-ink transition-transform duration-200 hover:-translate-y-0.5 active:translate-y-0 motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+              className="inline-flex h-12 w-full items-center justify-center gap-1.5 rounded-xl bg-mustard px-6 text-sm font-semibold text-ink transition-transform duration-200 hover:-translate-y-0.5 active:translate-y-0 motion-reduce:transition-none motion-reduce:hover:translate-y-0 sm:w-auto sm:rounded-full"
             >
               Subscribe
               <ArrowRight className="size-4" />
