@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Bricolage_Grotesque, Inter } from "next/font/google";
+import { Bricolage_Grotesque, Fraunces, Inter } from "next/font/google";
 import "./globals.css";
 import { BRAND_NAME, SITE_URL } from "@/lib/config";
 import { SiteJsonLd } from "@/components/seo/site-json-ld";
@@ -29,6 +29,16 @@ const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
   display: "swap",
+});
+
+// Serif accent — used for the hero editorial heading. Above the fold but not the
+// LCP element, so skip preloading (it swaps in via display: swap) to protect the
+// hero image's bandwidth on slow connections.
+const fraunces = Fraunces({
+  variable: "--font-fraunces",
+  subsets: ["latin"],
+  display: "swap",
+  preload: false,
 });
 
 const SITE_DESCRIPTION =
@@ -71,7 +81,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${bricolage.variable} ${inter.variable} h-full antialiased`}
+      className={`${bricolage.variable} ${inter.variable} ${fraunces.variable} h-full antialiased`}
     >
       <body
         suppressHydrationWarning

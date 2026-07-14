@@ -1,193 +1,160 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { motion } from "motion/react";
-import { ArrowRight } from "lucide-react";
-import Autoplay from "embla-carousel-autoplay";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-  type CarouselApi,
-} from "@/components/ui/carousel";
-import { heroSlides } from "@/lib/mock/hero";
-import { HeroImage } from "@/components/home/hero-image";
-import { cn } from "@/lib/utils";
+import { ArrowRight, Heart } from "lucide-react";
+import { NeemSprig } from "@/components/blog/journal/neem-sprig";
 
+// Entrance choreography — a calm, staggered fade-up with a gentle defocus→focus
+// blur. Slow easeOut curve (no bounce/overshoot) so it reads elegant, not flashy.
+// Only orchestrates timing on the wrappers; the actual opacity/blur/lift lives on
+// the leaf items so it never conflicts with Tailwind `translate` positioning.
+const ENTER_EASE = [0.22, 1, 0.36, 1] as const;
+
+const stagger = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.12, delayChildren: 0.15 } },
+};
+
+const rise = {
+  hidden: { opacity: 0, y: 16, filter: "blur(6px)" },
+  show: {
+    opacity: 1,
+    y: 0,
+    filter: "blur(0px)",
+    transition: { duration: 0.9, ease: ENTER_EASE },
+  },
+};
+
+/**
+ * Single static hero banner (matches the reference): a full-width lifestyle
+ * image with the editorial copy + animated CTAs on the left, over the image's
+ * light, uncluttered area. A soft cream scrim (blends with the image's own cream
+ * background) keeps the copy readable on every screen. The copy itself is plain
+ * markup (never gated by JS), so the hero always paints; only the CTA float /
+ * shine / hover-arrow are animated.
+ */
 export function HeroCarousel() {
-  const [api, setApi] = useState<CarouselApi>();
-  const [selected, setSelected] = useState(0);
-  const [count, setCount] = useState(0);
-  // autoplay: advance every 3s, keep going after manual interaction.
-  // useState initializer creates the plugin once (stable, no ref access during render).
-  const [autoplay] = useState(() =>
-    Autoplay({ delay: 3000, stopOnInteraction: false, stopOnMouseEnter: true }),
-  );
-
-  // Tablet/desktop (>=768px): the hero fills the first viewport — height =
-  // window height minus the (non-collapsed) header — so the whole banner + CTA
-  // are visible without scrolling. Mobile (<768px): we keep heroHeight null and
-  // fall back to the compact CSS height below, so the hero doesn't swallow the
-  // whole phone screen and the next section peeks through. Re-measured on
-  // resize/orientation change.
-  const [heroHeight, setHeroHeight] = useState<number | null>(null);
-  useEffect(() => {
-    const measure = () => {
-      if (window.innerWidth < 768) {
-        setHeroHeight(null);
-        return;
-      }
-      const headerH =
-        document.querySelector("header")?.getBoundingClientRect().height ?? 0;
-      setHeroHeight(Math.max(280, window.innerHeight - headerH));
-    };
-    measure();
-    window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
-  }, []);
-
-  useEffect(() => {
-    if (!api) return;
-    setCount(api.scrollSnapList().length);
-    setSelected(api.selectedScrollSnap());
-    const onSelect = () => setSelected(api.selectedScrollSnap());
-    api.on("select", onSelect);
-    return () => {
-      api.off("select", onSelect);
-    };
-  }, [api]);
-
   return (
-    <div className="relative">
-      <Carousel
-        setApi={setApi}
-        opts={{ loop: true, align: "start" }}
-        plugins={[autoplay]}
-      >
-        <CarouselContent>
-          {heroSlides.map((s, i) => (
-            <CarouselItem key={s.id}>
-              {/* image-only slide (no overlay text — the banners carry their
-                  own copy). Mobile uses the compact CSS height (h-[400px]) so
-                  the hero doesn't fill the whole phone screen; tablet/desktop
-                  get the runtime `heroHeight` (viewport − header) so the banner
-                  + CTA fill the first screen without scrolling. The md/lg CSS
-                  heights are only the pre-measure fallback. The image fills via
-                  object-cover (cropping as needed) and slowly zooms (Ken Burns);
-                  overflow-hidden clips the zoom. */}
-              <motion.div
-                className="relative block h-[280px] w-full overflow-hidden sm:h-[360px] md:h-[420px] lg:h-[460px]"
-                style={heroHeight ? { height: heroHeight } : undefined}
-                whileHover={{ scale: 1.02 }}
-                transition={{ duration: 0.45, ease: "easeOut" }}
+    <section className="relative w-full overflow-hidden">
+      {/* Reduced fixed heights (no full-viewport stretch), so the banner is
+          shorter on both mobile and desktop. object-position is biased just below
+          centre so the top/bottom trim only removes the empty wall + tablecloth
+          and keeps the toys. */}
+      <div className="relative h-[286px] w-full overflow-hidden sm:h-[346px] md:h-[404px] lg:h-[466px]">
+        <Image
+          src="/images/hero/hero.webp"
+          alt="Handmade neem-wood Montessori stacking tower, shape sorter, pull-along duck and rattle on a linen tabletop"
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover object-[50%_88%]"
+        />
+        {/* cream scrim — fades left→right so the left-side copy stays legible */}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-paper/85 via-paper/25 to-transparent" />
+
+        {/* content — left aligned, vertically centred, inside the sized box */}
+        <div className="absolute inset-0 flex items-center">
+          <motion.div
+            className="mx-auto w-full max-w-6xl -translate-y-6 px-6 sm:-translate-y-8 sm:px-10 lg:max-w-[90rem] lg:px-16"
+            variants={stagger}
+            initial="hidden"
+            animate="show"
+          >
+            <motion.div className="max-w-xl translate-y-2 sm:translate-y-3" variants={stagger}>
+              <motion.span
+                className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-neem-deep sm:text-xs"
+                variants={rise}
               >
-                <HeroImage
-                  src={s.image}
-                  alt={s.titleBn}
-                  priority={i === 0}
-                  imageClassName="animate-kenburns"
-                />
+                <NeemSprig className="size-5 text-neem" />
+                Inspired by Montessori
+              </motion.span>
+
+              <motion.h2
+                className="mt-3 font-[family-name:var(--font-fraunces)] text-4xl font-bold leading-[1.05] tracking-tight text-neem-deep sm:text-5xl lg:text-6xl"
+                variants={rise}
+              >
+                Learning Begins with Play
+              </motion.h2>
+
+              <motion.div className="mt-4 flex items-center gap-3" aria-hidden variants={rise}>
+                <span className="h-px w-16 bg-[#c9a877] sm:w-20" />
+                <Heart className="size-4 fill-[#c9a877] text-[#c9a877]" />
+                <span className="h-px w-16 bg-[#c9a877] sm:w-20" />
               </motion.div>
-            </CarouselItem>
-          ))}
-        </CarouselContent>
-        <CarouselPrevious className="left-4 hidden border-none bg-paper/80 sm:flex" />
-        <CarouselNext className="right-4 hidden border-none bg-paper/80 sm:flex" />
-      </Carousel>
 
-      {/* CTA cluster — anchored near the bottom-right of the hero (a little up
-          from the edge, clear of the dots), gently fades + slides up on mount
-          (Framer Motion). The overlay is click-through (pointer-events-none) so
-          carousel swipe/arrows still work; only the pills are interactive.
-          "Shop Now" is the primary CTA (points at the current slide's target);
-          "Explore by Age" is the secondary CTA (frosted outline) that smoothly
-          scrolls to the Shop by Age section. On narrow screens the pair stacks. */}
-      <div className="pointer-events-none absolute inset-0 z-10 flex items-end justify-end pb-7 pr-6 sm:pb-10 sm:pr-10 lg:pr-16">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: "easeOut", delay: 0.3 }}
-          className="pointer-events-auto flex flex-col-reverse items-end gap-2.5 sm:flex-row sm:items-end sm:gap-3"
-        >
-          {/* secondary CTA — Explore by Age. Same float + shine-sweep motion as
-              Shop Now; only the box colour differs (frosted outline). */}
-          <motion.div
-            className="relative"
-            animate={{ y: [0, -4, 0], rotate: [0, 0.2, 0] }}
-            transition={{ duration: 4.2, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}
-            whileHover={{ scale: 1.05, y: -5, boxShadow: "0 20px 45px rgba(31, 41, 20, 0.18)" }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <div className="absolute inset-x-3 -bottom-2 h-3 rounded-full bg-ink/15 blur-xl" />
-            <Link
-              href="/collections/by-age"
-              className="group relative inline-flex w-40 items-center justify-center overflow-hidden whitespace-nowrap rounded-full border border-white/60 bg-paper/80 px-4 py-3 text-xs font-semibold uppercase tracking-[0.1em] text-neem-deep shadow-[0_10px_28px_rgba(31,41,20,0.14)] backdrop-blur-md transition-colors duration-300 ease-out hover:border-neem hover:bg-paper sm:w-64 sm:px-8 sm:py-4 sm:text-sm"
+              <motion.p
+                className="mt-4 max-w-md text-sm leading-6 text-[#8a765c] sm:text-[15px]"
+                variants={rise}
+              >
+                Thoughtfully crafted Montessori toys that nurture creativity,
+                confidence, and independent learning.
+              </motion.p>
+            </motion.div>
+
+            {/* CTA cluster — enters as one item, then keeps its gentle float + shine. */}
+            <motion.div
+              className="mt-10 flex flex-wrap items-center gap-3 sm:mt-12 sm:gap-3.5"
+              variants={rise}
             >
-              <motion.span
-                className="absolute inset-y-0 -left-1/3 w-1/3 -skew-x-12 bg-[linear-gradient(110deg,transparent_0%,rgba(255,255,255,0.85)_50%,transparent_100%)] blur-[2px]"
-                animate={{ x: ["0%", "460%"] }}
-                transition={{ duration: 3.8, repeat: Infinity, repeatDelay: 2.4, ease: "linear" }}
-              />
-              <span className="relative z-10 inline-flex items-center">
-                {/* arrow appears at the beginning of the text on hover… */}
-                <ArrowRight className="pointer-events-none absolute left-0 top-1/2 size-4 -translate-x-8 -translate-y-1/2 opacity-0 transition-all duration-300 ease-out group-hover:translate-x-0 group-hover:opacity-100" />
-                {/* …and the text slides a little to the right to make room */}
-                <span className="transition-transform duration-300 ease-out group-hover:translate-x-6">
-                  Explore by Age
-                </span>
-              </span>
-            </Link>
-          </motion.div>
+              {/* secondary — Explore by Age (frosted outline) */}
+              <motion.div
+                className="relative"
+                animate={{ y: [0, -4, 0], rotate: [0, 0.2, 0] }}
+                transition={{ duration: 4.2, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}
+                whileHover={{ scale: 1.05, y: -5, boxShadow: "0 20px 45px rgba(31, 41, 20, 0.18)" }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <div className="absolute inset-x-3 -bottom-2 h-3 rounded-full bg-ink/15 blur-xl" />
+                <Link
+                  href="/collections/by-age"
+                  className="group relative inline-flex w-40 items-center justify-center overflow-hidden whitespace-nowrap rounded-full border border-white/60 bg-paper/80 px-4 py-3 text-xs font-semibold uppercase tracking-[0.1em] text-neem-deep shadow-[0_10px_28px_rgba(31,41,20,0.14)] backdrop-blur-md transition-colors duration-300 ease-out hover:border-neem hover:bg-paper sm:w-44 sm:px-5 sm:py-3 sm:text-sm"
+                >
+                  <motion.span
+                    className="absolute inset-y-0 -left-1/3 w-1/3 -skew-x-12 bg-[linear-gradient(110deg,transparent_0%,rgba(255,255,255,0.85)_50%,transparent_100%)] blur-[2px]"
+                    animate={{ x: ["0%", "460%"] }}
+                    transition={{ duration: 3.8, repeat: Infinity, repeatDelay: 2.4, ease: "linear" }}
+                  />
+                  <span className="relative z-10 inline-flex items-center">
+                    <ArrowRight className="pointer-events-none absolute left-0 top-1/2 size-4 -translate-x-8 -translate-y-1/2 opacity-0 transition-all duration-300 ease-out group-hover:translate-x-0 group-hover:opacity-100" />
+                    <span className="transition-transform duration-300 ease-out group-hover:translate-x-6">
+                      Explore by Age
+                    </span>
+                  </span>
+                </Link>
+              </motion.div>
 
-          {/* primary CTA — Shop Now (gradient pill, gentle float) */}
-          <motion.div
-            className="relative"
-            animate={{ y: [0, -4, 0], rotate: [0, 0.2, 0] }}
-            transition={{ duration: 4.2, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}
-            whileHover={{ scale: 1.05, y: -5, boxShadow: "0 20px 45px rgba(83, 117, 57, 0.26)" }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <div className="absolute inset-x-3 -bottom-2 h-3 rounded-full bg-neem/25 blur-xl" />
-            <Link
-              href={heroSlides[selected]?.href ?? "/collections/all"}
-              className="group relative inline-flex w-40 items-center justify-center overflow-hidden whitespace-nowrap rounded-full border border-white/20 bg-[linear-gradient(135deg,#8fb466_0%,#5f7e3d_100%)] px-4 py-3 text-xs font-semibold uppercase tracking-[0.1em] text-paper shadow-[0_14px_34px_rgba(83,117,57,0.24)] transition-all duration-300 ease-out hover:bg-[linear-gradient(135deg,#9cc56f_0%,#6d8f45_100%)] sm:w-64 sm:px-8 sm:py-4 sm:text-sm"
-            >
-              <motion.span
-                className="absolute inset-0 rounded-full bg-[linear-gradient(110deg,transparent_0%,rgba(255,255,255,0.35)_45%,transparent_100%)]"
-                animate={{ x: ["-140%", "140%"] }}
-                transition={{ duration: 3.8, repeat: Infinity, repeatDelay: 2.4, ease: "linear" }}
-              />
-              <span className="relative z-10 inline-flex items-center">
-                {/* arrow appears at the beginning of the text on hover… */}
-                <ArrowRight className="pointer-events-none absolute left-0 top-1/2 size-4 -translate-x-8 -translate-y-1/2 opacity-0 transition-all duration-300 ease-out group-hover:translate-x-0 group-hover:opacity-100" />
-                {/* …and the text slides a little to the right to make room */}
-                <span className="transition-transform duration-300 ease-out group-hover:translate-x-6">
-                  Shop Now
-                </span>
-              </span>
-            </Link>
+              {/* primary — Shop Now (gradient pill) */}
+              <motion.div
+                className="relative"
+                animate={{ y: [0, -4, 0], rotate: [0, 0.2, 0] }}
+                transition={{ duration: 4.2, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}
+                whileHover={{ scale: 1.05, y: -5, boxShadow: "0 20px 45px rgba(83, 117, 57, 0.26)" }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <div className="absolute inset-x-3 -bottom-2 h-3 rounded-full bg-neem/25 blur-xl" />
+                <Link
+                  href="/collections/all"
+                  className="group relative inline-flex w-40 items-center justify-center overflow-hidden whitespace-nowrap rounded-full border border-white/20 bg-[linear-gradient(135deg,#8fb466_0%,#5f7e3d_100%)] px-4 py-3 text-xs font-semibold uppercase tracking-[0.1em] text-paper shadow-[0_14px_34px_rgba(83,117,57,0.24)] transition-all duration-300 ease-out hover:bg-[linear-gradient(135deg,#9cc56f_0%,#6d8f45_100%)] sm:w-44 sm:px-5 sm:py-3 sm:text-sm"
+                >
+                  <motion.span
+                    className="absolute inset-0 rounded-full bg-[linear-gradient(110deg,transparent_0%,rgba(255,255,255,0.35)_45%,transparent_100%)]"
+                    animate={{ x: ["-140%", "140%"] }}
+                    transition={{ duration: 3.8, repeat: Infinity, repeatDelay: 2.4, ease: "linear" }}
+                  />
+                  <span className="relative z-10 inline-flex items-center">
+                    <ArrowRight className="pointer-events-none absolute left-0 top-1/2 size-4 -translate-x-8 -translate-y-1/2 opacity-0 transition-all duration-300 ease-out group-hover:translate-x-0 group-hover:opacity-100" />
+                    <span className="transition-transform duration-300 ease-out group-hover:translate-x-6">
+                      Shop Now
+                    </span>
+                  </span>
+                </Link>
+              </motion.div>
+            </motion.div>
           </motion.div>
-        </motion.div>
+        </div>
       </div>
-
-      {/* dots — overlaid at the bottom of the banner */}
-      <div className="absolute bottom-5 left-1/2 flex -translate-x-1/2 gap-2">
-        {Array.from({ length: count }).map((_, i) => (
-          <button
-            key={i}
-            type="button"
-            aria-label={`Go to slide ${i + 1}`}
-            onClick={() => api?.scrollTo(i)}
-            className={cn(
-              "h-2 rounded-full transition-all",
-              i === selected ? "w-6 bg-neem" : "w-2 bg-paper/70 hover:bg-paper",
-            )}
-          />
-        ))}
-      </div>
-    </div>
+    </section>
   );
 }

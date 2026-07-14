@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { AllProductsView } from "@/components/collection/all-products-view";
+import { DealsView } from "@/components/collection/deals-view";
 import { AgeCollectionView } from "@/components/collection/age-collection-view";
 import { CategoryCollectionView } from "@/components/collection/category-collection-view";
 import { StubPage } from "@/components/stub-page";
@@ -48,6 +49,14 @@ export async function generateMetadata({
       alternates,
       description:
         "The latest handmade, non-toxic wooden Montessori toys — freshly added to the store.",
+    };
+  }
+  if (slug === "deals") {
+    return {
+      title: "Offers & Deals",
+      alternates,
+      description:
+        "Handmade, non-toxic wooden Montessori toys on special offer — limited-time savings for ages 0–3.",
     };
   }
   if (slug === "best-sellers") {
@@ -116,6 +125,10 @@ export default async function Page({
 
   if (slug === "new-arrivals") {
     return <NewArrivalsView />;
+  }
+
+  if (slug === "deals") {
+    return <DealsView />;
   }
 
   if (slug === "best-sellers") {

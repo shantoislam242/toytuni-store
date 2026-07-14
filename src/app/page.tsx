@@ -9,11 +9,12 @@ import { RecentlyViewed } from "@/components/product/recently-viewed";
 import { AboutTeaser } from "@/components/home/about-teaser";
 
 export const metadata: Metadata = {
-  // Absolute title: the home page carries the full brand line itself rather than
-  // the "%s | Toytuni" template.
+  // Absolute title: rendered exactly, not wrapped by the "%s | Toytuni" template.
   title: {
-    absolute: "Toytuni — Handmade Neem-Wood Montessori Toys | Ages 0–3",
+    absolute: "Handmade Neem-Wood Toys",
   },
+  description:
+    "Bangladesh-made, neem-wood, non-toxic, handmade Montessori toys for children",
   alternates: { canonical: "/" },
 };
 

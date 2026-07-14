@@ -32,6 +32,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "by-age",
     "by-category",
     "new-arrivals",
+    "deals",
     "best-sellers",
     "neem-wood",
     ...ageTiers.map((t) => t.slug),
