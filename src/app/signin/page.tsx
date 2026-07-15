@@ -175,12 +175,11 @@ export default function SignInPage() {
         </Link>
       </div>
 
-      {/* Content column. Centred in whatever height is left rather than pushed
-          down by a fixed padding: a fixed offset that looks right on a tall
-          tablet overflows a short desktop window, which is what made the page
-          scroll. Centring keeps the card comfortably low on tall screens and
-          still fits everything on short ones — one screen, no scrolling. */}
-      <div className="flex flex-1 items-center justify-center py-6">
+      {/* Content column — sits just under the wordmark. A fixed top offset is
+          fine at this size (wordmark + card ≈ 560px, so it clears even a short
+          window), but keep it modest: a larger one overflowed and brought the
+          scrollbar back. */}
+      <div className="flex flex-1 items-start justify-center pt-24">
         <div className="w-full max-w-sm">
           <h1 className="font-sans text-2xl font-normal leading-[28.8px] tracking-normal text-black">
             Sign in
