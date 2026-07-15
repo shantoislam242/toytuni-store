@@ -32,14 +32,17 @@ const accentById: Record<string, { outer: string; inner: string }> = {
 export function TrustStrip() {
   return (
     <section className="overflow-hidden border-y border-cream-300 bg-cream-50">
-      <div className="mx-auto grid max-w-5xl grid-cols-1 divide-y divide-cream-300 px-6 py-2 sm:grid-cols-3 sm:divide-x sm:divide-y-0 sm:py-6">
+      {/* Mobile: fill exactly the space between the header and the bottom nav —
+          the square hero is 100vw tall, the header ≈ 58px, the bottom nav ≈ 56px,
+          so the strip takes the remainder and its three stats split it evenly. */}
+      <div className="mx-auto grid min-h-[calc(100dvh-100vw-114px)] max-w-5xl grid-cols-1 grid-rows-3 divide-y divide-cream-300 py-2 sm:min-h-0 sm:grid-cols-3 sm:grid-rows-1 sm:divide-x sm:divide-y-0 sm:px-6 sm:py-6">
         {trustStats.map((s) => {
           const Icon = icon[s.icon];
           const accent = accentById[s.id];
           return (
             <div
               key={s.id}
-              className="relative isolate flex min-h-28 items-center justify-center gap-3 overflow-visible py-5 sm:min-h-20 sm:py-0"
+              className="relative isolate flex min-h-14 items-center justify-center gap-3 overflow-visible px-6 py-2.5 sm:min-h-20 sm:px-0 sm:py-0"
             >
               <div
                 aria-hidden="true"

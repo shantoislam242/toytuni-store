@@ -37,33 +37,19 @@ const rise = {
 export function HeroCarousel() {
   return (
     <section className="relative w-full overflow-hidden">
-      {/* Reduced fixed heights (no full-viewport stretch), so the banner is
-          shorter on both mobile and desktop. object-position is biased just below
-          centre so the top/bottom trim only removes the empty wall + tablecloth
-          and keeps the toys. */}
-      <div className="relative h-[286px] w-full overflow-hidden sm:h-[346px] md:h-[404px] lg:h-[76vh]">
-        <Image
-          src="/images/hero/hero-v2.webp"
-          alt="Handmade neem-wood Montessori stacking tower, shape sorter, pull-along duck and rattle on a linen tabletop"
-          fill
-          priority
-          sizes="100vw"
-          className="object-cover object-[64%_50%] sm:object-center"
-        />
-        {/* cream scrim — fades left→right so the left-side copy stays legible */}
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-paper/85 via-paper/25 to-transparent" />
-
-        {/* content — left aligned, vertically centred, inside the sized box */}
-        <div className="absolute inset-0 flex items-center">
+      {/* CONTENT — absolute overlay at every size, vertically centred over the
+          image (which sits in flow underneath: the tall 4:3 crop on mobile, the
+          76vh wide box on desktop). */}
+      <div className="absolute inset-0 z-10 flex items-start px-4 pt-5 sm:px-6 lg:items-center lg:pt-0">
           <motion.div
-            className="mx-auto w-full max-w-6xl -translate-y-6 px-4 sm:-translate-y-8 sm:px-6 lg:max-w-[90rem] lg:px-8"
+            className="mx-auto w-full max-w-6xl lg:max-w-[90rem] lg:-translate-y-8 lg:px-8"
             variants={stagger}
             initial="hidden"
             animate="show"
           >
-            <motion.div className="max-w-xl translate-y-5 sm:translate-y-7" variants={stagger}>
+            <motion.div className="max-w-xl lg:translate-y-7" variants={stagger}>
               <motion.h2
-                className="font-[family-name:var(--font-fraunces)] text-4xl font-bold leading-[1.05] tracking-tight text-neem-deep sm:text-5xl lg:text-6xl"
+                className="font-[family-name:var(--font-fraunces)] text-2xl font-bold leading-[1.05] tracking-tight text-neem-deep sm:text-5xl lg:text-6xl"
                 variants={rise}
               >
                 Learning Begins
@@ -76,11 +62,19 @@ export function HeroCarousel() {
                 <Heart className="size-4 fill-[#c9a877] text-[#c9a877]" />
                 <span className="h-px w-16 bg-[#c9a877] sm:w-20" />
               </motion.div>
+
+              <motion.p
+                className="mt-3 hidden max-w-md text-xs leading-5 text-[#8a765c] sm:mt-4 sm:text-[15px] sm:leading-6 lg:block"
+                variants={rise}
+              >
+                Thoughtfully crafted Montessori toys that nurture creativity,
+                confidence, and independent learning.
+              </motion.p>
             </motion.div>
 
             {/* CTA cluster — enters as one item, then keeps its gentle float + shine. */}
             <motion.div
-              className="mt-18 flex flex-col items-start gap-2.5 sm:mt-20 sm:gap-3.5"
+              className="mt-16 flex flex-col items-start gap-2.5 lg:mt-20 lg:gap-3.5"
               variants={rise}
             >
               {/* secondary — Explore by Age (frosted outline) */}
@@ -94,7 +88,7 @@ export function HeroCarousel() {
                 <div className="absolute inset-x-3 -bottom-2 h-3 rounded-full bg-ink/15 blur-xl" />
                 <Link
                   href="/collections/by-age"
-                  className="group relative inline-flex w-36 items-center justify-center overflow-hidden whitespace-nowrap rounded-full border border-white/60 bg-paper/80 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-neem-deep shadow-[0_10px_28px_rgba(31,41,20,0.14)] backdrop-blur-md transition-colors duration-300 ease-out hover:border-neem hover:bg-paper sm:w-44 sm:px-5 sm:py-3 sm:text-sm"
+                  className="group relative inline-flex w-32 items-center justify-center overflow-hidden whitespace-nowrap rounded-full border border-white/60 bg-paper/80 px-3.5 py-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-neem-deep shadow-[0_10px_28px_rgba(31,41,20,0.14)] backdrop-blur-md transition-colors duration-300 ease-out hover:border-neem hover:bg-paper sm:w-44 sm:px-5 sm:py-3 sm:text-sm"
                 >
                   <motion.span
                     className="absolute inset-y-0 -left-1/3 w-1/3 -skew-x-12 bg-[linear-gradient(110deg,transparent_0%,rgba(255,255,255,0.85)_50%,transparent_100%)] blur-[2px]"
@@ -121,7 +115,7 @@ export function HeroCarousel() {
                 <div className="absolute inset-x-3 -bottom-2 h-3 rounded-full bg-neem/25 blur-xl" />
                 <Link
                   href="/collections/all"
-                  className="group relative inline-flex w-36 items-center justify-center overflow-hidden whitespace-nowrap rounded-full border border-white/20 bg-[linear-gradient(135deg,#8fb466_0%,#5f7e3d_100%)] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-paper shadow-[0_14px_34px_rgba(83,117,57,0.24)] transition-all duration-300 ease-out hover:bg-[linear-gradient(135deg,#9cc56f_0%,#6d8f45_100%)] sm:w-44 sm:px-5 sm:py-3 sm:text-sm"
+                  className="group relative inline-flex w-32 items-center justify-center overflow-hidden whitespace-nowrap rounded-full border border-white/20 bg-[linear-gradient(135deg,#8fb466_0%,#5f7e3d_100%)] px-3.5 py-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-paper shadow-[0_14px_34px_rgba(83,117,57,0.24)] transition-all duration-300 ease-out hover:bg-[linear-gradient(135deg,#9cc56f_0%,#6d8f45_100%)] sm:w-44 sm:px-5 sm:py-3 sm:text-sm"
                 >
                   <motion.span
                     className="absolute inset-0 rounded-full bg-[linear-gradient(110deg,transparent_0%,rgba(255,255,255,0.35)_45%,transparent_100%)]"
@@ -138,7 +132,37 @@ export function HeroCarousel() {
               </motion.div>
             </motion.div>
           </motion.div>
-        </div>
+      </div>
+
+      {/* DESKTOP image — the sized 76vh box the content overlays. Hidden below lg. */}
+      <div className="relative hidden w-full overflow-hidden lg:block lg:h-[76vh]">
+        <Image
+          src="/images/hero/hero-v2.webp"
+          alt="Handmade neem-wood Montessori stacking tower, shape sorter, pull-along duck and rattle on a linen tabletop"
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover object-center"
+        />
+        {/* cream scrim — fades left→right so the left-side copy stays legible */}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-paper/85 via-paper/25 to-transparent" />
+      </div>
+
+      {/* MOBILE/TABLET image — a taller 4:3 crop of the scene (focused on the
+          toys) so it shows fuller at phone width without any container crop.
+          Sits in flow and defines the section height; the content above overlays
+          it, with a cream scrim on the left for legibility. */}
+      <div className="relative lg:hidden">
+        <Image
+          src="/images/hero/hero-mobile-sq.webp"
+          alt="Handmade neem-wood Montessori stacking tower, shape sorter, pull-along duck and rattle on a linen tabletop"
+          width={821}
+          height={821}
+          priority
+          sizes="100vw"
+          className="block h-auto w-full"
+        />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-paper/90 via-paper/40 to-transparent" />
       </div>
     </section>
   );
