@@ -99,7 +99,7 @@ const toneDot: Record<Tone, string> = {
 };
 
 const navItemBase =
-  "group/navitem relative inline-flex items-center px-2 [font-family:Helvetica,Arial,sans-serif] text-[14px] font-bold leading-[23.1px] tracking-[0.7px] outline-none transition-colors duration-200 " +
+  "group/navitem relative inline-flex shrink-0 items-center whitespace-nowrap px-2 [font-family:Helvetica,Arial,sans-serif] text-[13px] font-bold leading-[23.1px] tracking-[0.5px] outline-none transition-colors duration-200 xl:text-[14px] xl:tracking-[0.7px] " +
   "after:pointer-events-none after:absolute after:-bottom-1.5 after:inset-x-2 after:h-0.5 after:origin-center after:scale-x-0 after:rounded-full after:bg-neem after:transition-transform after:duration-300 after:ease-out " +
   "hover:text-neem-deep hover:after:scale-x-100 focus-visible:text-neem-deep focus-visible:after:scale-x-100";
 
@@ -511,7 +511,7 @@ export function Header() {
           // driven off `collapsed`, all the same 200ms ease-out. The row is a
           // full-width block throughout, so the search (mx-auto) and icons
           // (ml-auto) fade IN PLACE and never snap sideways.
-          collapsed ? "h-20 md:h-16" : "h-20 md:h-24",
+          collapsed ? "h-20 lg:h-16" : "h-20 lg:h-24",
         )}
       >
         {/* left: brand — always goes Home; if already Home it scrolls to top
@@ -541,9 +541,10 @@ export function Header() {
         {/* right: wishlist (all sizes) + cart (desktop) + hamburger (mobile).
             On mobile the order reads Wishlist -> Hamburger; search lives in the
             drawer, so there's no standalone search icon. */}
-        <div className="ml-auto flex items-center gap-2 md:gap-4">
-          {/* Search — mobile only, sits to the LEFT of the wishlist; toggles the
-              full-width search bar below the top row. */}
+        <div className="ml-auto flex items-center gap-1 sm:gap-2 xl:gap-4">
+          {/* Search — phones only (below md), sits to the LEFT of the wishlist;
+              toggles the full-width search bar below the top row. On tablet the
+              search is dropped and this slot shows the cart instead (below). */}
           <Button
             variant="ghost"
             size="icon"
@@ -554,11 +555,26 @@ export function Header() {
           >
             {mobileSearch ? <X className="size-6" /> : <Search className="size-6" />}
           </Button>
+          {/* Cart — tablet only (md–lg): fills the search icon's slot (phones
+              reach the cart via the fixed bottom bar; desktop has its own cart
+              in the icon cluster below). */}
+          <Button
+            asChild
+            variant="ghost"
+            size="icon"
+            aria-label="Cart"
+            className="relative hidden md:inline-flex lg:hidden"
+          >
+            <Link href="/cart">
+              <ShoppingCart className="size-6" />
+              <CartBadge className="absolute -right-0.5 -top-0.5 size-4" />
+            </Link>
+          </Button>
           {/* Wishlist + Sign in + Cart. These stay pinned to the right in BOTH
               states — so on scroll-down, once the brand row condenses and the nav
               rises into it, the icons remain beside the nav: brand (left), nav
               (centred), icons (right). Only the search collapses away. */}
-          <div className="flex items-center gap-2 md:gap-4">
+          <div className="flex items-center gap-1 xl:gap-4">
             {/* Search — desktop, shown only when collapsed (the centre search
                 bar is hidden then). Sits before the wishlist; clicking it
                 scrolls to the top to reveal + focus the full search bar. */}
@@ -567,7 +583,7 @@ export function Header() {
               size="icon"
               aria-label="Search"
               onClick={revealSearch}
-              className={cn("hidden", collapsed && "md:inline-flex")}
+              className={cn("hidden", collapsed && "lg:inline-flex")}
             >
               <Search className="size-6" />
             </Button>
@@ -590,7 +606,7 @@ export function Header() {
               variant="ghost"
               size="icon"
               aria-label="Sign in"
-              className="relative hidden md:inline-flex"
+              className="relative hidden lg:inline-flex"
             >
               <Link href="/signin" className="flex items-center gap-2">
                 <User className="size-6" />
@@ -602,7 +618,7 @@ export function Header() {
               variant="ghost"
               size="icon"
               aria-label="Cart"
-              className="relative hidden md:inline-flex"
+              className="relative hidden lg:inline-flex"
             >
               <Link href="/cart">
                 <ShoppingCart className="size-6" />
@@ -616,7 +632,7 @@ export function Header() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="md:hidden"
+                className="lg:hidden"
                 aria-label="Open menu"
               >
                 <Menu className="size-6" />
@@ -692,10 +708,13 @@ export function Header() {
           the header either way, so that width swap is visually silent. */}
       <nav
         className={cn(
-          "hidden transition-[margin-top] duration-200 ease-out md:block",
+          "hidden transition-[margin-top] duration-200 ease-out lg:block",
           // -mt lifts the nav up into the brand row's band as the search + icons
-          // fade (~3.25rem ≈ vertically centred against the brand).
-          collapsed ? "md:-mt-[3.25rem] md:w-fit md:mx-auto" : "md:mt-0",
+          // fade (~3.25rem ≈ vertically centred against the brand). This "rise
+          // onto the brand row" only happens at xl+, where there's room for
+          // brand | nav | icons on one line. From lg to xl the nav stays on its
+          // own centred row below the brand, so it never overlaps the icons.
+          collapsed ? "xl:-mt-[3.25rem] xl:w-fit xl:mx-auto" : "xl:mt-0",
         )}
       >
         <div
@@ -706,8 +725,8 @@ export function Header() {
             // tighten on collapse the row contracts toward its own centre —
             // pulling in evenly from BOTH sides rather than only the right.
             collapsed
-              ? "gap-0.5 py-2 md:gap-0.5 lg:gap-1"
-              : "gap-2 py-4 md:gap-3 lg:gap-4",
+              ? "gap-0.5 py-2 md:gap-0.5 lg:gap-0.5 xl:gap-1"
+              : "gap-2 py-4 lg:gap-2 xl:gap-4",
           )}
         >
           <NavItem

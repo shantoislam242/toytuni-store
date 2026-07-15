@@ -4,7 +4,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { motion } from "motion/react";
 import { ArrowRight, Heart } from "lucide-react";
-import { NeemSprig } from "@/components/blog/journal/neem-sprig";
 
 // Entrance choreography — a calm, staggered fade-up with a gentle defocus→focus
 // blur. Slow easeOut curve (no bounce/overshoot) so it reads elegant, not flashy.
@@ -49,7 +48,7 @@ export function HeroCarousel() {
           fill
           priority
           sizes="100vw"
-          className="object-cover object-center"
+          className="object-cover object-[64%_50%] sm:object-center"
         />
         {/* cream scrim — fades left→right so the left-side copy stays legible */}
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-paper/85 via-paper/25 to-transparent" />
@@ -57,25 +56,19 @@ export function HeroCarousel() {
         {/* content — left aligned, vertically centred, inside the sized box */}
         <div className="absolute inset-0 flex items-center">
           <motion.div
-            className="mx-auto w-full max-w-6xl -translate-y-6 px-6 sm:-translate-y-8 sm:px-10 lg:max-w-[90rem] lg:px-16"
+            className="mx-auto w-full max-w-6xl -translate-y-6 px-4 sm:-translate-y-8 sm:px-6 lg:max-w-[90rem] lg:px-8"
             variants={stagger}
             initial="hidden"
             animate="show"
           >
-            <motion.div className="max-w-xl translate-y-2 sm:translate-y-3" variants={stagger}>
-              <motion.span
-                className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-neem-deep sm:text-xs"
-                variants={rise}
-              >
-                <NeemSprig className="size-5 text-neem" />
-                Inspired by Montessori
-              </motion.span>
-
+            <motion.div className="max-w-xl translate-y-5 sm:translate-y-7" variants={stagger}>
               <motion.h2
-                className="mt-3 font-[family-name:var(--font-fraunces)] text-4xl font-bold leading-[1.05] tracking-tight text-neem-deep sm:text-5xl lg:text-6xl"
+                className="font-[family-name:var(--font-fraunces)] text-4xl font-bold leading-[1.05] tracking-tight text-neem-deep sm:text-5xl lg:text-6xl"
                 variants={rise}
               >
-                Learning Begins with Play
+                Learning Begins
+                <br />
+                with Play
               </motion.h2>
 
               <motion.div className="mt-4 flex items-center gap-3" aria-hidden variants={rise}>
@@ -83,19 +76,11 @@ export function HeroCarousel() {
                 <Heart className="size-4 fill-[#c9a877] text-[#c9a877]" />
                 <span className="h-px w-16 bg-[#c9a877] sm:w-20" />
               </motion.div>
-
-              <motion.p
-                className="mt-4 max-w-md text-sm leading-6 text-[#8a765c] sm:text-[15px]"
-                variants={rise}
-              >
-                Thoughtfully crafted Montessori toys that nurture creativity,
-                confidence, and independent learning.
-              </motion.p>
             </motion.div>
 
             {/* CTA cluster — enters as one item, then keeps its gentle float + shine. */}
             <motion.div
-              className="mt-14 flex flex-wrap items-center gap-3 sm:mt-16 sm:gap-3.5"
+              className="mt-18 flex flex-col items-start gap-2.5 sm:mt-20 sm:gap-3.5"
               variants={rise}
             >
               {/* secondary — Explore by Age (frosted outline) */}
@@ -109,7 +94,7 @@ export function HeroCarousel() {
                 <div className="absolute inset-x-3 -bottom-2 h-3 rounded-full bg-ink/15 blur-xl" />
                 <Link
                   href="/collections/by-age"
-                  className="group relative inline-flex w-40 items-center justify-center overflow-hidden whitespace-nowrap rounded-full border border-white/60 bg-paper/80 px-4 py-3 text-xs font-semibold uppercase tracking-[0.1em] text-neem-deep shadow-[0_10px_28px_rgba(31,41,20,0.14)] backdrop-blur-md transition-colors duration-300 ease-out hover:border-neem hover:bg-paper sm:w-44 sm:px-5 sm:py-3 sm:text-sm"
+                  className="group relative inline-flex w-36 items-center justify-center overflow-hidden whitespace-nowrap rounded-full border border-white/60 bg-paper/80 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-neem-deep shadow-[0_10px_28px_rgba(31,41,20,0.14)] backdrop-blur-md transition-colors duration-300 ease-out hover:border-neem hover:bg-paper sm:w-44 sm:px-5 sm:py-3 sm:text-sm"
                 >
                   <motion.span
                     className="absolute inset-y-0 -left-1/3 w-1/3 -skew-x-12 bg-[linear-gradient(110deg,transparent_0%,rgba(255,255,255,0.85)_50%,transparent_100%)] blur-[2px]"
@@ -136,7 +121,7 @@ export function HeroCarousel() {
                 <div className="absolute inset-x-3 -bottom-2 h-3 rounded-full bg-neem/25 blur-xl" />
                 <Link
                   href="/collections/all"
-                  className="group relative inline-flex w-40 items-center justify-center overflow-hidden whitespace-nowrap rounded-full border border-white/20 bg-[linear-gradient(135deg,#8fb466_0%,#5f7e3d_100%)] px-4 py-3 text-xs font-semibold uppercase tracking-[0.1em] text-paper shadow-[0_14px_34px_rgba(83,117,57,0.24)] transition-all duration-300 ease-out hover:bg-[linear-gradient(135deg,#9cc56f_0%,#6d8f45_100%)] sm:w-44 sm:px-5 sm:py-3 sm:text-sm"
+                  className="group relative inline-flex w-36 items-center justify-center overflow-hidden whitespace-nowrap rounded-full border border-white/20 bg-[linear-gradient(135deg,#8fb466_0%,#5f7e3d_100%)] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-paper shadow-[0_14px_34px_rgba(83,117,57,0.24)] transition-all duration-300 ease-out hover:bg-[linear-gradient(135deg,#9cc56f_0%,#6d8f45_100%)] sm:w-44 sm:px-5 sm:py-3 sm:text-sm"
                 >
                   <motion.span
                     className="absolute inset-0 rounded-full bg-[linear-gradient(110deg,transparent_0%,rgba(255,255,255,0.35)_45%,transparent_100%)]"
