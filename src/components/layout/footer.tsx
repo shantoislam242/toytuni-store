@@ -190,9 +190,9 @@ export function Footer() {
 
       {/* Main footer — one unified container, flat columns (no cards) */}
       <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:max-w-[90rem] lg:px-8">
-        <div className="grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-3 lg:grid-cols-12">
+        <div className="grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-3 md:grid-cols-12">
           {/* Brand block — logo, description, newsletter, follow us */}
-          <div className="col-span-2 sm:col-span-3 lg:col-span-4">
+          <div className="col-span-2 sm:col-span-3 md:col-span-4">
             <FooterLink
               href="/"
               className="font-display text-2xl font-bold tracking-tight text-ink"
@@ -234,18 +234,24 @@ export function Footer() {
             <FooterNewsletter />
           </div>
 
-          {/* Link columns — share the row with the brand block */}
-          <div className="lg:col-span-2">
-            <FooterColumn title="Shop" links={footerShop} />
-          </div>
-          <div className="lg:col-span-2">
-            <FooterColumn title="Customer Care" links={footerCustomerCare} />
-          </div>
-          <div className="lg:col-span-2">
-            <FooterColumn title="About" links={footerAbout} />
-          </div>
-          <div className="lg:col-span-2">
-            <FooterColumn title="Support" links={footerSupport} />
+          {/* Link columns. Below md they're a tight flex row so each column hugs
+              its own content instead of stretching to half the screen on wide
+              phones (which pushed the columns far apart). At md+ this wrapper is
+              `display: contents`, so the columns become direct children of the
+              12-col grid again and sit on the brand's row. */}
+          <div className="col-span-2 flex flex-wrap gap-x-12 gap-y-10 sm:col-span-3 md:contents">
+            <div className="md:col-span-2">
+              <FooterColumn title="Shop" links={footerShop} />
+            </div>
+            <div className="md:col-span-2">
+              <FooterColumn title="Customer Care" links={footerCustomerCare} />
+            </div>
+            <div className="md:col-span-2">
+              <FooterColumn title="About" links={footerAbout} />
+            </div>
+            <div className="md:col-span-2">
+              <FooterColumn title="Support" links={footerSupport} />
+            </div>
           </div>
         </div>
 
