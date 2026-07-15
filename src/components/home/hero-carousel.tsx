@@ -42,14 +42,14 @@ export function HeroCarousel() {
           shorter on both mobile and desktop. object-position is biased just below
           centre so the top/bottom trim only removes the empty wall + tablecloth
           and keeps the toys. */}
-      <div className="relative h-[286px] w-full overflow-hidden sm:h-[346px] md:h-[404px] lg:h-[466px]">
+      <div className="relative h-[286px] w-full overflow-hidden sm:h-[346px] md:h-[404px] lg:h-[76vh]">
         <Image
-          src="/images/hero/hero.webp"
+          src="/images/hero/hero-v2.webp"
           alt="Handmade neem-wood Montessori stacking tower, shape sorter, pull-along duck and rattle on a linen tabletop"
           fill
           priority
           sizes="100vw"
-          className="object-cover object-[50%_88%]"
+          className="object-cover object-center"
         />
         {/* cream scrim — fades left→right so the left-side copy stays legible */}
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-paper/85 via-paper/25 to-transparent" />
@@ -95,7 +95,7 @@ export function HeroCarousel() {
 
             {/* CTA cluster — enters as one item, then keeps its gentle float + shine. */}
             <motion.div
-              className="mt-10 flex flex-wrap items-center gap-3 sm:mt-12 sm:gap-3.5"
+              className="mt-14 flex flex-wrap items-center gap-3 sm:mt-16 sm:gap-3.5"
               variants={rise}
             >
               {/* secondary — Explore by Age (frosted outline) */}
