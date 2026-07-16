@@ -2,11 +2,10 @@
 export const BRAND_NAME = "Toytuni";
 
 // Canonical site origin, used for metadataBase, canonical URLs, sitemap, robots
-// and absolute OG image URLs. The final domain isn't fixed yet, so it's an env
-// override (set NEXT_PUBLIC_SITE_URL in the deployment) with the current Vercel
-// preview as the default. No trailing slash.
+// and absolute OG image URLs. Override with NEXT_PUBLIC_SITE_URL in the
+// deployment when a custom domain is attached. No trailing slash.
 export const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://montessori-toy-store.vercel.app";
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://toytuni-store.vercel.app";
 
 // One-line brand descriptor, reused in headers/meta/footer.
 export const BRAND_TAGLINE = "Neem-wood, non-toxic, handmade toys for little ones";
