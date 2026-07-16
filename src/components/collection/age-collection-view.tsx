@@ -1,14 +1,15 @@
 import { ProductGrid } from "@/components/collection/product-grid";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { crumbs } from "@/lib/breadcrumbs";
-import { products } from "@/lib/mock/products";
+import { getCatalog } from "@/lib/data/catalog";
 import type { AgeTier } from "@/lib/types";
 
 /**
  * Age-scoped PLP: products are pre-filtered to one age tier, so the grid's
  * own Age facet is hidden (`hideAgeFilter`) to avoid a redundant control.
  */
-export function AgeCollectionView({ tier }: { tier: AgeTier }) {
+export async function AgeCollectionView({ tier }: { tier: AgeTier }) {
+  const products = await getCatalog();
   const scoped = products.filter((p) => p.ageTierSlug === tier.slug);
 
   return (

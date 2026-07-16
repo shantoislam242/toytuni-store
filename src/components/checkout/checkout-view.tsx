@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowRight, ShoppingBag } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
@@ -14,6 +15,7 @@ import { PaymentMethods } from "@/components/checkout/payment-methods";
 import { ShippingMethod } from "@/components/checkout/shipping-method";
 import { useCart } from "@/lib/cart/cart-context";
 import { useCheckout } from "@/lib/checkout/checkout-context";
+import { createOrder } from "@/lib/data/orders";
 import { shippingOptions } from "@/lib/mock/checkout";
 import { getShippingFee, zoneForDistrict } from "@/lib/shipping";
 
@@ -39,17 +41,19 @@ function Section({ children, delay = 0 }: { children: React.ReactNode; delay?: n
  * No backend, auth, payment, or order submission is wired up.
  */
 export function CheckoutView() {
-  const { items, subtotal, hydrated } = useCart();
+  const { items, subtotal, hydrated, clear } = useCart();
   // Delivery address chosen in the cart's address modal (drives the summary +
   // the delivery zone label). The actual delivery charge is driven by the
   // shipping-method selector below.
   const { address } = useCheckout();
+  const router = useRouter();
 
   // Mock auth state — replace with the real session later.
   const isLoggedIn = true;
   const [shipping, setShipping] = useState("standard");
   const [payment, setPayment] = useState("cod");
   const [notes, setNotes] = useState("");
+  const [placing, setPlacing] = useState(false);
 
   // Free shipping unlocks at the threshold. Keep the selection valid: auto-apply
   // free once it unlocks (matches the cart), and never leave "free" selected on
@@ -104,17 +108,46 @@ export function CheckoutView() {
       ? getShippingFee(address.district)
       : deliveryOption.price;
   const deliveryZoneLabel = deliveryZone?.label ?? null;
-  // Mock promotional discount so the summary shows the line (UI only).
-  const discount = Math.round(subtotal * 0.1);
-  const total = Math.max(0, subtotal - discount + delivery);
+  // No promo/discount system yet — real orders never apply a phantom discount.
+  const discount = 0;
+  const total = subtotal + delivery;
 
-  const ctaLabel = isLoggedIn ? "Place Order" : "Continue to Payment";
-  const onCta = () =>
-    toast.info(
-      isLoggedIn
-        ? "Placing orders is coming soon — checkout is UI-only for now."
-        : "The payment step is coming soon — checkout is UI-only for now.",
-    );
+  const ctaLabel = placing ? "Placing…" : isLoggedIn ? "Place Order" : "Continue to Payment";
+  const onCta = async () => {
+    if (!isLoggedIn) {
+      toast.info("The payment step is coming soon — checkout is UI-only for now.");
+      return;
+    }
+    if (placing) return;
+    if (!address) {
+      toast.error("Please add a delivery address first.");
+      return;
+    }
+
+    setPlacing(true);
+    try {
+      const result = await createOrder({
+        customer: { name: address.fullName, phone: address.phone, email: address.email },
+        address: {
+          division: address.division, district: address.district, area: address.area,
+          addressLine: address.addressLine, landmark: address.landmark,
+        },
+        lines: items.map((it) => ({ slug: it.product.slug, qty: it.qty })),
+        notes: notes || undefined,
+        deliveryFee: delivery,
+      });
+
+      if (result.ok) {
+        clear();
+        toast.success(`Order placed! Your order number is ${result.orderNumber}.`);
+        router.push("/");
+      } else {
+        toast.error(result.error);
+      }
+    } finally {
+      setPlacing(false);
+    }
+  };
 
   return (
     <main className="mx-auto w-full max-w-[80rem] flex-1 px-4 py-8 sm:px-6 sm:py-10 lg:px-8">

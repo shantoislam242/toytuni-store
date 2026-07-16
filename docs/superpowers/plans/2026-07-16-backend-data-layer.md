@@ -972,3 +972,26 @@ git commit -m "feat(checkout): place real COD orders via createOrder"
 - **Manual prerequisites** (flagged in-task): create Supabase project (T2), run migration SQL (T3), create `product-images` bucket (T6). These need a human; every code step around them is complete.
 - **Mock field names verified:** `Category.nameBn`, `AgeTier.labelBn`, and the blog fields used by the seed all match the real mock files (checked while writing this plan).
 - **`Date.now()` in `createOrder` (T9):** used only for the order-number suffix, in a server action — fine here (the Workflow-script restriction on `Date.now()` does not apply to app code).
+
+---
+
+## Amendment (2026-07-16) — Overlay hybrid model (Tasks 5–8 revised)
+
+Discovered during execution: the app's product data is richer than the schema
+(ProductDetail, variants, kit contents, category/age-tier presentation, blog
+covers), AND ~20 files — including CLIENT components (cart, wishlist, search,
+recently-viewed) — read the mock product catalog synchronously, which async DB
+reads cannot replace without a large client-data-layer refactor.
+
+Decision (user-approved): **overlay hybrid.** The DB is the source of truth for
+the *operational* fields only — **price, stock, pre-order date** — overlaid onto
+the mock catalog structure in server components. Orders re-read price/stock from
+the DB authoritatively. Editorial content (PDP detail, category/age-tier
+presentation, blog) and the client cart/wishlist/search stay on mock for this
+phase. Editing price/stock/pre-order becomes code-free on all server-rendered
+pages; adding a brand-new product still needs a mock entry (deferred to a later
+catalog-in-DB phase). Client cart *display* price stays from mock (createOrder is
+authoritative; COD confirms on delivery) — documented limitation.
+
+Tasks 5–8 below are superseded by the custom briefs in `.superpowers/sdd/`
+(task-5..8). Tasks 9–10 (createOrder, checkout wiring) are unchanged.

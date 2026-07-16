@@ -26,10 +26,12 @@ export function AddToCartButton({
   slug,
   title,
   className,
+  soldOut = false,
 }: {
   slug: string;
   title?: string;
   className?: string;
+  soldOut?: boolean;
 }) {
   const { items, addItem } = useCart();
   const inCart = items.some((it) => it.product.slug === slug);
@@ -58,17 +60,17 @@ export function AddToCartButton({
       <Button
         size="sm"
         onClick={onAdd}
-        disabled={inCart}
-        aria-label={inCart ? "Added to cart" : "Add to cart"}
+        disabled={soldOut || inCart}
+        aria-label={soldOut ? "Sold out" : inCart ? "Added to cart" : "Add to cart"}
         className={cn(
           "group relative h-10 min-w-[118px] justify-center gap-2 overflow-hidden px-3 text-[0.8rem] font-semibold transition-colors duration-300 sm:h-9",
-          !inCart && "hover:text-ink",
-          inCart && "bg-neem-deep disabled:opacity-100",
+          !inCart && !soldOut && "hover:text-ink",
+          inCart && !soldOut && "bg-neem-deep disabled:opacity-100",
           className,
         )}
       >
-        {/* wood-light fill — wipes in from the left on hover (only before added) */}
-        {!inCart ? (
+        {/* wood-light fill — wipes in from the left on hover (only before added/sold out) */}
+        {!inCart && !soldOut ? (
           <span
             aria-hidden
             className="absolute inset-0 origin-left scale-x-0 bg-wood-light transition-transform duration-300 ease-out group-hover:scale-x-100 motion-reduce:transition-none"
@@ -81,19 +83,19 @@ export function AddToCartButton({
         >
           <AnimatePresence mode="wait" initial={false}>
             <motion.span
-              key={inCart ? "added" : "add"}
+              key={soldOut ? "sold-out" : inCart ? "added" : "add"}
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -4 }}
               transition={{ duration: 0.18, ease: "easeOut" }}
               className="inline-flex items-center gap-2"
             >
-              {inCart ? (
+              {!soldOut && inCart ? (
                 <Check className="size-4" />
-              ) : (
+              ) : !soldOut ? (
                 <ShoppingCart className="size-4" />
-              )}
-              <span>{inCart ? "Added" : "Add to Cart"}</span>
+              ) : null}
+              <span>{soldOut ? "Sold out" : inCart ? "Added" : "Add to Cart"}</span>
             </motion.span>
           </AnimatePresence>
         </motion.div>

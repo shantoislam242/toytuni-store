@@ -27,11 +27,12 @@ import { ProductReviews } from "@/components/product/product-reviews";
 import { ProductRail } from "@/components/product/product-rail";
 import { WishlistButton } from "@/components/product/wishlist-button";
 import { useCart } from "@/lib/cart/cart-context";
-import { formatTk } from "@/lib/format";
+import { formatDate, formatTk } from "@/lib/format";
 import { expertInsightsHref } from "@/lib/routes";
 import { certifications } from "@/lib/mock/trust";
 import { cn } from "@/lib/utils";
 import type { AgeTier, Category, Product, ProductDetail } from "@/lib/types";
+import type { ProductAvailability } from "@/lib/data/product-state";
 
 // Shown only after an add-to-cart click — defer its framer-motion + portal code.
 const CartAddedPopup = dynamic(
@@ -106,7 +107,7 @@ export function ProductDetailsView({
   category,
   related,
 }: {
-  product: Product;
+  product: Product & { availability?: ProductAvailability };
   detail: ProductDetail;
   ageTier?: AgeTier;
   category?: Category;
@@ -120,6 +121,10 @@ export function ProductDetailsView({
   // Once the product is in the cart, the Add button locks to "Added" — the
   // quantity is only changed from the cart page, so it can't be added twice.
   const inCart = items.some((it) => it.product.slug === product.slug);
+
+  const availability = product.availability;
+  const isPreorder = availability?.state === "preorder";
+  const isSoldOut = availability?.state === "sold_out";
 
   // Current page URL for the social-share links (client-only; empty during SSR).
   const [shareUrl, setShareUrl] = useState("");
@@ -335,18 +340,22 @@ export function ProductDetailsView({
               <Button
                 type="button"
                 onClick={handleAddToCart}
-                disabled={inCart}
-                aria-label={inCart ? "Added to cart" : "Add to cart"}
+                disabled={isSoldOut || inCart}
+                aria-label={isSoldOut ? "Sold out" : inCart ? "Added to cart" : "Add to cart"}
                 className={cn(
                   "h-11 gap-2 rounded-lg bg-neem px-4 text-[13px] font-bold text-paper hover:bg-neem-deep",
-                  inCart && "bg-neem-deep disabled:opacity-100",
+                  inCart && !isSoldOut && "bg-neem-deep disabled:opacity-100",
                 )}
               >
-                {inCart ? (
+                {isSoldOut ? (
+                  "Sold out"
+                ) : inCart ? (
                   <>
                     <Check className="size-4" />
                     Added
                   </>
+                ) : isPreorder ? (
+                  "Pre-order now"
                 ) : (
                   "Add to Cart"
                 )}
@@ -354,11 +363,17 @@ export function ProductDetailsView({
               <Button
                 type="button"
                 onClick={buyNow}
+                disabled={isSoldOut}
                 className="h-11 rounded-lg bg-ink px-4 text-[13px] font-bold text-paper hover:bg-ink/90"
               >
                 Buy Now
               </Button>
             </div>
+            {availability?.state === "preorder" ? (
+              <p className="text-sm text-ink-muted">
+                Ships from {formatDate(availability.shipDate)}
+              </p>
+            ) : null}
           </div>
 
           {/* trust strip */}

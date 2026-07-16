@@ -1,27 +1,38 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProductRail } from "@/components/product/product-rail";
 import {
-  products,
-  bestSellers,
-  newLaunches,
-  deals,
-  neemWood,
-} from "@/lib/mock/products";
+  getCatalog,
+  getBestSellers,
+  getNewLaunches,
+  getDeals,
+  getNeemWood,
+} from "@/lib/data/catalog";
 import { giftKits } from "@/lib/mock/gifts";
 import type { Product } from "@/lib/types";
 
 type Tab = { value: string; label: string; href: string; items: Product[] };
 
-const tabs: Tab[] = [
-  { value: "best", label: "Best Sellers", href: "/collections/best-sellers", items: bestSellers },
-  { value: "new", label: "New Arrivals", href: "/collections/new-arrivals", items: newLaunches },
-  { value: "deals", label: "Offers", href: "/collections/deals", items: deals },
-  { value: "gift", label: "Gifts", href: "/gift", items: giftKits },
-  { value: "all", label: "All Products", href: "/collections/all", items: products },
-  { value: "neem", label: "Neem Wood", href: "/collections/neem-wood", items: neemWood },
-];
+export async function ProductTabs() {
+  // Catalogue tabs read DB-overlaid price/stock; the getters are cache-backed so
+  // these resolve in a single DB round-trip. Gift kits are bundles with no DB
+  // override, so the Gifts tab stays on the mock `giftKits` list.
+  const [bestSellers, newLaunches, deals, products, neemWood] = await Promise.all([
+    getBestSellers(),
+    getNewLaunches(),
+    getDeals(),
+    getCatalog(),
+    getNeemWood(),
+  ]);
 
-export function ProductTabs() {
+  const tabs: Tab[] = [
+    { value: "best", label: "Best Sellers", href: "/collections/best-sellers", items: bestSellers },
+    { value: "new", label: "New Arrivals", href: "/collections/new-arrivals", items: newLaunches },
+    { value: "deals", label: "Offers", href: "/collections/deals", items: deals },
+    { value: "gift", label: "Gifts", href: "/gift", items: giftKits },
+    { value: "all", label: "All Products", href: "/collections/all", items: products },
+    { value: "neem", label: "Neem Wood", href: "/collections/neem-wood", items: neemWood },
+  ];
+
   return (
     <section className="mx-auto w-full max-w-6xl px-4 py-12 sm:px-6 sm:py-16 lg:max-w-[90rem] lg:px-8">
       <h2 className="text-center font-display text-2xl font-bold tracking-tight text-ink sm:text-3xl">

@@ -1,7 +1,7 @@
 import { ProductGrid } from "@/components/collection/product-grid";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { crumbs } from "@/lib/breadcrumbs";
-import { products } from "@/lib/mock/products";
+import { getCatalog } from "@/lib/data/catalog";
 import type { Category } from "@/lib/types";
 
 /**
@@ -9,7 +9,8 @@ import type { Category } from "@/lib/types";
  * age pages, the Age facet stays visible so shoppers can narrow a category
  * down to their child's stage.
  */
-export function CategoryCollectionView({ category }: { category: Category }) {
+export async function CategoryCollectionView({ category }: { category: Category }) {
+  const products = await getCatalog();
   const scoped = products.filter((p) => p.categorySlug === category.slug);
 
   return (

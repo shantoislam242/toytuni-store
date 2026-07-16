@@ -2,7 +2,8 @@ import Link from "next/link";
 import { ArrowRight, Check } from "lucide-react";
 import { ProductImage } from "@/components/product/product-image";
 import { Reveal } from "@/components/policy/reveal";
-import { productBySlug, productDetailBySlug } from "@/lib/mock/products";
+import { getCatalogProduct } from "@/lib/data/catalog";
+import { productDetailBySlug } from "@/lib/mock/products";
 
 const FEATURED_SLUG = "traditional-push-wagon";
 
@@ -12,8 +13,8 @@ const FEATURED_SLUG = "traditional-push-wagon";
  * All data is read from the catalogue so title, price and image stay in sync.
  * Renders nothing if the featured product ever goes missing.
  */
-export function FeaturedProductHero() {
-  const product = productBySlug(FEATURED_SLUG);
+export async function FeaturedProductHero() {
+  const product = await getCatalogProduct(FEATURED_SLUG);
   if (!product) return null;
 
   const detail = productDetailBySlug(FEATURED_SLUG);

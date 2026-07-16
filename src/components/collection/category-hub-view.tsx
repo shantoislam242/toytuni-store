@@ -1,7 +1,7 @@
 import { Breadcrumb } from "@/components/breadcrumb";
 import { CategoryCard } from "@/components/collection/category-card";
 import { categories } from "@/lib/mock/categories";
-import { products } from "@/lib/mock/products";
+import { getCatalog } from "@/lib/data/catalog";
 
 /**
  * "Shop by Category" hub: a hero plus a bento grid of premium category cards.
@@ -9,7 +9,8 @@ import { products } from "@/lib/mock/products";
  * tiles, then hands plain props to the client CategoryCard. The first category
  * renders as a wider feature card.
  */
-export function CategoryHubView() {
+export async function CategoryHubView() {
+  const products = await getCatalog();
   return (
     <main className="flex-1 bg-paper">
       {/* hero */}

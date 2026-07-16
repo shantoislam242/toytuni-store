@@ -8,9 +8,10 @@ import { JsonLd } from "@/components/seo/json-ld";
 import { productImagePath } from "@/lib/product-og";
 import { ageTierBySlug } from "@/lib/mock/age-tiers";
 import { categoryBySlug } from "@/lib/mock/categories";
-import { productBySlug, productDetailBySlug, products, relatedProducts } from "@/lib/mock/products";
+import { productDetailBySlug, products } from "@/lib/mock/products";
 import { GiftCardDetailsView } from "@/components/gift/gift-card-details-view";
 import { giftKits, giftCards } from "@/lib/mock/gifts";
+import { getCatalogProduct, getRelated } from "@/lib/data/catalog";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -24,7 +25,7 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const product = productBySlug(slug);
+  const product = await getCatalogProduct(slug);
 
   if (!product) {
     return { title: "Product not found" };
@@ -62,7 +63,7 @@ export default async function Page({
     return <GiftCardDetailsView amount={giftCard.price} />;
   }
 
-  const product = productBySlug(slug);
+  const product = await getCatalogProduct(slug);
   const detail = productDetailBySlug(slug);
 
   if (!product || !detail) {
@@ -71,6 +72,12 @@ export default async function Page({
 
   const category = categoryBySlug(product.categorySlug);
   const img = productImagePath(product.slug);
+  const availabilitySchema =
+    product.availability.state === "preorder"
+      ? "https://schema.org/PreOrder"
+      : product.availability.state === "sold_out"
+        ? "https://schema.org/OutOfStock"
+        : "https://schema.org/InStock";
   const productLd = {
     "@context": "https://schema.org",
     "@type": "Product",
@@ -83,7 +90,7 @@ export default async function Page({
       "@type": "Offer",
       price: product.price,
       priceCurrency: "BDT",
-      availability: "https://schema.org/InStock",
+      availability: availabilitySchema,
       url: `${SITE_URL}/products/${product.slug}`,
     },
     ...(product.reviewCount > 0
@@ -124,7 +131,7 @@ export default async function Page({
         detail={detail}
         ageTier={ageTierBySlug(product.ageTierSlug)}
         category={categoryBySlug(product.categorySlug)}
-        related={relatedProducts(product.slug)}
+        related={await getRelated(product.slug)}
       />
       <div className="bg-paper">
         <RecentlyViewed excludeSlug={product.slug} />
