@@ -37,7 +37,8 @@ async function main() {
 
     if (p.variants?.length) {
       // Replace variants for a clean re-seed.
-      await db.from("product_variants").delete().eq("product_id", prod.id);
+      const del = await db.from("product_variants").delete().eq("product_id", prod.id);
+      if (del.error) throw del.error;
       const v = await db.from("product_variants").insert(
         p.variants.map((vr) => ({ product_id: prod.id, name: vr.name, tone: vr.tone })),
       );
