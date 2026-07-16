@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { ProductCard } from "@/components/product/product-card";
 import { Button } from "@/components/ui/button";
-import { newLaunches } from "@/lib/mock/products";
+import { getNewLaunches } from "@/lib/data/catalog";
 
 /**
  * "New Arrivals" listing: a hero plus a clean grid of the store's newest
@@ -10,8 +10,8 @@ import { newLaunches } from "@/lib/mock/products";
  * `newLaunches` list so ordering matches the home page; ProductCard supplies all
  * card interactivity.
  */
-export function NewArrivalsView() {
-  const newProducts = newLaunches;
+export async function NewArrivalsView() {
+  const newProducts = await getNewLaunches();
 
   return (
     <main className="flex-1 bg-paper">

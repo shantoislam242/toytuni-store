@@ -1,7 +1,7 @@
 import { Breadcrumb } from "@/components/breadcrumb";
 import { AgeHubBrowser } from "@/components/collection/age-hub-browser";
 import { ageTiers } from "@/lib/mock/age-tiers";
-import { products } from "@/lib/mock/products";
+import { getCatalog } from "@/lib/data/catalog";
 import { cn } from "@/lib/utils";
 import type { Tone } from "@/lib/types";
 
@@ -27,7 +27,8 @@ const MAX_PER_TIER = 8;
  * tier's full collection page. Server component; all interactivity lives inside
  * the reused ProductRail / ProductCard.
  */
-export function AgeHubView() {
+export async function AgeHubView() {
+  const products = await getCatalog();
   return (
     <main className="flex-1 bg-paper">
       {/* hero */}

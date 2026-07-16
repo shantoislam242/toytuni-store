@@ -13,13 +13,8 @@ import {
   CollectionPage,
   type CollectionPageConfig,
 } from "@/components/collection/generic/collection-page";
-import { neemWood } from "@/lib/mock/products";
+import { getNeemWood } from "@/lib/data/catalog";
 import type { FaqEntry } from "@/lib/mock/product-faqs";
-
-const products = neemWood;
-const total = products.length;
-const avgRating = (products.reduce((s, p) => s + p.rating, 0) / total).toFixed(1);
-const totalReviews = products.reduce((s, p) => s + p.reviewCount, 0);
 
 const faqs: FaqEntry[] = [
   {
@@ -54,7 +49,7 @@ const faqs: FaqEntry[] = [
   },
 ];
 
-const config: CollectionPageConfig = {
+const baseConfig: Omit<CollectionPageConfig, "products" | "stats"> = {
   breadcrumb: [
     { label: "Home", href: "/" },
     { label: "Shop", href: "/collections/all" },
@@ -68,13 +63,6 @@ const config: CollectionPageConfig = {
     primary: { label: "Shop All Toys", href: "/collections/all" },
     secondary: { label: "Browse by Age", href: "/collections/by-age" },
   },
-  stats: [
-    { icon: Package, value: `${total}`, label: "Neem Wood Toys" },
-    { icon: Star, value: `${avgRating}★`, label: "Average Rating" },
-    { icon: Users, value: `${(totalReviews / 1000).toFixed(1)}k+`, label: "Happy Families" },
-    { icon: Leaf, value: "100%", label: "Natural Neem Wood" },
-  ],
-  products,
   badgeLabel: "Neem Wood",
   searchPlaceholder: "Search neem wood toys…",
   whyTitle: "Why neem wood?",
@@ -176,6 +164,22 @@ const config: CollectionPageConfig = {
 };
 
 /** "Neem Wood" collection page — built on the reusable CollectionPage. */
-export function NeemWoodView() {
+export async function NeemWoodView() {
+  const products = await getNeemWood();
+  const total = products.length;
+  const avgRating = (products.reduce((s, p) => s + p.rating, 0) / total).toFixed(1);
+  const totalReviews = products.reduce((s, p) => s + p.reviewCount, 0);
+
+  const config: CollectionPageConfig = {
+    ...baseConfig,
+    stats: [
+      { icon: Package, value: `${total}`, label: "Neem Wood Toys" },
+      { icon: Star, value: `${avgRating}★`, label: "Average Rating" },
+      { icon: Users, value: `${(totalReviews / 1000).toFixed(1)}k+`, label: "Happy Families" },
+      { icon: Leaf, value: "100%", label: "Natural Neem Wood" },
+    ],
+    products,
+  };
+
   return <CollectionPage config={config} />;
 }

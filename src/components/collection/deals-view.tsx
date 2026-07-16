@@ -1,7 +1,7 @@
 import { ProductGrid } from "@/components/collection/product-grid";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { crumbs } from "@/lib/breadcrumbs";
-import { deals } from "@/lib/mock/products";
+import { getDeals } from "@/lib/data/catalog";
 
 /**
  * "Offers" PLP: the curated on-sale selection (each item carries a
@@ -9,7 +9,8 @@ import { deals } from "@/lib/mock/products";
  * pattern as the other collection pages, so filters/sort/load-more and
  * per-collection filter persistence all work.
  */
-export function DealsView() {
+export async function DealsView() {
+  const deals = await getDeals();
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 sm:py-10 lg:max-w-[90rem] lg:px-8">
       <Breadcrumb
