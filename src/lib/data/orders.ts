@@ -1,15 +1,7 @@
 "use server";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import { getProductState } from "@/lib/data/product-state";
-
-export function computeOrderTotals(
-  lines: { unitPrice: number; qty: number }[],
-  deliveryFee: number,
-): { subtotal: number; total: number; lineTotals: number[] } {
-  const lineTotals = lines.map((l) => l.unitPrice * l.qty);
-  const subtotal = lineTotals.reduce((s, n) => s + n, 0);
-  return { subtotal, total: subtotal + deliveryFee, lineTotals };
-}
+import { computeOrderTotals } from "@/lib/data/order-totals";
 
 export type CreateOrderInput = {
   customer: { name: string; phone: string; email?: string };

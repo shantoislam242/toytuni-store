@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { computeOrderTotals } from "@/lib/data/orders";
+import { computeOrderTotals } from "@/lib/data/order-totals";
 
 describe("computeOrderTotals", () => {
   it("sums line totals and adds delivery", () => {
