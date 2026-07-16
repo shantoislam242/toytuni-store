@@ -72,6 +72,12 @@ export default async function Page({
 
   const category = categoryBySlug(product.categorySlug);
   const img = productImagePath(product.slug);
+  const availabilitySchema =
+    product.availability.state === "preorder"
+      ? "https://schema.org/PreOrder"
+      : product.availability.state === "sold_out"
+        ? "https://schema.org/OutOfStock"
+        : "https://schema.org/InStock";
   const productLd = {
     "@context": "https://schema.org",
     "@type": "Product",
@@ -84,7 +90,7 @@ export default async function Page({
       "@type": "Offer",
       price: product.price,
       priceCurrency: "BDT",
-      availability: "https://schema.org/InStock",
+      availability: availabilitySchema,
       url: `${SITE_URL}/products/${product.slug}`,
     },
     ...(product.reviewCount > 0

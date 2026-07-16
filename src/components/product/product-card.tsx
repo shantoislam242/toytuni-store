@@ -11,6 +11,7 @@ import { ageTierBySlug } from "@/lib/mock/age-tiers";
 import { formatTk } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { Product, Tone } from "@/lib/types";
+import type { ProductAvailability } from "@/lib/data/product-state";
 
 // Solid swatch backgrounds (static so Tailwind keeps them).
 const swatchBg: Record<Tone, string> = {
@@ -64,8 +65,13 @@ function Stars({ rating }: { rating: number }) {
   );
 }
 
-export function ProductCard({ product }: { product: Product }) {
+export function ProductCard({
+  product,
+}: {
+  product: Product & { availability?: ProductAvailability };
+}) {
   const ageTier = ageTierBySlug(product.ageTierSlug);
+  const availability = product.availability;
   const href = `/products/${product.slug}`;
   const discountPercent =
     product.compareAtPrice && product.compareAtPrice > product.price
@@ -125,8 +131,17 @@ export function ProductCard({ product }: { product: Product }) {
         ) : null}
 
         {/* category badge — hidden on discounted (deal) cards so the ribbon
-            owns the corner; shown normally on every other card. */}
-        {product.badge && !discountPercent ? (
+            owns the corner; shown normally on every other card. Pre-order /
+            sold-out availability takes priority over the category badge. */}
+        {availability?.state === "sold_out" ? (
+          <Badge className="absolute left-2 top-2 z-[1] max-w-[calc(100%-3.5rem)] truncate bg-ink/70 px-2 text-[10px] text-paper sm:left-2.5 sm:top-2.5 sm:text-xs">
+            Sold out
+          </Badge>
+        ) : availability?.state === "preorder" ? (
+          <Badge className="absolute left-2 top-2 z-[1] max-w-[calc(100%-3.5rem)] truncate bg-mustard px-2 text-[10px] text-ink sm:left-2.5 sm:top-2.5 sm:text-xs">
+            Pre-order
+          </Badge>
+        ) : product.badge && !discountPercent ? (
           <Badge className="absolute left-2 top-2 z-[1] max-w-[calc(100%-3.5rem)] truncate bg-neem px-2 text-[10px] text-paper sm:left-2.5 sm:top-2.5 sm:text-xs">
             {product.badge}
           </Badge>
@@ -209,6 +224,7 @@ export function ProductCard({ product }: { product: Product }) {
             <AddToCartButton
               slug={product.slug}
               title={product.titleBn}
+              soldOut={availability?.state === "sold_out"}
               className="w-full min-w-0 px-2 text-[0.76rem] min-[420px]:min-w-[108px] sm:min-w-[118px] sm:px-3 sm:text-[0.8rem]"
             />
           </div>
