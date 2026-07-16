@@ -64,3 +64,9 @@ begin
   return p_order->>'order_number';
 end
 $$;
+
+-- Defense-in-depth: these functions are only meant to be called by the
+-- service-role client (which bypasses grants). Revoke direct EXECUTE from the
+-- public-facing roles so a leaked anon key cannot invoke them.
+revoke execute on function place_order(jsonb, jsonb) from anon, authenticated;
+revoke execute on function decrement_stock(uuid, int) from anon, authenticated;

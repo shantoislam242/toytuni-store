@@ -18,6 +18,11 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
   if (!input.lines.length) return { ok: false, error: "Your cart is empty." };
   const db = createAdminSupabase();
 
+  // Never trust a client-supplied fee: a negative value would understate the
+  // COD total. Clamp to a non-negative integer. (Server-side recompute from
+  // district is a documented follow-up.)
+  const deliveryFee = Math.max(0, Math.round(input.deliveryFee));
+
   // Re-read price + stock server-side — never trust the client.
   const slugs = input.lines.map((l) => l.slug);
   const { data: rows, error: readErr } = await db
@@ -59,7 +64,7 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
   }
 
   const { subtotal, total } = computeOrderTotals(
-    items.map((i) => ({ unitPrice: i.unit_price, qty: i.qty })), input.deliveryFee);
+    items.map((i) => ({ unitPrice: i.unit_price, qty: i.qty })), deliveryFee);
 
   const orderNumber = `TT-${Date.now().toString(36).toUpperCase()}`;
   const p_order = {
@@ -70,7 +75,7 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
     division: input.address.division, district: input.address.district,
     area: input.address.area, address_line: input.address.addressLine,
     landmark: input.address.landmark ?? null,
-    subtotal, delivery_fee: input.deliveryFee, total, notes: input.notes ?? null,
+    subtotal, delivery_fee: deliveryFee, total, notes: input.notes ?? null,
   };
   const p_items = items.map((i) => ({
     product_id: i.product_id, title: i.title, unit_price: i.unit_price, qty: i.qty,

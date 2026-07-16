@@ -32,8 +32,13 @@ export async function getProductOverrides(): Promise<Map<string, ProductOverride
     .select("slug, price, compare_at_price, preorder_ship_date, inventory(stock_qty)")
     .eq("active", true)
     .overrideTypes<OverrideRow[], { merge: false }>();
-  if (error) throw error;
   const map = new Map<string, ProductOverride>();
+  if (error) {
+    // Fail soft: a Supabase blip must not 500 the whole storefront. With an
+    // empty map, applyOverride falls back to mock price + in-stock.
+    console.error("getProductOverrides failed; falling back to mock:", error);
+    return map;
+  }
   for (const r of data ?? []) {
     const inv = r.inventory;
     const stockQty = Array.isArray(inv) ? (inv[0]?.stock_qty ?? 0) : (inv?.stock_qty ?? 0);
