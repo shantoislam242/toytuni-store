@@ -20,4 +20,8 @@ describe("getProductState", () => {
     expect(getProductState({ stockQty: 0, preorderShipDate: "2026-01-01", now }))
       .toEqual({ state: "sold_out" });
   });
+  it("sold out when the ship date equals now (boundary, strictly-future required)", () => {
+    expect(getProductState({ stockQty: 0, preorderShipDate: "2026-07-16", now }))
+      .toEqual({ state: "sold_out" });
+  });
 });
