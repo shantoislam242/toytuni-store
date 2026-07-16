@@ -132,13 +132,15 @@ export function ProductCard({
 
         {/* category badge — hidden on discounted (deal) cards so the ribbon
             owns the corner; shown normally on every other card. Pre-order /
-            sold-out availability takes priority over the category badge. */}
+            sold-out availability takes priority over the category badge, and
+            over the ribbon itself: z-30 keeps it above the ribbon's z-20 so
+            it stays legible even when a discount ribbon is also present. */}
         {availability?.state === "sold_out" ? (
-          <Badge className="absolute left-2 top-2 z-[1] max-w-[calc(100%-3.5rem)] truncate bg-ink/70 px-2 text-[10px] text-paper sm:left-2.5 sm:top-2.5 sm:text-xs">
+          <Badge className="absolute left-2 top-2 z-30 max-w-[calc(100%-3.5rem)] truncate bg-ink/70 px-2 text-[10px] text-paper sm:left-2.5 sm:top-2.5 sm:text-xs">
             Sold out
           </Badge>
         ) : availability?.state === "preorder" ? (
-          <Badge className="absolute left-2 top-2 z-[1] max-w-[calc(100%-3.5rem)] truncate bg-mustard px-2 text-[10px] text-ink sm:left-2.5 sm:top-2.5 sm:text-xs">
+          <Badge className="absolute left-2 top-2 z-30 max-w-[calc(100%-3.5rem)] truncate bg-mustard px-2 text-[10px] text-ink sm:left-2.5 sm:top-2.5 sm:text-xs">
             Pre-order
           </Badge>
         ) : product.badge && !discountPercent ? (
