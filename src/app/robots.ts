@@ -18,6 +18,7 @@ export default function robots(): MetadataRoute.Robots {
         "/signin",
         "/search",
         "/styleguide",
+        "/bulk-order",
       ],
     },
     sitemap: `${SITE_URL}/sitemap.xml`,

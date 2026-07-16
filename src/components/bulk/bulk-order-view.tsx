@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { BulkForm } from "@/components/bulk/bulk-form";
+import { BulkOrderBuilder } from "@/components/bulk/bulk-order-builder";
 import { Button } from "@/components/ui/button";
 import { bulkBenefits, bulkContact, bulkSteps, bulkTiers } from "@/lib/mock/bulk";
 import type { BulkIcon, Tone } from "@/lib/types";
@@ -48,7 +49,7 @@ const tierWash: Record<Tone, string> = {
  * strip + how-it-works steps + a UI-only inquiry form. Server component — maps
  * static data; the only client island is BulkForm.
  */
-export function BulkView() {
+export function BulkOrderView() {
   return (
     <main className="flex-1 bg-paper">
       {/* hero */}
@@ -131,6 +132,9 @@ export function BulkView() {
           })}
         </div>
       </section>
+
+      {/* bulk order builder — pick any product, min 5 each, straight to checkout */}
+      <BulkOrderBuilder />
 
       {/* how it works */}
       <section className="mx-auto w-full max-w-[80rem] px-4 pb-12 sm:px-6 lg:px-8">
