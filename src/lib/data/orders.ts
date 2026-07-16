@@ -52,16 +52,7 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
 
     let fulfillment: "in_stock" | "preorder";
     if (state.state === "in_stock") {
-      const { data: remaining } = await db.rpc("decrement_stock", {
-        p_product_id: p.id, p_qty: line.qty,
-      });
-      if (remaining === -1) {
-        // Couldn't reserve stock: fall back to pre-order if allowed, else fail.
-        if (p.preorder_ship_date) fulfillment = "preorder";
-        else return { ok: false, error: `Out of stock: ${p.title}` };
-      } else {
-        fulfillment = "in_stock";
-      }
+      fulfillment = "in_stock";
     } else if (state.state === "preorder") {
       fulfillment = "preorder";
     } else {
@@ -78,28 +69,32 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
   const { subtotal, total } = computeOrderTotals(
     items.map((i) => ({ unitPrice: i.unit_price, qty: i.qty })), input.deliveryFee);
 
-  // Upsert customer by phone (groups repeat buyers).
-  const { data: customer } = await db
-    .from("customers")
-    .upsert({ phone: input.customer.phone, name: input.customer.name,
-      email: input.customer.email ?? null }, { onConflict: "phone" })
-    .select("id").single();
-
   const orderNumber = `TT-${Date.now().toString(36).toUpperCase()}`;
-  const { data: order, error: orderErr } = await db.from("orders").insert({
-    order_number: orderNumber, customer_id: customer?.id ?? null,
-    customer_name: input.customer.name, customer_phone: input.customer.phone,
+  const p_order = {
+    order_number: orderNumber,
+    customer_name: input.customer.name,
+    customer_phone: input.customer.phone,
     customer_email: input.customer.email ?? null,
     division: input.address.division, district: input.address.district,
     area: input.address.area, address_line: input.address.addressLine,
     landmark: input.address.landmark ?? null,
     subtotal, delivery_fee: input.deliveryFee, total, notes: input.notes ?? null,
-  }).select("id").single();
-  if (orderErr || !order) return { ok: false, error: "Could not place order." };
+  };
+  const p_items = items.map((i) => ({
+    product_id: i.product_id, title: i.title, unit_price: i.unit_price, qty: i.qty,
+    line_total: i.line_total, fulfillment_type: i.fulfillment_type,
+    preorder_ship_date: i.preorder_ship_date,
+  }));
 
-  const { error: itemsErr } = await db.from("order_items")
-    .insert(items.map((i) => ({ ...i, order_id: order.id })));
-  if (itemsErr) return { ok: false, error: "Could not save order items." };
+  const { data: orderNumberResult, error } = await db.rpc("place_order", {
+    p_order: p_order as never, p_items: p_items as never,
+  });
+  if (error) {
+    if (error.message?.includes("insufficient_stock")) {
+      return { ok: false, error: "Sorry, an item just went out of stock. Please try again." };
+    }
+    return { ok: false, error: "Could not place order." };
+  }
 
-  return { ok: true, orderNumber, total };
+  return { ok: true, orderNumber: orderNumberResult as string, total };
 }

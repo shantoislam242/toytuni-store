@@ -401,6 +401,13 @@ export type Database = {
         };
         Returns: number;
       };
+      place_order: {
+        Args: {
+          p_order: Json;
+          p_items: Json;
+        };
+        Returns: string;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
