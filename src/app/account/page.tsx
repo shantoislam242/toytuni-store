@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { AccountGate } from "@/components/account/account-gate";
+import { AccountView } from "@/components/account/account-view";
 
 export function generateMetadata(): Metadata {
   return {
@@ -10,5 +10,5 @@ export function generateMetadata(): Metadata {
 }
 
 export default function Page() {
-  return <AccountGate />;
+  return <AccountView />;
 }
