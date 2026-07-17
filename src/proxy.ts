@@ -68,11 +68,15 @@ export async function proxy(request: NextRequest) {
     if (!user) {
       const redirectUrl = new URL("/signin", request.url);
       redirectUrl.searchParams.set("next", pathname);
-      return NextResponse.redirect(redirectUrl);
+      const redirect = NextResponse.redirect(redirectUrl);
+      response.cookies.getAll().forEach((c) => redirect.cookies.set(c));
+      return redirect;
     }
 
     if (!isAdmin(user.email)) {
-      return NextResponse.redirect(new URL("/", request.url));
+      const redirect = NextResponse.redirect(new URL("/", request.url));
+      response.cookies.getAll().forEach((c) => redirect.cookies.set(c));
+      return redirect;
     }
   }
 
