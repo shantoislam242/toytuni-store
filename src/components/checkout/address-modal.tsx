@@ -13,6 +13,7 @@ import {
   type AddressDraft,
 } from "@/components/checkout/address-form";
 import { getShippingFee, zoneForDistrict } from "@/lib/shipping";
+import { useAuth } from "@/lib/auth/auth-context";
 import { formatTk } from "@/lib/format";
 import type { Address } from "@/lib/types";
 
@@ -33,18 +34,18 @@ const NEW = "__new__";
 export function AddressModal({
   open,
   onOpenChange,
-  isLoggedIn,
   savedAddresses,
   subtotal,
   onConfirm,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  isLoggedIn: boolean;
   savedAddresses: Address[];
   subtotal: number;
   onConfirm: (address: Address) => void;
 }) {
+  const { user } = useAuth();
+  const isLoggedIn = !!user;
   const hasSaved = isLoggedIn && savedAddresses.length > 0;
   const defaultId =
     savedAddresses.find((a) => a.isDefault)?.id ?? savedAddresses[0]?.id ?? NEW;

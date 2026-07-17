@@ -15,6 +15,7 @@ import { CouponCode } from "@/components/cart/coupon-code";
 import { GiftCardThumb } from "@/components/cart/gift-card-thumb";
 import dynamic from "next/dynamic";
 import { GiftWrapDialog } from "@/components/cart/gift-wrap-dialog";
+import { useAuth } from "@/lib/auth/auth-context";
 import { useCart } from "@/lib/cart/cart-context";
 import { useCheckout } from "@/lib/checkout/checkout-context";
 import { mockSavedAddresses } from "@/lib/mock-addresses";
@@ -175,14 +176,12 @@ export function CartView() {
   const { items, hydrated, addItem, setQty, removeItem, clear } = useCart();
   const { setDeliveryAddress } = useCheckout();
   const router = useRouter();
+  const { user } = useAuth();
+  const isLoggedIn = !!user;
   // Terms agreement lives here so it can gate the Checkout button below.
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   // Address-selection modal, opened by "Proceed to Checkout".
   const [addressModalOpen, setAddressModalOpen] = useState(false);
-  // Demo-only: preview the address modal as a logged-in customer (saved
-  // addresses) or a guest. Drives ONLY the modal's audience (not the reward
-  // block). Remove with real auth.
-  const [previewLoggedIn, setPreviewLoggedIn] = useState(true);
   // Track DESELECTED slugs (default: everything selected). This model auto-keeps
   // new items selected and quietly drops removed ones — no syncing needed.
   const [deselected, setDeselected] = useState<Set<string>>(new Set());
@@ -333,15 +332,15 @@ export function CartView() {
   const preDeliveryTotal =
     Math.max(0, selectedSubtotal - effectiveDiscount) + giftWrapCharge;
 
-  // Demo preview → modal props (logged in shows saved addresses; guest shows the form).
-  const previewAddresses = previewLoggedIn ? mockSavedAddresses : [];
+  // Signed-in customers see their saved addresses in the modal; guests get the
+  // form. (Saved-address persistence isn't wired yet, so signed-in uses mocks.)
+  const savedAddresses = isLoggedIn ? mockSavedAddresses : [];
 
   const canCheckout = agreedToTerms && selectedCount > 0;
   const confirmItemCount =
     confirmAction === "clear-cart" ? items.length : selectedCount;
 
-  // Mock auth for the reward-points block (no real auth on the cart yet).
-  const isLoggedIn = false;
+  // Reward points are a placeholder until the loyalty system exists.
   const rewardPoints = 320;
 
   return (
@@ -481,7 +480,7 @@ export function CartView() {
           </ul>
           </div>
 
-          <OrderOptions isLoggedIn={isLoggedIn} rewardPoints={rewardPoints} />
+          <OrderOptions rewardPoints={rewardPoints} />
         </div>
 
         {/* order summary */}
@@ -616,34 +615,9 @@ export function CartView() {
               </p>
             ) : null}
 
-            {/* demo-only preview switch — remove once real auth is connected */}
-            <div className="mt-5 flex items-center justify-center gap-2">
-              <span className="text-xs font-medium text-ink-soft">Preview:</span>
-              <div className="inline-flex rounded-full border border-cream-300 bg-card p-1 text-sm">
-                {[
-                  { key: true, label: "Logged in" },
-                  { key: false, label: "Guest" },
-                ].map((opt) => (
-                  <button
-                    key={opt.label}
-                    type="button"
-                    onClick={() => setPreviewLoggedIn(opt.key)}
-                    className={cn(
-                      "rounded-full px-3 py-1.5 font-medium transition-colors",
-                      previewLoggedIn === opt.key
-                        ? "bg-neem text-paper"
-                        : "text-ink-muted hover:text-ink",
-                    )}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
             <Button
               type="button"
-              className="mt-3 w-full"
+              className="mt-5 w-full"
               size="lg"
               disabled={!canCheckout}
               onClick={() => setAddressModalOpen(true)}
@@ -708,8 +682,7 @@ export function CartView() {
       <AddressModal
         open={addressModalOpen}
         onOpenChange={setAddressModalOpen}
-        isLoggedIn={previewLoggedIn}
-        savedAddresses={previewAddresses}
+        savedAddresses={savedAddresses}
         subtotal={preDeliveryTotal}
         onConfirm={(address) => {
           setDeliveryAddress(address);

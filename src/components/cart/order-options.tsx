@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Award, Truck } from "lucide-react";
+import { useAuth } from "@/lib/auth/auth-context";
 import { cn } from "@/lib/utils";
 
 /** A titled block inside the Order Options card (icon + heading + content). */
@@ -99,14 +100,13 @@ function RadioRow({
  * lives in the Order Summary; Terms agreement lives beside the Checkout button.)
  */
 export function OrderOptions({
-  isLoggedIn = false,
   rewardPoints = 0,
 }: {
-  /** Mock auth flag — controls the reward-points message. */
-  isLoggedIn?: boolean;
   /** Points shown when logged in. */
   rewardPoints?: number;
 }) {
+  const { user } = useAuth();
+  const isLoggedIn = !!user;
   const [delivery, setDelivery] = useState<"home" | "pickup">("home");
 
   return (

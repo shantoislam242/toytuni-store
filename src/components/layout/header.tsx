@@ -46,6 +46,7 @@ import { BRAND_NAME } from "@/lib/config";
 import { isBareRoute } from "@/lib/routes";
 import { CartBadge } from "@/components/cart/cart-badge";
 import { WishlistBadge } from "@/components/product/wishlist-badge";
+import { useAuth } from "@/lib/auth/auth-context";
 import { useHomeReset } from "@/components/layout/home-reset";
 import { clearPlpState } from "@/lib/plp-state";
 import { cn } from "@/lib/utils";
@@ -451,6 +452,11 @@ export function Header() {
   // page you're on (logo → Home included) and is never stuck on a past item.
   const pathname = usePathname();
   const { triggerHomeReset } = useHomeReset();
+  // Auth-aware account affordance. While the session is still resolving, treat
+  // the user as signed out so the first paint shows "Sign in" (never a flash of
+  // "Account" that then disappears).
+  const { user, loading } = useAuth();
+  const isLoggedIn = !loading && !!user;
   const close = () => setOpen(false);
 
   // Brand logo: always go Home and "reset all". Forget every collection's
@@ -655,15 +661,15 @@ export function Header() {
                 <WishlistBadge className="absolute -right-0.5 -top-0.5 size-4" />
               </Link>
             </Button>
-            {/* Sign in — desktop only. */}
+            {/* Account / Sign in — desktop only. */}
             <Button
               asChild
               variant="ghost"
               size="icon"
-              aria-label="Sign in"
+              aria-label={isLoggedIn ? "Account" : "Sign in"}
               className="relative hidden lg:inline-flex"
             >
-              <Link href="/signin" className="flex items-center gap-2">
+              <Link href={isLoggedIn ? "/account" : "/signin"} className="flex items-center gap-2">
                 <User className="size-6" />
               </Link>
             </Button>
@@ -734,11 +740,13 @@ export function Header() {
                     </Link>
                   ))}
                   <Link
-                    href="/signin"
-                    onClick={(e) => navClick(e, "/signin", pathname, close)}
+                    href={isLoggedIn ? "/account" : "/signin"}
+                    onClick={(e) =>
+                      navClick(e, isLoggedIn ? "/account" : "/signin", pathname, close)
+                    }
                     className={drawerItemClass}
                   >
-                    Sign In
+                    {isLoggedIn ? "Account" : "Sign In"}
                   </Link>
                 </nav>
               </div>
