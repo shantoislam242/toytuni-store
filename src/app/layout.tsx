@@ -10,6 +10,7 @@ import { SiteBackground } from "@/components/layout/site-background";
 import { MobileBottomBar } from "@/components/layout/mobile-bottom-bar";
 import { WhatsAppButton } from "@/components/layout/whatsapp-button";
 import { DeferredIslands } from "@/components/layout/deferred-islands";
+import { AuthProvider } from "@/lib/auth/auth-context";
 import { CartProvider } from "@/lib/cart/cart-context";
 import { CheckoutProvider } from "@/lib/checkout/checkout-context";
 import { WishlistProvider } from "@/lib/wishlist/wishlist-context";
@@ -90,25 +91,27 @@ export default function RootLayout({
         <SiteJsonLd />
         <Preloader />
         <SiteBackground />
-        <CartProvider>
-          <CheckoutProvider>
-            <WishlistProvider>
-              <HomeResetProvider>
-                <Header />
-                <div className="flex flex-1 flex-col">
-                  <HomeResetBoundary>{children}</HomeResetBoundary>
-                </div>
-                <FooterGate>
-                  <Footer />
-                </FooterGate>
-                <MobileBottomBar />
-                <WhatsAppButton />
-                <DeferredIslands />
-                <Toaster />
-              </HomeResetProvider>
-            </WishlistProvider>
-          </CheckoutProvider>
-        </CartProvider>
+        <AuthProvider>
+          <CartProvider>
+            <CheckoutProvider>
+              <WishlistProvider>
+                <HomeResetProvider>
+                  <Header />
+                  <div className="flex flex-1 flex-col">
+                    <HomeResetBoundary>{children}</HomeResetBoundary>
+                  </div>
+                  <FooterGate>
+                    <Footer />
+                  </FooterGate>
+                  <MobileBottomBar />
+                  <WhatsAppButton />
+                  <DeferredIslands />
+                  <Toaster />
+                </HomeResetProvider>
+              </WishlistProvider>
+            </CheckoutProvider>
+          </CartProvider>
+        </AuthProvider>
       </body>
     </html>
   );
