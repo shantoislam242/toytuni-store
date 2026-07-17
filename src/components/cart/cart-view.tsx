@@ -15,11 +15,10 @@ import { CouponCode } from "@/components/cart/coupon-code";
 import { GiftCardThumb } from "@/components/cart/gift-card-thumb";
 import dynamic from "next/dynamic";
 import { GiftWrapDialog } from "@/components/cart/gift-wrap-dialog";
-import { useAuth } from "@/lib/auth/auth-context";
 import { useCart } from "@/lib/cart/cart-context";
 import { useCheckout } from "@/lib/checkout/checkout-context";
-import { mockSavedAddresses } from "@/lib/mock-addresses";
 import { formatTk } from "@/lib/format";
+import type { Address } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 // Interaction-gated: only mounts after "Proceed to Checkout", so keep its
@@ -176,8 +175,6 @@ export function CartView() {
   const { items, hydrated, addItem, setQty, removeItem, clear } = useCart();
   const { setDeliveryAddress } = useCheckout();
   const router = useRouter();
-  const { user } = useAuth();
-  const isLoggedIn = !!user;
   // Terms agreement lives here so it can gate the Checkout button below.
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   // Address-selection modal, opened by "Proceed to Checkout".
@@ -332,16 +329,17 @@ export function CartView() {
   const preDeliveryTotal =
     Math.max(0, selectedSubtotal - effectiveDiscount) + giftWrapCharge;
 
-  // Signed-in customers see their saved addresses in the modal; guests get the
-  // form. (Saved-address persistence isn't wired yet, so signed-in uses mocks.)
-  const savedAddresses = isLoggedIn ? mockSavedAddresses : [];
+  // There is no real saved-address API yet, so everyone — signed-in or
+  // guest — gets the address form in the modal rather than a fabricated
+  // pre-selected address.
+  const savedAddresses: Address[] = [];
 
   const canCheckout = agreedToTerms && selectedCount > 0;
   const confirmItemCount =
     confirmAction === "clear-cart" ? items.length : selectedCount;
 
-  // Reward points are a placeholder until the loyalty system exists.
-  const rewardPoints = 320;
+  // No loyalty backend yet — 0 (not a fabricated value) until it exists.
+  const rewardPoints = 0;
 
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 sm:py-10 lg:max-w-[90rem] lg:px-8">

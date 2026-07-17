@@ -29,13 +29,17 @@ import { createBrowserSupabase } from "@/lib/supabase/client";
  * no `<Suspense>` boundary and can't trip the "Missing Suspense boundary with
  * useSearchParams" build-time bailout for prerendered client pages (see
  * node_modules/next/dist/docs/01-app/03-api-reference/04-functions/use-search-params.md).
- * Only ever returns a same-origin path (rejects `//evil.com`-style values) so
- * a crafted `next` can't turn this into an open redirect.
+ * Only ever returns a same-origin path (rejects `//evil.com`-style values, and
+ * `/\evil.com`-style values — WHATWG URL parsing treats a leading backslash
+ * like a slash, so that's just as much an open redirect) so a crafted `next`
+ * can't turn this into an open redirect.
  */
 function getNextParam(): string {
   if (typeof window === "undefined") return "/account";
   const next = new URLSearchParams(window.location.search).get("next");
-  return next && next.startsWith("/") && !next.startsWith("//") ? next : "/account";
+  return next && next.startsWith("/") && !next.startsWith("//") && !next.includes("\\")
+    ? next
+    : "/account";
 }
 
 // Brand glyphs for the social sign-in buttons. lucide dropped brand icons, so
