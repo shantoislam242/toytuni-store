@@ -18,6 +18,29 @@ import {
 import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
 import { BRAND_NAME } from "@/lib/config";
+import { createBrowserSupabase } from "@/lib/supabase/client";
+
+/**
+ * Where to send the user after a successful sign-in — the `?next=` search
+ * param (set e.g. by `src/proxy.ts` when it bounces an unauthenticated visitor
+ * off `/admin/*`), falling back to `/account`. Read straight from
+ * `window.location.search` (not `useSearchParams`) since this is only ever
+ * called from inside client event handlers, never during render — so it needs
+ * no `<Suspense>` boundary and can't trip the "Missing Suspense boundary with
+ * useSearchParams" build-time bailout for prerendered client pages (see
+ * node_modules/next/dist/docs/01-app/03-api-reference/04-functions/use-search-params.md).
+ * Only ever returns a same-origin path (rejects `//evil.com`-style values, and
+ * `/\evil.com`-style values — WHATWG URL parsing treats a leading backslash
+ * like a slash, so that's just as much an open redirect) so a crafted `next`
+ * can't turn this into an open redirect.
+ */
+function getNextParam(): string {
+  if (typeof window === "undefined") return "/account";
+  const next = new URLSearchParams(window.location.search).get("next");
+  return next && next.startsWith("/") && !next.startsWith("//") && !next.includes("\\")
+    ? next
+    : "/account";
+}
 
 // Brand glyphs for the social sign-in buttons. lucide dropped brand icons, so
 // these are inline SVG (simple-icons paths) — same pattern as the footer.
@@ -54,8 +77,11 @@ function FacebookIcon({ className }: { className?: string }) {
 
 export default function SignInPage() {
   const router = useRouter();
+  // Stable for the component's lifetime, same pattern as AuthProvider.
+  const [supabase] = useState(() => createBrowserSupabase());
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   // Step 2: password popup.
   const [showPassword, setShowPassword] = useState(false);
@@ -64,10 +90,23 @@ export default function SignInPage() {
   const [showSignUp, setShowSignUp] = useState(false);
   const [acceptedSignUpTerms, setAcceptedSignUpTerms] = useState(false);
 
+  // Sign-up modal fields — previously unwired (no value/onChange at all).
+  const [signUpFullName, setSignUpFullName] = useState("");
+  const [signUpEmail, setSignUpEmail] = useState("");
+  const [signUpPassword, setSignUpPassword] = useState("");
+  const [signUpConfirmPassword, setSignUpConfirmPassword] = useState("");
+  const [signUpLoading, setSignUpLoading] = useState(false);
+
   // Human-verification (CAPTCHA) step — UI only, shown after "Create account".
   const [showVerify, setShowVerify] = useState(false);
   const [captchaChecked, setCaptchaChecked] = useState(false);
   const [captchaVerifying, setCaptchaVerifying] = useState(false);
+
+  // Post sign-up: Supabase requires email confirmation before the account can
+  // sign in, so swap the main card for a "check your email" state instead of
+  // pretending the account is immediately usable.
+  const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
+  const [confirmationEmail, setConfirmationEmail] = useState("");
 
   // Step 1 → open the password popup once an identifier is entered.
   const handleIdentifierSubmit = (event: React.FormEvent) => {
@@ -96,8 +135,22 @@ export default function SignInPage() {
     setCaptchaVerifying(false);
   };
 
-  // Sign-up submit → don't create the account yet; open the verification modal.
+  // Sign-up submit → validate the (now-wired) fields, then open the
+  // human-verification modal. The actual `signUp()` call fires once that
+  // completes (see `handleVerify`) — that's the flow's true "finish" point.
   const handleCreateAccount = () => {
+    if (!signUpEmail.trim()) {
+      toast.error("Please enter your email or phone number.");
+      return;
+    }
+    if (!signUpPassword) {
+      toast.error("Please create a password.");
+      return;
+    }
+    if (signUpPassword !== signUpConfirmPassword) {
+      toast.error("Passwords do not match.");
+      return;
+    }
     if (!acceptedSignUpTerms) {
       toast.error("Please accept the Terms and Conditions to continue.");
       return;
@@ -115,31 +168,85 @@ export default function SignInPage() {
     }, 800);
   };
 
-  // Verify → UI-only "account created" success. No backend / real CAPTCHA.
-  const handleVerify = () => {
-    if (!captchaChecked) return;
+  // Verify → this is where the account is actually created. Supabase emails a
+  // confirmation link (see `/auth/callback`); until it's followed the account
+  // can't sign in, so we swap the card for an "check your email" state rather
+  // than claim success outright.
+  const handleVerify = async () => {
+    if (!captchaChecked || signUpLoading) return;
+    setSignUpLoading(true);
+    const { error } = await supabase.auth.signUp({
+      email: signUpEmail,
+      password: signUpPassword,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        ...(signUpFullName.trim()
+          ? { data: { full_name: signUpFullName.trim() } }
+          : {}),
+      },
+    });
+    setSignUpLoading(false);
+    if (error) {
+      toast.error(error.message);
+      closeVerify(); // back to the sign-up modal so the user can fix and retry
+      return;
+    }
     closeVerify();
     closeSignUpModal();
-    toast.success("Account created", {
-      description: "Verification successful — welcome aboard!",
+    setConfirmationEmail(signUpEmail);
+    setAwaitingConfirmation(true);
+    toast.success("Check your email", {
+      description: `We sent a confirmation link to ${signUpEmail}.`,
     });
   };
 
-  // Step 2 → placeholder auth. Real authentication is not wired up yet, so we
-  // simulate a round-trip for the loading state, then bounce the user home.
-  const handlePasswordSubmit = (event: React.FormEvent) => {
+  const handleBackToSignIn = () => {
+    setAwaitingConfirmation(false);
+    setSignUpFullName("");
+    setSignUpEmail("");
+    setSignUpPassword("");
+    setSignUpConfirmPassword("");
+    setAcceptedSignUpTerms(false);
+  };
+
+  // Google OAuth — used by both the top-level "Google" button and the one
+  // inside the sign-up modal (Supabase treats sign-in/sign-up via OAuth as the
+  // same call: it creates the account on first use). Redirects the browser
+  // away to Google, so there's no local success path to handle — only errors
+  // (e.g. the popup/redirect being blocked) come back here.
+  const handleGoogleSignIn = async () => {
+    if (googleLoading) return;
+    setGoogleLoading(true);
+    const next = getNextParam();
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+      },
+    });
+    if (error) {
+      toast.error(error.message);
+      setGoogleLoading(false);
+    }
+  };
+
+  // Step 2 → real Supabase email/password sign-in.
+  const handlePasswordSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!password) {
       toast.error("Please enter your password.");
       return;
     }
     setLoading(true);
-    window.setTimeout(() => {
-      setLoading(false);
-      setShowPassword(false);
-      toast.success("Signed in successfully.");
-      router.push("/");
-    }, 900);
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    setLoading(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setShowPassword(false);
+    toast.success("Signed in successfully.");
+    router.push(getNextParam());
   };
 
   // Close the popup on Escape.
@@ -181,94 +288,126 @@ export default function SignInPage() {
           scrollbar back. */}
       <div className="flex flex-1 items-start justify-center pt-24">
         <div className="w-full max-w-sm">
-          <h1 className="font-sans text-2xl font-normal leading-[28.8px] tracking-normal text-black">
-            Sign in
-          </h1>
-          <p className="mt-2 font-sans text-sm font-normal leading-[21px] tracking-normal text-[#0000008f]">
-            Sign in to track orders, save your wishlist, and check out faster
-          </p>
-
-          {/* Continue with Shop */}
-          <button
-            type="button"
-            onClick={() => toast.info("Shop sign-in isn’t wired up yet.")}
-            className="mt-5 flex h-12 w-full items-center justify-center rounded-lg bg-[#5a31f4] text-base font-semibold text-white transition hover:bg-[#4a27d4]"
-          >
-            Continue with
-          </button>
-
-          {/* social sign-in */}
-          <div className="mt-3 grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() => toast.info("Social sign-in isn’t wired up yet.")}
-              className="flex h-12 items-center justify-center gap-2.5 rounded-lg border border-cream-300 bg-paper text-[15px] font-medium text-ink transition hover:bg-cream-100"
-            >
-              <GoogleIcon className="size-5" />
-              Google
-            </button>
-            <button
-              type="button"
-              onClick={() => toast.info("Social sign-in isn’t wired up yet.")}
-              className="flex h-12 items-center justify-center gap-2.5 rounded-lg border border-cream-300 bg-paper text-[15px] font-medium text-ink transition hover:bg-cream-100"
-            >
-              <FacebookIcon className="size-5 text-[#1877F2]" />
-              Facebook
-            </button>
-          </div>
-
-          {/* divider */}
-          <div className="my-4 flex items-center gap-4">
-            <span className="h-px flex-1 bg-cream-300" />
-            <span className="text-sm text-ink-muted">or</span>
-            <span className="h-px flex-1 bg-cream-300" />
-          </div>
-
-          {/* email + arrow submit */}
-          <form onSubmit={handleIdentifierSubmit} noValidate>
-            <div className="flex items-stretch rounded-lg border border-cream-300 bg-paper transition-colors focus-within:border-neem">
-              <input
-                id="identifier"
-                type="text"
-                autoComplete="username"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Email or Phone Number"
-                aria-label="Email or Phone Number"
-                className="h-12 w-full flex-1 bg-transparent px-4 text-[15px] text-ink outline-none placeholder:text-ink-soft"
-              />
-              <button
-                type="submit"
-                disabled={loading}
-                aria-label="Continue"
-                className="group/arrow m-1.5 flex w-10 items-center justify-center rounded-md bg-neem text-paper transition-all duration-200 ease-out hover:scale-[1.04] hover:bg-neem-deep active:scale-[0.97] disabled:pointer-events-none disabled:opacity-60"
-              >
-                <ArrowRight className="size-5 transition-transform duration-200 ease-out group-hover/arrow:translate-x-1" />
-              </button>
-            </div>
-
-            <p className="mt-4 text-center text-sm text-ink-muted">
-              Don&apos;t have an account?{" "}
+          {awaitingConfirmation ? (
+            // Sign-up succeeded, but the account can't sign in until the
+            // confirmation link is followed — swap the whole card rather than
+            // pretend the account is immediately usable.
+            <div className="text-center">
+              <h1 className="font-sans text-2xl font-normal leading-[28.8px] tracking-normal text-black">
+                Check your email
+              </h1>
+              <p className="mt-2 font-sans text-sm font-normal leading-[21px] tracking-normal text-[#0000008f]">
+                We sent a confirmation link to{" "}
+                <span className="font-semibold text-ink break-all">
+                  {confirmationEmail}
+                </span>
+                . Follow it to activate your account, then sign in.
+              </p>
               <button
                 type="button"
-                onClick={() => setShowSignUp(true)}
-                className="font-semibold text-neem-deep underline-offset-2 hover:underline"
+                onClick={handleBackToSignIn}
+                className="mt-6 flex h-12 w-full items-center justify-center rounded-lg bg-neem text-base font-semibold text-paper transition hover:bg-neem-deep"
               >
-                Sign up
+                Back to sign in
               </button>
-            </p>
+            </div>
+          ) : (
+            <>
+              <h1 className="font-sans text-2xl font-normal leading-[28.8px] tracking-normal text-black">
+                Sign in
+              </h1>
+              <p className="mt-2 font-sans text-sm font-normal leading-[21px] tracking-normal text-[#0000008f]">
+                Sign in to track orders, save your wishlist, and check out faster
+              </p>
 
-            {/* terms */}
-            <p className="mt-4 text-center text-sm text-ink-muted">
-              By continuing, you agree to our{" "}
-              <Link
-                href="/policy/terms"
-                className="underline underline-offset-2 hover:text-ink"
+              {/* Continue with Shop */}
+              <button
+                type="button"
+                onClick={() => toast.info("Shop sign-in isn’t wired up yet.")}
+                className="mt-5 flex h-12 w-full items-center justify-center rounded-lg bg-[#5a31f4] text-base font-semibold text-white transition hover:bg-[#4a27d4]"
               >
-                Terms and Conditions
-              </Link>
-            </p>
-          </form>
+                Continue with
+              </button>
+
+              {/* social sign-in */}
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={handleGoogleSignIn}
+                  disabled={googleLoading}
+                  className="flex h-12 items-center justify-center gap-2.5 rounded-lg border border-cream-300 bg-paper text-[15px] font-medium text-ink transition hover:bg-cream-100 disabled:pointer-events-none disabled:opacity-60"
+                >
+                  {googleLoading ? (
+                    <Loader2 className="size-5 animate-spin" />
+                  ) : (
+                    <GoogleIcon className="size-5" />
+                  )}
+                  Google
+                </button>
+                <button
+                  type="button"
+                  onClick={() => toast.info("Social sign-in isn’t wired up yet.")}
+                  className="flex h-12 items-center justify-center gap-2.5 rounded-lg border border-cream-300 bg-paper text-[15px] font-medium text-ink transition hover:bg-cream-100"
+                >
+                  <FacebookIcon className="size-5 text-[#1877F2]" />
+                  Facebook
+                </button>
+              </div>
+
+              {/* divider */}
+              <div className="my-4 flex items-center gap-4">
+                <span className="h-px flex-1 bg-cream-300" />
+                <span className="text-sm text-ink-muted">or</span>
+                <span className="h-px flex-1 bg-cream-300" />
+              </div>
+
+              {/* email + arrow submit */}
+              <form onSubmit={handleIdentifierSubmit} noValidate>
+                <div className="flex items-stretch rounded-lg border border-cream-300 bg-paper transition-colors focus-within:border-neem">
+                  <input
+                    id="identifier"
+                    type="text"
+                    autoComplete="username"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Email or Phone Number"
+                    aria-label="Email or Phone Number"
+                    className="h-12 w-full flex-1 bg-transparent px-4 text-[15px] text-ink outline-none placeholder:text-ink-soft"
+                  />
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    aria-label="Continue"
+                    className="group/arrow m-1.5 flex w-10 items-center justify-center rounded-md bg-neem text-paper transition-all duration-200 ease-out hover:scale-[1.04] hover:bg-neem-deep active:scale-[0.97] disabled:pointer-events-none disabled:opacity-60"
+                  >
+                    <ArrowRight className="size-5 transition-transform duration-200 ease-out group-hover/arrow:translate-x-1" />
+                  </button>
+                </div>
+
+                <p className="mt-4 text-center text-sm text-ink-muted">
+                  Don&apos;t have an account?{" "}
+                  <button
+                    type="button"
+                    onClick={() => setShowSignUp(true)}
+                    className="font-semibold text-neem-deep underline-offset-2 hover:underline"
+                  >
+                    Sign up
+                  </button>
+                </p>
+
+                {/* terms */}
+                <p className="mt-4 text-center text-sm text-ink-muted">
+                  By continuing, you agree to our{" "}
+                  <Link
+                    href="/policy/terms"
+                    className="underline underline-offset-2 hover:text-ink"
+                  >
+                    Terms and Conditions
+                  </Link>
+                </p>
+              </form>
+            </>
+          )}
         </div>
       </div>
 
@@ -401,10 +540,15 @@ export default function SignInPage() {
               <div className="mt-5 grid grid-cols-2 gap-3">
                 <button
                   type="button"
-                  onClick={() => toast.info("Social sign-up is UI-only for now.")}
-                  className="flex h-11 items-center justify-center gap-2 rounded-lg border border-cream-300 bg-paper text-sm font-semibold text-ink transition hover:bg-cream-100"
+                  onClick={handleGoogleSignIn}
+                  disabled={googleLoading}
+                  className="flex h-11 items-center justify-center gap-2 rounded-lg border border-cream-300 bg-paper text-sm font-semibold text-ink transition hover:bg-cream-100 disabled:pointer-events-none disabled:opacity-60"
                 >
-                  <GoogleIcon className="size-5" />
+                  {googleLoading ? (
+                    <Loader2 className="size-5 animate-spin" />
+                  ) : (
+                    <GoogleIcon className="size-5" />
+                  )}
                   Google
                 </button>
                 <button
@@ -440,6 +584,8 @@ export default function SignInPage() {
                   <input
                     type="text"
                     autoComplete="name"
+                    value={signUpFullName}
+                    onChange={(e) => setSignUpFullName(e.target.value)}
                     placeholder="Your full name"
                     className="h-11 w-full rounded-lg border border-cream-300 bg-paper px-3 text-sm text-ink outline-none transition-colors placeholder:text-ink-soft focus:border-neem"
                   />
@@ -452,6 +598,8 @@ export default function SignInPage() {
                   <input
                     type="text"
                     autoComplete="username"
+                    value={signUpEmail}
+                    onChange={(e) => setSignUpEmail(e.target.value)}
                     placeholder="Email or Phone Number"
                     className="h-11 w-full rounded-lg border border-cream-300 bg-paper px-3 text-sm text-ink outline-none transition-colors placeholder:text-ink-soft focus:border-neem"
                   />
@@ -464,6 +612,8 @@ export default function SignInPage() {
                   <input
                     type="password"
                     autoComplete="new-password"
+                    value={signUpPassword}
+                    onChange={(e) => setSignUpPassword(e.target.value)}
                     placeholder="Create a password"
                     className="h-11 w-full rounded-lg border border-cream-300 bg-paper px-3 text-sm text-ink outline-none transition-colors placeholder:text-ink-soft focus:border-neem"
                   />
@@ -476,6 +626,8 @@ export default function SignInPage() {
                   <input
                     type="password"
                     autoComplete="new-password"
+                    value={signUpConfirmPassword}
+                    onChange={(e) => setSignUpConfirmPassword(e.target.value)}
                     placeholder="Re-enter your password"
                     className="h-11 w-full rounded-lg border border-cream-300 bg-paper px-3 text-sm text-ink outline-none transition-colors placeholder:text-ink-soft focus:border-neem"
                   />
@@ -607,11 +759,11 @@ export default function SignInPage() {
                 </button>
                 <button
                   type="button"
-                  disabled={!captchaChecked}
+                  disabled={!captchaChecked || signUpLoading}
                   onClick={handleVerify}
                   className="flex h-11 flex-1 items-center justify-center rounded-lg bg-neem text-sm font-semibold text-paper transition hover:bg-neem-deep disabled:pointer-events-none disabled:opacity-50"
                 >
-                  Verify
+                  {signUpLoading ? "Creating account…" : "Verify"}
                 </button>
               </div>
             </motion.div>

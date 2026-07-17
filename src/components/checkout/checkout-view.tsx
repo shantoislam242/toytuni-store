@@ -13,6 +13,7 @@ import { OrderNotes } from "@/components/checkout/order-notes";
 import { OrderSummary } from "@/components/checkout/order-summary";
 import { PaymentMethods } from "@/components/checkout/payment-methods";
 import { ShippingMethod } from "@/components/checkout/shipping-method";
+import { useAuth } from "@/lib/auth/auth-context";
 import { useCart } from "@/lib/cart/cart-context";
 import { useCheckout } from "@/lib/checkout/checkout-context";
 import { createOrder } from "@/lib/data/orders";
@@ -36,9 +37,9 @@ function Section({ children, delay = 0 }: { children: React.ReactNode; delay?: n
 }
 
 /**
- * Checkout page — UI only. A mock `isLoggedIn` boolean switches between the
- * logged-in summary and the guest form (a preview toggle lets you see both).
- * No backend, auth, payment, or order submission is wired up.
+ * Checkout page. The real session (`useAuth`) switches between the logged-in
+ * delivery summary and the guest form. Order submission is wired
+ * (`createOrder`); payment remains UI-only.
  */
 export function CheckoutView() {
   const { items, subtotal, hydrated, clear } = useCart();
@@ -48,8 +49,8 @@ export function CheckoutView() {
   const { address } = useCheckout();
   const router = useRouter();
 
-  // Mock auth state — replace with the real session later.
-  const isLoggedIn = true;
+  const { user } = useAuth();
+  const isLoggedIn = !!user;
   const [shipping, setShipping] = useState("standard");
   const [payment, setPayment] = useState("cod");
   const [notes, setNotes] = useState("");
