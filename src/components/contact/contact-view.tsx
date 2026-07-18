@@ -14,7 +14,9 @@ import { Breadcrumb } from "@/components/breadcrumb";
 import { crumbs } from "@/lib/breadcrumbs";
 import { ContactForm } from "@/components/contact/contact-form";
 import { ContactImage } from "@/components/contact/contact-image";
-import { contactInfo, contactTrust } from "@/lib/mock/contact";
+import { contactTrust } from "@/lib/mock/contact";
+import type { ContactDetail } from "@/lib/types";
+import type { Settings } from "@/lib/data/settings-shape";
 
 const infoIcon = {
   "map-pin": MapPin,
@@ -30,7 +32,37 @@ const featureIcon = {
   heart: Heart,
 } as const;
 
-export function ContactView() {
+export function ContactView({ contact }: { contact: Settings["contact"] }) {
+  // Address/phone/whatsapp/email come from admin-editable settings; the icon,
+  // label, and card shape stay the mock's — only "Working Hours" (not part of
+  // Settings) keeps its static copy.
+  const contactInfo: ContactDetail[] = [
+    {
+      id: "address",
+      icon: "map-pin",
+      label: "Our Address",
+      lines: [contact.address],
+    },
+    {
+      id: "phone",
+      icon: "phone",
+      label: "Phone",
+      lines: [contact.phone, `WhatsApp: ${contact.whatsapp}`],
+    },
+    {
+      id: "email",
+      icon: "mail",
+      label: "Email",
+      lines: [contact.email],
+    },
+    {
+      id: "hours",
+      icon: "clock",
+      label: "Working Hours",
+      lines: ["Saturday – Thursday", "10:00 AM – 6:00 PM"],
+    },
+  ];
+
   return (
     <main className="flex-1 bg-paper">
       {/* hero */}

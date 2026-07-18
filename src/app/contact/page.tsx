@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { ContactView } from "@/components/contact/contact-view";
+import { getSettings } from "@/lib/data/settings";
 
 export const metadata: Metadata = {
   title: "Contact",
@@ -8,6 +9,7 @@ export const metadata: Metadata = {
     "Questions about our Montessori wooden toys, your order, or anything else? Get in touch with the Toytuni team.",
 };
 
-export default function Page() {
-  return <ContactView />;
+export default async function Page() {
+  const settings = await getSettings();
+  return <ContactView contact={settings.contact} />;
 }
