@@ -42,3 +42,27 @@ export function shippingFeeFor(
 ): number {
   return zoneForDistrict(district).id === "inside_dhaka" ? fees.insideDhakaFee : fees.outsideDhakaFee;
 }
+
+/** Express delivery premium (BDT) — mirrors the mock shippingOptions express price. */
+export const EXPRESS_FEE = 120;
+
+/** Authoritative delivery fee for a chosen method — used by BOTH the checkout
+ *  display and createOrder so they never disagree. Mirrors the checkout-view
+ *  effective-method guards: an ineligible free/express selection falls back to
+ *  standard. Standard = the district zone fee; express = the premium; free = 0. */
+export function priceDelivery(
+  methodId: string,
+  subtotal: number,
+  district: string,
+  fees: { insideDhakaFee: number; outsideDhakaFee: number; freeShippingThreshold: number },
+): number {
+  const freeUnlocked = subtotal >= fees.freeShippingThreshold;
+  const insideDhaka = zoneForDistrict(district).id === "inside_dhaka";
+  let eff = methodId;
+  if ((methodId === "free" && !freeUnlocked) || (methodId === "express" && !insideDhaka)) {
+    eff = "standard";
+  }
+  if (eff === "express") return EXPRESS_FEE;
+  if (eff === "free") return 0;
+  return shippingFeeFor(district, fees); // standard (and any unknown method)
+}

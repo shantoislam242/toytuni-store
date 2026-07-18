@@ -21,7 +21,7 @@ import { computeAdvance } from "@/lib/data/advance";
 import { createOrder } from "@/lib/data/orders";
 import type { OverlaidProduct } from "@/lib/data/product-overlay";
 import { shippingOptions } from "@/lib/mock/checkout";
-import { shippingFeeFor, zoneForDistrict } from "@/lib/shipping";
+import { priceDelivery, zoneForDistrict } from "@/lib/shipping";
 
 function Section({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
   return (
@@ -114,10 +114,14 @@ export function CheckoutView({
       : shipping;
   const deliveryOption =
     shippingOptions.find((o) => o.id === effectiveShippingId) ?? shippingOptions[0];
-  const delivery =
-    deliveryOption.id === "standard" && address
-      ? shippingFeeFor(address.district, { insideDhakaFee, outsideDhakaFee })
-      : deliveryOption.price;
+  // Same helper the server uses in `createOrder` — display and charge can
+  // never disagree. Before an address is chosen there's no district to price
+  // against, so fall back to the selected option's flat mock price.
+  const delivery = address
+    ? priceDelivery(shipping, subtotal, address.district, {
+        insideDhakaFee, outsideDhakaFee, freeShippingThreshold,
+      })
+    : deliveryOption.price;
   const deliveryZoneLabel = deliveryZone?.label ?? null;
   // No promo/discount system yet — real orders never apply a phantom discount.
   const discount = 0;
@@ -156,6 +160,7 @@ export function CheckoutView({
         lines: items.map((it) => ({ slug: it.product.slug, qty: it.qty })),
         notes: notes || undefined,
         deliveryFee: delivery,
+        shippingMethodId: effectiveShippingId,
       });
 
       if (result.ok) {

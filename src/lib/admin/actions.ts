@@ -622,6 +622,10 @@ export async function updateSettings(next: Settings): Promise<ActionResult> {
   if (ints.some((n) => !isNonNegativeInt(n))) {
     return { ok: false, error: "Fees and threshold must be non-negative whole numbers." };
   }
+  const email = (next.contact?.email ?? "").trim();
+  if (email !== "" && !/^\S+@\S+\.\S+$/.test(email)) {
+    return { ok: false, error: "Enter a valid email address or leave it blank." };
+  }
   const value = {
     shipping: {
       insideDhakaFee: next.shipping.insideDhakaFee,
@@ -632,7 +636,7 @@ export async function updateSettings(next: Settings): Promise<ActionResult> {
     contact: {
       phone: (next.contact?.phone ?? "").trim(),
       whatsapp: (next.contact?.whatsapp ?? "").trim(),
-      email: (next.contact?.email ?? "").trim(),
+      email,
       address: (next.contact?.address ?? "").trim(),
     },
     brand: {

@@ -4,7 +4,7 @@ import { getProductState } from "@/lib/data/product-state";
 import { computeOrderTotals } from "@/lib/data/order-totals";
 import { computeAdvance } from "@/lib/data/advance";
 import { getSettings } from "@/lib/data/settings";
-import { shippingFeeFor } from "@/lib/shipping";
+import { priceDelivery } from "@/lib/shipping";
 
 export type CreateOrderInput = {
   customer: { name: string; phone: string; email?: string };
@@ -12,6 +12,7 @@ export type CreateOrderInput = {
   lines: { slug: string; qty: number }[];
   notes?: string;
   deliveryFee: number;
+  shippingMethodId: string;
 };
 export type CreateOrderResult =
   | { ok: true; orderNumber: string; total: number }
@@ -41,10 +42,6 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
   // COD fee) server-side from admin settings + the order's district. The
   // client-supplied `input.deliveryFee` is display-only and ignored here.
   const settings = await getSettings();
-  const deliveryFee = shippingFeeFor(input.address.district, {
-    insideDhakaFee: settings.shipping.insideDhakaFee,
-    outsideDhakaFee: settings.shipping.outsideDhakaFee,
-  });
   const codFee = settings.codFee; // all orders are COD today
 
   // Re-read price + stock server-side — never trust the client.
@@ -93,7 +90,10 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
   }
 
   const { subtotal } = computeOrderTotals(
-    items.map((i) => ({ unitPrice: i.unit_price, qty: i.qty })), deliveryFee);
+    items.map((i) => ({ unitPrice: i.unit_price, qty: i.qty })), 0);
+  // Delivery fee depends on the chosen shipping method (not just the district),
+  // so it must be priced AFTER subtotal is known — see `priceDelivery`.
+  const deliveryFee = priceDelivery(input.shippingMethodId, subtotal, input.address.district, settings.shipping);
   const total = subtotal + deliveryFee + codFee;
 
   const advanceTotal = items.reduce(
