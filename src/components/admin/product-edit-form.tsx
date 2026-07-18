@@ -82,6 +82,17 @@ export function ProductEditForm({
   const [stock, setStock] = useState(String(product.stockQty));
   const [lowStock, setLowStock] = useState(String(product.lowStockThreshold));
   const [preorder, setPreorder] = useState(product.preorderShipDate ?? "");
+  const [deliveryDate, setDeliveryDate] = useState(product.preorderDeliveryDate ?? "");
+  const ADVANCE_PRESETS = ["10", "20", "30", "50"];
+  const [advanceMode, setAdvanceMode] = useState<string>(() => {
+    const v = product.preorderAdvancePct;
+    if (v == null) return "none";
+    return ADVANCE_PRESETS.includes(String(v)) ? String(v) : "custom";
+  });
+  const [advanceCustom, setAdvanceCustom] = useState<string>(() => {
+    const v = product.preorderAdvancePct;
+    return v != null && !ADVANCE_PRESETS.includes(String(v)) ? String(v) : "";
+  });
   const [active, setActive] = useState(product.active);
   const [badge, setBadge] = useState(product.badge ?? BADGE_NONE);
 
@@ -127,6 +138,20 @@ export function ProductEditForm({
     patch.low_stock_threshold = lowNum;
 
     patch.preorder_ship_date = preorder.trim() === "" ? null : preorder;
+    patch.preorder_delivery_date = deliveryDate.trim() === "" ? null : deliveryDate;
+    let advancePctVal: number | null = null;
+    if (advanceMode === "custom") {
+      if (advanceCustom.trim() !== "") {
+        const n = Number(advanceCustom);
+        if (!Number.isInteger(n) || n < 0 || n > 100) {
+          return toast.error("Advance % must be a whole number from 0 to 100.");
+        }
+        advancePctVal = n;
+      }
+    } else if (advanceMode !== "none") {
+      advancePctVal = Number(advanceMode);
+    }
+    patch.preorder_advance_pct = advancePctVal;
     patch.active = active;
     patch.badge = badge === BADGE_NONE ? null : (badge as (typeof BADGE_OPTIONS)[number]);
 
@@ -243,7 +268,7 @@ export function ProductEditForm({
             </label>
             <label className="block">
               <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">
-                Pre-order ship date
+                Shipping starts from
               </span>
               <Input
                 type="date"
@@ -252,6 +277,47 @@ export function ProductEditForm({
                 className="mt-1"
               />
             </label>
+            <label className="block">
+              <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">
+                Expected delivery date
+              </span>
+              <Input
+                type="date"
+                value={deliveryDate}
+                onChange={(e) => setDeliveryDate(e.target.value)}
+                className="mt-1"
+              />
+            </label>
+            <div>
+              <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">
+                Advance payment %
+              </span>
+              <Select value={advanceMode} onValueChange={setAdvanceMode}>
+                <SelectTrigger className="mt-1 w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  {ADVANCE_PRESETS.map((p) => (
+                    <SelectItem key={p} value={p}>{p}%</SelectItem>
+                  ))}
+                  <SelectItem value="custom">Custom…</SelectItem>
+                </SelectContent>
+              </Select>
+              {advanceMode === "custom" ? (
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={1}
+                  inputMode="numeric"
+                  value={advanceCustom}
+                  onChange={(e) => setAdvanceCustom(e.target.value)}
+                  placeholder="0–100"
+                  className="mt-2"
+                />
+              ) : null}
+            </div>
             <div>
               <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">Badge</span>
               <Select value={badge} onValueChange={setBadge}>

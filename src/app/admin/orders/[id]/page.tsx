@@ -82,6 +82,11 @@ export default async function Page({
                               Ships {formatDate(item.preorderShipDate)}
                             </span>
                           ) : null}
+                          {item.preorderAdvancePct != null ? (
+                            <span className="block text-xs text-ink-soft">
+                              Advance {item.preorderAdvancePct}%
+                            </span>
+                          ) : null}
                         </td>
                         <td className="py-2.5 pr-3 text-right text-ink">{item.qty}</td>
                         <td className="py-2.5 pr-3 text-right text-ink">{formatTk(item.unitPrice)}</td>
@@ -101,6 +106,12 @@ export default async function Page({
                   <span>Delivery</span>
                   <span>{formatTk(order.deliveryFee)}</span>
                 </div>
+                {order.advanceTotal > 0 ? (
+                  <div className="flex justify-between text-ink-muted">
+                    <span>Advance (pre-order)</span>
+                    <span>{formatTk(order.advanceTotal)}</span>
+                  </div>
+                ) : null}
                 <div className="flex justify-between border-t border-cream-300 pt-1.5 font-semibold text-ink">
                   <span>Total</span>
                   <span>{formatTk(order.total)}</span>

@@ -33,6 +33,8 @@ export type FullProductRow = {
   image_url: string | null;
   kit_contents: string[] | null;
   preorder_ship_date: string | null;
+  preorder_delivery_date: string | null;
+  preorder_advance_pct: number | null;
   inventory?: { stock_qty: number } | { stock_qty: number }[] | null;
   product_variants?: { name: string; tone: string }[];
 };
@@ -68,6 +70,8 @@ export function rowToFullProduct(row: FullProductRow): Product {
     imageTones: row.image_tones as [Tone, Tone],
     imageLabelBn: row.image_label,
     imageUrl: row.image_url ?? undefined,
+    preorderDeliveryDate: row.preorder_delivery_date,
+    preorderAdvancePct: row.preorder_advance_pct,
     kitContents: row.kit_contents ?? undefined,
     variants,
   };
@@ -101,7 +105,7 @@ async function readFullCatalog(): Promise<OverlaidProduct[]> {
     const { data, error } = await supabase
       .from("products")
       .select(
-        "slug, sku, title, price, compare_at_price, rating, review_count, age_tier_slug, category_slug, badge, description, image_label, image_tones, image_url, kit_contents, preorder_ship_date, inventory(stock_qty), product_variants(name, tone)",
+        "slug, sku, title, price, compare_at_price, rating, review_count, age_tier_slug, category_slug, badge, description, image_label, image_tones, image_url, kit_contents, preorder_ship_date, preorder_delivery_date, preorder_advance_pct, inventory(stock_qty), product_variants(name, tone)",
       )
       .eq("active", true)
       .order("created_at", { ascending: true })
@@ -112,6 +116,9 @@ async function readFullCatalog(): Promise<OverlaidProduct[]> {
       availability: getProductState({
         stockQty: readStock(row.inventory),
         preorderShipDate: row.preorder_ship_date,
+        preorderDeliveryDate: row.preorder_delivery_date,
+        preorderAdvancePct: row.preorder_advance_pct,
+        price: row.price,
       }),
     }));
   } catch (err) {

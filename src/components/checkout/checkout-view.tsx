@@ -15,8 +15,11 @@ import { PaymentMethods } from "@/components/checkout/payment-methods";
 import { ShippingMethod } from "@/components/checkout/shipping-method";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useCart } from "@/lib/cart/cart-context";
+import { useCatalog } from "@/lib/catalog/catalog-context";
 import { useCheckout } from "@/lib/checkout/checkout-context";
+import { computeAdvance } from "@/lib/data/advance";
 import { createOrder } from "@/lib/data/orders";
+import type { OverlaidProduct } from "@/lib/data/product-overlay";
 import { shippingOptions } from "@/lib/mock/checkout";
 import { getShippingFee, zoneForDistrict } from "@/lib/shipping";
 
@@ -48,6 +51,7 @@ export function CheckoutView() {
   // shipping-method selector below.
   const { address } = useCheckout();
   const router = useRouter();
+  const { bySlug } = useCatalog();
 
   const { user } = useAuth();
   const isLoggedIn = !!user;
@@ -112,6 +116,15 @@ export function CheckoutView() {
   // No promo/discount system yet — real orders never apply a phantom discount.
   const discount = 0;
   const total = subtotal + delivery;
+
+  const advanceDueNow = items.reduce((sum, it) => {
+    // `bySlug` is typed to the base `Product` shape, but the client catalogue is
+    // hydrated from `OverlaidProduct[]` (see `CatalogProviderServer`), so the
+    // computed `availability` is present on the actual object at runtime.
+    const cat = bySlug(it.product.slug) as OverlaidProduct | undefined;
+    if (cat?.availability?.state !== "preorder") return sum;
+    return sum + computeAdvance(it.lineTotal, cat.preorderAdvancePct ?? null);
+  }, 0);
 
   const ctaLabel = placing ? "Placing…" : isLoggedIn ? "Place Order" : "Continue to Payment";
   const onCta = async () => {
@@ -235,6 +248,7 @@ export function CheckoutView() {
                 total={total}
                 ctaLabel={ctaLabel}
                 onCta={onCta}
+                advanceDueNow={advanceDueNow}
               />
             </div>
           </motion.div>
