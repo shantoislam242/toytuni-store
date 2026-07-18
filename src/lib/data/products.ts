@@ -20,16 +20,17 @@ type OverrideRow = {
   price: number;
   compare_at_price: number | null;
   preorder_ship_date: string | null;
+  image_url: string | null;
   inventory: { stock_qty: number } | { stock_qty: number }[] | null;
 };
 
-/** Fetch operational overrides (price / stock / pre-order) for all active
- *  products, keyed by slug. Reads via the RLS-guarded anon client. */
+/** Fetch operational overrides (price / stock / pre-order / admin image) for
+ *  all active products, keyed by slug. Reads via the RLS-guarded anon client. */
 export async function getProductOverrides(): Promise<Map<string, ProductOverride>> {
   const supabase = await createServerSupabase();
   const { data, error } = await supabase
     .from("products")
-    .select("slug, price, compare_at_price, preorder_ship_date, inventory(stock_qty)")
+    .select("slug, price, compare_at_price, preorder_ship_date, image_url, inventory(stock_qty)")
     .eq("active", true)
     .overrideTypes<OverrideRow[], { merge: false }>();
   const map = new Map<string, ProductOverride>();
@@ -47,6 +48,7 @@ export async function getProductOverrides(): Promise<Map<string, ProductOverride
       compareAtPrice: r.compare_at_price,
       stockQty,
       preorderShipDate: r.preorder_ship_date,
+      imageUrl: r.image_url,
     });
   }
   return map;

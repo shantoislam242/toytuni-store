@@ -18,6 +18,15 @@ const nextConfig: NextConfig = {
   // Purely smaller bytes on the wire — no visual/layout change.
   images: {
     formats: ["image/avif", "image/webp"],
+    // Allow next/image to optimise admin-uploaded product photos stored in
+    // Supabase Storage (`products.image_url`, set from the admin UI).
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "qbvymmzraatzcewiztve.supabase.co",
+        pathname: "/storage/v1/object/public/**",
+      },
+    ],
   },
 };
 

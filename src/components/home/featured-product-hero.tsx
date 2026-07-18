@@ -41,6 +41,7 @@ export async function FeaturedProductHero() {
               imageNum={1}
               label={product.imageLabelBn}
               fallbackTone={product.imageTones[0]}
+              imageUrl={product.imageUrl}
               className="size-full transition-transform duration-500 ease-out group-hover:scale-105"
             />
           </Link>

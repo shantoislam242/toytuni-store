@@ -89,6 +89,7 @@ export function CollectionQuickView({
                 imageNum={1}
                 label={product.imageLabelBn}
                 fallbackTone={product.imageTones[0]}
+                imageUrl={product.imageUrl}
                 priority
                 className="size-full"
               />

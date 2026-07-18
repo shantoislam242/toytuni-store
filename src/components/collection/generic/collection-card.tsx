@@ -67,6 +67,7 @@ export function CollectionCard({
             imageNum={1}
             label={product.imageLabelBn}
             fallbackTone={product.imageTones[0]}
+            imageUrl={product.imageUrl}
             className="absolute inset-0 transition-all duration-500 ease-out group-hover:scale-105 group-hover:opacity-0"
           />
           <ProductImage
@@ -74,6 +75,7 @@ export function CollectionCard({
             imageNum={2}
             label={product.imageLabelBn}
             fallbackTone={product.imageTones[1]}
+            imageUrl={product.imageUrl}
             className="absolute inset-0 opacity-0 transition-all duration-500 ease-out group-hover:scale-105 group-hover:opacity-100"
           />
         </Link>

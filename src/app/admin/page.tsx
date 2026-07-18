@@ -1,39 +1,63 @@
 import type { Metadata } from "next";
-import { getSessionUser } from "@/lib/auth/session";
+import { ClipboardList, Coins, Hourglass, PackageX } from "lucide-react";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { formatTk } from "@/lib/format";
+import { getDashboardStats } from "@/lib/admin/queries";
 
 export function generateMetadata(): Metadata {
   return {
-    title: "Admin",
+    title: "Dashboard",
     robots: { index: false, follow: false },
   };
 }
 
+type KpiCard = {
+  label: string;
+  value: string;
+  icon: typeof ClipboardList;
+};
+
 /**
- * Admin placeholder. The proxy (Task 3) gates `/admin` — reaching this page
- * means the visitor is an allow-listed admin, so this both proves the gate and
- * holds the route until the real dashboard lands in Phase 3.
+ * Admin dashboard: KPI row sourced from `getDashboardStats()` (Task 3,
+ * service-role, unscoped by RLS). No charts — just the four headline
+ * numbers a store owner checks first.
  */
 export default async function Page() {
-  const user = await getSessionUser();
+  const stats = await getDashboardStats();
+
+  const cards: KpiCard[] = [
+    { label: "Total Orders", value: stats.orderCount.toLocaleString("en-US"), icon: ClipboardList },
+    { label: "Revenue", value: formatTk(stats.revenue), icon: Coins },
+    { label: "Pending Orders", value: stats.pendingCount.toLocaleString("en-US"), icon: Hourglass },
+    { label: "Low Stock", value: stats.lowStockCount.toLocaleString("en-US"), icon: PackageX },
+  ];
 
   return (
-    <main className="flex flex-1 items-center justify-center bg-paper px-4 py-24">
-      <div className="w-full max-w-md rounded-3xl border border-cream-200 bg-cream-50/40 px-6 py-12 text-center shadow-sm sm:px-10">
-        <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-neem-deep">
-          Admin
-        </p>
-        <h1 className="mt-2 font-display text-2xl font-bold text-ink sm:text-3xl">
-          Coming in Phase 3
-        </h1>
-        <p className="mt-3 text-ink-muted">
-          The admin dashboard isn&apos;t built yet.
-        </p>
-        {user?.email ? (
-          <p className="mt-6 break-all text-sm text-ink-soft">
-            Signed in as <span className="font-medium text-ink">{user.email}</span>
-          </p>
-        ) : null}
+    <div>
+      <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-neem-deep">
+        Overview
+      </p>
+      <h1 className="mt-1 font-display text-2xl font-bold text-ink">
+        Dashboard
+      </h1>
+
+      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {cards.map(({ label, value, icon: Icon }) => (
+          <Card key={label} className="border-cream-300">
+            <CardHeader>
+              <div className="flex items-center gap-2 text-ink-muted">
+                <Icon className="size-4" />
+                <span className="text-sm">{label}</span>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="font-display text-3xl font-bold text-ink">
+                {value}
+              </p>
+            </CardContent>
+          </Card>
+        ))}
       </div>
-    </main>
+    </div>
   );
 }
