@@ -33,3 +33,12 @@ export function zoneForDistrict(district: string): ShippingZone {
 export function getShippingFee(district: string): number {
   return zoneForDistrict(district).fee;
 }
+
+/** Delivery fee for a district using admin-set zone fees (settings-driven).
+ *  Reuses the district→zone map; unknown districts → outside Dhaka. */
+export function shippingFeeFor(
+  district: string,
+  fees: { insideDhakaFee: number; outsideDhakaFee: number },
+): number {
+  return zoneForDistrict(district).id === "inside_dhaka" ? fees.insideDhakaFee : fees.outsideDhakaFee;
+}
