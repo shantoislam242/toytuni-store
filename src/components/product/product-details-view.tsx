@@ -4,17 +4,8 @@ import { useEffect, useState, type MouseEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import {
-  Baby,
-  BadgeCheck,
-  Check,
-  FlaskConical,
-  Leaf,
-  Mail,
-  Minus,
-  Plus,
-  Recycle,
-  ShieldCheck,
-  Star,
+  Baby, BadgeCheck, Check, CreditCard, FlaskConical, Leaf, Mail, Minus, Package,
+  Plus, Recycle, ShieldCheck, Star, Truck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Breadcrumb } from "@/components/breadcrumb";
@@ -373,9 +364,32 @@ export function ProductDetailsView({
               </Button>
             </div>
             {availability?.state === "preorder" ? (
-              <p className="text-sm text-ink-muted">
-                Ships from {formatDate(availability.shipDate)}
-              </p>
+              <div className="mt-1 space-y-1.5 rounded-lg border border-cream-200 bg-cream-50/60 p-3 text-sm">
+                <p className="flex items-center gap-2 text-ink-muted">
+                  <Package className="size-4 flex-none text-neem" aria-hidden />
+                  Shipping starts from{" "}
+                  <span className="font-medium text-ink">{formatDate(availability.shipDate)}</span>
+                </p>
+                {availability.deliveryDate ? (
+                  <p className="flex items-center gap-2 text-ink-muted">
+                    <Truck className="size-4 flex-none text-neem" aria-hidden />
+                    Expected delivery{" "}
+                    <span className="font-medium text-ink">{formatDate(availability.deliveryDate)}</span>
+                  </p>
+                ) : null}
+                {availability.advancePct && availability.advancePct > 0 ? (
+                  <p className="flex items-center gap-2 text-ink-muted">
+                    <CreditCard className="size-4 flex-none text-neem" aria-hidden />
+                    Advance {availability.advancePct}% ·{" "}
+                    <span className="font-medium text-ink">{formatTk(availability.advanceAmount)}</span>{" "}
+                    now /{" "}
+                    <span className="font-medium text-ink">
+                      {formatTk(product.price - availability.advanceAmount)}
+                    </span>{" "}
+                    on delivery
+                  </p>
+                ) : null}
+              </div>
             ) : null}
           </div>
 
