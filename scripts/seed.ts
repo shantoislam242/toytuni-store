@@ -1,11 +1,20 @@
 import { createAdminSupabase } from "../src/lib/supabase/admin";
-import { products } from "../src/lib/mock/products";
+import { products, productDetailBySlug, basicProductDetail } from "../src/lib/mock/products";
 import { categories } from "../src/lib/mock/categories";
 import { ageTiers } from "../src/lib/mock/age-tiers";
 import { giftKits, giftCards } from "../src/lib/mock/gifts";
 import type { Product } from "../src/lib/types";
+import type { Database, Json } from "../src/lib/supabase/database.types";
 
 const db = createAdminSupabase();
+
+// `detail_content`/`gallery_urls` (migration 0007) predate the generated
+// types — cast narrowly at the call site, same pattern as the
+// `preorder_delivery_date`/`preorder_advance_pct` casts in admin/actions.ts.
+type ProductsInsertExt = Database["public"]["Tables"]["products"]["Insert"] & {
+  detail_content?: Json | null;
+  gallery_urls?: string[] | null;
+};
 
 // Known lookup slugs — used to null out FK columns that don't reference a
 // seeded row (gift kits/cards use categories like "gift-kit"/"gift-card" that
@@ -14,9 +23,15 @@ const knownCategories = new Set(categories.map((c) => c.slug));
 const knownAgeTiers = new Set(ageTiers.map((a) => a.slug));
 
 /** Upsert one product + its inventory (+ variants). `stockQty` lets giftables
- *  seed with effectively unlimited stock so the decrement is harmless. */
-async function seedProduct(p: Product, stockQty: number) {
-  const { data: prod, error } = await db.from("products").upsert({
+ *  seed with effectively unlimited stock so the decrement is harmless. `pdp`
+ *  carries resolved PDP content for shelf products only — gift kits/cards
+ *  have no hand-written copy and stay null (dynamic fallback). */
+async function seedProduct(
+  p: Product,
+  stockQty: number,
+  pdp?: { description: string | null; detailContent: Json; galleryUrls: string[] },
+) {
+  const insertRow: ProductsInsertExt = {
     slug: p.slug, sku: p.sku ?? p.slug.toUpperCase(), title: p.titleBn, price: p.price,
     compare_at_price: p.compareAtPrice ?? null, rating: p.rating,
     review_count: p.reviewCount,
@@ -24,9 +39,14 @@ async function seedProduct(p: Product, stockQty: number) {
     category_slug: knownCategories.has(p.categorySlug) ? p.categorySlug : null,
     badge: p.badge ?? null,
     image_label: p.imageLabelBn, image_tones: p.imageTones,
-    description: null, preorder_ship_date: null, active: true,
+    description: pdp?.description ?? null, preorder_ship_date: null, active: true,
     kit_contents: p.kitContents ?? null,
-  }, { onConflict: "slug" }).select("id").single();
+    detail_content: pdp?.detailContent ?? null,
+    gallery_urls: pdp?.galleryUrls ?? null,
+  };
+  const { data: prod, error } = await db.from("products")
+    .upsert(insertRow as unknown as Database["public"]["Tables"]["products"]["Insert"], { onConflict: "slug" })
+    .select("id").single();
   if (error || !prod) throw error ?? new Error(`no id for ${p.slug}`);
 
   const inv = await db.from("inventory")
@@ -66,7 +86,24 @@ async function main() {
   if (age.error) throw age.error;
 
   for (const p of products) {
-    await seedProduct(p, 25);
+    // Resolved current PDP content (mock copy merged over defaults). Gift
+    // kits/cards have no hand-written copy and stay null (dynamic fallback).
+    const detail = productDetailBySlug(p.slug) ?? basicProductDetail(p.slug);
+    const detailContent = {
+      features: detail.features,
+      benefits: detail.benefits,
+      whyPlay: detail.whyPlay ?? [],
+      howPlay: detail.howPlay ?? [],
+      returnPolicy: detail.returnPolicy ?? "",
+      specs: detail.specs ?? {},
+      deliveryEstimate: detail.deliveryEstimate,
+      videoUrl: detail.videoUrl ?? null,
+    };
+    await seedProduct(p, 25, {
+      description: detail.description || null,
+      detailContent,
+      galleryUrls: detail.imageSrcs,
+    });
   }
 
   // Gift kits + gift cards are cart-addable products that live only in mock.

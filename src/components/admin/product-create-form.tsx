@@ -15,7 +15,9 @@ import {
 } from "@/components/ui/select";
 import { ProductImage } from "@/components/product/product-image";
 import { ProductFrame } from "@/components/product/product-frame";
+import { StringListEditor } from "@/components/admin/string-list-editor";
 import { createProduct, type CreateProductInput } from "@/lib/admin/actions";
+import type { DetailContent } from "@/lib/types";
 
 const BADGE_OPTIONS = ["New", "Best Seller", "Limited"] as const;
 const BADGE_NONE = "__none__";
@@ -74,6 +76,19 @@ export function ProductCreateForm({
   const [advanceMode, setAdvanceMode] = useState<string>("none");
   const [advanceCustom, setAdvanceCustom] = useState<string>("");
 
+  const [features, setFeatures] = useState<string[]>([]);
+  const [benefits, setBenefits] = useState<string[]>([]);
+  const [whyPlay, setWhyPlay] = useState<string[]>([]);
+  const [howPlay, setHowPlay] = useState<string[]>([]);
+  const [returnPolicy, setReturnPolicy] = useState("");
+  const [deliveryEstimate, setDeliveryEstimate] = useState("");
+  const [videoUrl, setVideoUrl] = useState("");
+  const [specMaterials, setSpecMaterials] = useState("");
+  const [specSafety, setSpecSafety] = useState("");
+  const [specWeight, setSpecWeight] = useState("");
+  const [specDimensions, setSpecDimensions] = useState("");
+  const [specAgeRange, setSpecAgeRange] = useState("");
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
@@ -124,6 +139,16 @@ export function ProductCreateForm({
       advancePctVal = Number(advanceMode);
     }
 
+    const detailContent: DetailContent = {
+      features, benefits, whyPlay, howPlay,
+      returnPolicy, deliveryEstimate,
+      videoUrl: videoUrl.trim() === "" ? null : videoUrl.trim(),
+      specs: {
+        materials: specMaterials, safety: specSafety, weight: specWeight,
+        dimensions: specDimensions, ageRange: specAgeRange,
+      },
+    };
+
     const input: CreateProductInput = {
       slug: slug.trim(),
       sku: sku.trim(),
@@ -140,6 +165,7 @@ export function ProductCreateForm({
       preorderDeliveryDate: deliveryDate.trim() === "" ? null : deliveryDate,
       preorderAdvancePct: advancePctVal,
       image: fileInputRef.current?.files?.[0] ?? null,
+      detailContent,
     };
 
     startSaving(async () => {
@@ -360,6 +386,42 @@ export function ProductCreateForm({
                 />
               ) : null}
             </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-cream-300">
+          <CardHeader><CardTitle>Content</CardTitle></CardHeader>
+          <CardContent className="space-y-5">
+            <StringListEditor label="Features" value={features} onChange={setFeatures} addLabel="Add feature" />
+            <StringListEditor label="Benefits" value={benefits} onChange={setBenefits} addLabel="Add benefit" />
+            <StringListEditor label="Why play (tab)" value={whyPlay} onChange={setWhyPlay} addLabel="Add point" />
+            <StringListEditor label="How to play (tab)" value={howPlay} onChange={setHowPlay} addLabel="Add step" />
+            <label className="block">
+              <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">Return policy</span>
+              <textarea value={returnPolicy} onChange={(e) => setReturnPolicy(e.target.value)} rows={3}
+                className="mt-1 w-full rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50" />
+            </label>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <label className="block"><span className="text-xs font-medium uppercase tracking-wide text-ink-muted">Delivery estimate</span>
+                <Input value={deliveryEstimate} onChange={(e) => setDeliveryEstimate(e.target.value)} className="mt-1" /></label>
+              <label className="block"><span className="text-xs font-medium uppercase tracking-wide text-ink-muted">Video URL (YouTube)</span>
+                <Input value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} placeholder="https://…" className="mt-1" />
+                <p className="mt-1 text-xs text-ink-soft">Use an https link (YouTube). Other links are ignored.</p>
+              </label>
+            </div>
+            <div>
+              <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">Specs</span>
+              <div className="mt-1 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Input value={specMaterials} onChange={(e) => setSpecMaterials(e.target.value)} placeholder="Materials" />
+                <Input value={specSafety} onChange={(e) => setSpecSafety(e.target.value)} placeholder="Safety" />
+                <Input value={specWeight} onChange={(e) => setSpecWeight(e.target.value)} placeholder="Weight" />
+                <Input value={specDimensions} onChange={(e) => setSpecDimensions(e.target.value)} placeholder="Dimensions" />
+                <Input value={specAgeRange} onChange={(e) => setSpecAgeRange(e.target.value)} placeholder="Age range" />
+              </div>
+            </div>
+            <p className="text-xs text-ink-soft">
+              Add more gallery images after creating, from the edit page.
+            </p>
           </CardContent>
         </Card>
 

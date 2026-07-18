@@ -4,6 +4,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { getIsAdmin } from "@/lib/auth/session";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import type { Database } from "@/lib/supabase/database.types";
+import type { DetailContent } from "@/lib/types";
 
 /** Mirrors the `orders.status` check constraint (`supabase/migrations/0001_init.sql`). */
 const ORDER_STATUSES = ["pending", "confirmed", "shipped", "delivered", "cancelled"] as const;
@@ -68,6 +69,7 @@ export type ProductPatch = {
   description?: string | null;
   category_slug?: string | null;
   age_tier_slug?: string | null;
+  detailContent?: DetailContent | null;
 };
 
 /** Non-negative safe integer (BDT is stored as whole Taka; quantities are counts). */
@@ -101,6 +103,34 @@ function isValidDateStr(s: string): boolean {
   return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;
 }
 
+/** Shape + sanitize an admin-supplied DetailContent: trim strings, drop empty
+ *  list rows, coerce specs to the 5 known keys, videoUrl to null or an https URL. */
+function cleanDetailContent(input: unknown): DetailContent | null {
+  if (input == null || typeof input !== "object") return null;
+  const i = input as Record<string, unknown>;
+  const list = (v: unknown): string[] =>
+    Array.isArray(v) ? v.filter((x) => typeof x === "string").map((x) => x.trim()).filter((x) => x !== "") : [];
+  const str = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
+  const specsIn = (i.specs ?? {}) as Record<string, unknown>;
+  const video = str(i.videoUrl);
+  return {
+    features: list(i.features),
+    benefits: list(i.benefits),
+    whyPlay: list(i.whyPlay),
+    howPlay: list(i.howPlay),
+    returnPolicy: str(i.returnPolicy),
+    specs: {
+      materials: str(specsIn.materials),
+      safety: str(specsIn.safety),
+      weight: str(specsIn.weight),
+      dimensions: str(specsIn.dimensions),
+      ageRange: str(specsIn.ageRange),
+    },
+    deliveryEstimate: str(i.deliveryEstimate),
+    videoUrl: video.startsWith("https") ? video : null,
+  };
+}
+
 /** Invalidate the storefront's cached catalog after an admin write. The public
  *  catalog read (`getFullCatalog`) is now wrapped in `unstable_cache` tagged
  *  `"catalog"`, so `revalidateTag("catalog")` actually refreshes the cached
@@ -132,6 +162,8 @@ function revalidateStorefront(slug: string): void {
 type ProductsUpdateExt = Database["public"]["Tables"]["products"]["Update"] & {
   preorder_delivery_date?: string | null;
   preorder_advance_pct?: number | null;
+  detail_content?: DetailContent | null;
+  gallery_urls?: string[] | null;
 };
 
 export async function updateProduct(slug: string, patch: ProductPatch): Promise<ActionResult> {
@@ -227,6 +259,9 @@ export async function updateProduct(slug: string, patch: ProductPatch): Promise<
       productUpdate.age_tier_slug = patch.age_tier_slug;
     }
   }
+  if (patch.detailContent !== undefined) {
+    productUpdate.detail_content = patch.detailContent === null ? null : cleanDetailContent(patch.detailContent);
+  }
 
   if (Object.keys(productUpdate).length > 0) {
     // `preorder_delivery_date`/`preorder_advance_pct` predate the generated
@@ -278,6 +313,26 @@ function extFromType(type: string): string | null {
   }
 }
 
+/** Upload a validated image to the public product-images bucket; return its
+ *  https URL. Does NOT write any product column — callers decide (image_url vs
+ *  gallery_urls). */
+async function uploadImageToBucket(
+  db: AdminDb, slug: string, file: File,
+): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+  if (file.size === 0) return { ok: false, error: "No image file provided." };
+  if (!file.type.startsWith("image/")) return { ok: false, error: "File must be an image." };
+  if (file.size > MAX_IMAGE_BYTES) return { ok: false, error: "Image must be 5 MB or smaller." };
+  const ext = extFromType(file.type);
+  if (!ext) return { ok: false, error: `Unsupported image type: ${file.type}` };
+  const objectPath = `${slug}/${Date.now()}-${Math.round(file.size)}.${ext}`;
+  const { error: uploadErr } = await db.storage
+    .from("product-images").upload(objectPath, file, { contentType: file.type, upsert: false });
+  if (uploadErr) return { ok: false, error: uploadErr.message };
+  const { data: pub } = db.storage.from("product-images").getPublicUrl(objectPath);
+  if (!pub.publicUrl?.startsWith("https")) return { ok: false, error: "Storage returned a non-https URL." };
+  return { ok: true, url: pub.publicUrl };
+}
+
 /**
  * Validate + upload a product photo to the public `product-images` bucket and
  * point `products.image_url` at its public https URL. Shared by
@@ -289,34 +344,19 @@ async function putProductImage(
   slug: string,
   file: File,
 ): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
-  if (file.size === 0) return { ok: false, error: "No image file provided." };
-  if (!file.type.startsWith("image/")) return { ok: false, error: "File must be an image." };
-  if (file.size > MAX_IMAGE_BYTES) return { ok: false, error: "Image must be 5 MB or smaller." };
-  const ext = extFromType(file.type);
-  if (!ext) return { ok: false, error: `Unsupported image type: ${file.type}` };
-
-  const objectPath = `${slug}/${Date.now()}.${ext}`;
-  const { error: uploadErr } = await db.storage
-    .from("product-images")
-    .upload(objectPath, file, { contentType: file.type, upsert: false });
-  if (uploadErr) return { ok: false, error: uploadErr.message };
-
-  const { data: pub } = db.storage.from("product-images").getPublicUrl(objectPath);
-  const url = pub.publicUrl;
-  if (!url || !url.startsWith("https")) {
-    return { ok: false, error: "Storage returned a non-https public URL." };
-  }
+  const up = await uploadImageToBucket(db, slug, file);
+  if (!up.ok) return up;
 
   // `products.image_url` ships in migration 0004 (applied) but the checked-in
   // generated `database.types.ts` predates it, so this one column isn't in the
   // typed `Update`. Cast narrowly rather than hand-edit generated types.
   const { error: updateErr } = await db
     .from("products")
-    .update({ image_url: url } as unknown as Database["public"]["Tables"]["products"]["Update"])
+    .update({ image_url: up.url } as unknown as Database["public"]["Tables"]["products"]["Update"])
     .eq("slug", slug);
   if (updateErr) return { ok: false, error: updateErr.message };
 
-  return { ok: true, url };
+  return { ok: true, url: up.url };
 }
 
 /**
@@ -341,6 +381,65 @@ export async function uploadProductImage(
   return result;
 }
 
+/** Read the current gallery_urls for a slug (empty array if none). */
+async function readGallery(db: AdminDb, slug: string): Promise<string[]> {
+  const { data } = await db.from("products").select("gallery_urls").eq("slug", slug).maybeSingle()
+    .overrideTypes<{ gallery_urls: string[] | null }, { merge: false }>();
+  return data?.gallery_urls ?? [];
+}
+
+async function writeGallery(db: AdminDb, slug: string, urls: string[]): Promise<ActionResult> {
+  const { error } = await db.from("products")
+    .update({ gallery_urls: urls } as unknown as Database["public"]["Tables"]["products"]["Update"])
+    .eq("slug", slug);
+  return error ? { ok: false, error: error.message } : { ok: true };
+}
+
+export async function uploadGalleryImage(
+  slug: string, formData: FormData,
+): Promise<{ ok: true; url: string; gallery: string[] } | { ok: false; error: string }> {
+  if (!(await getIsAdmin())) throw new Error("unauthorized");
+  const file = formData.get("file");
+  if (!(file instanceof File)) return { ok: false, error: "No image file provided." };
+  const db = createAdminSupabase();
+  const up = await uploadImageToBucket(db, slug, file);
+  if (!up.ok) return up;
+  const gallery = [...(await readGallery(db, slug)), up.url];
+  const w = await writeGallery(db, slug, gallery);
+  if (!w.ok) return w;
+  revalidateStorefront(slug);
+  return { ok: true, url: up.url, gallery };
+}
+
+export async function removeGalleryImage(slug: string, url: string): Promise<ActionResult> {
+  if (!(await getIsAdmin())) throw new Error("unauthorized");
+  const db = createAdminSupabase();
+  const gallery = (await readGallery(db, slug)).filter((u) => u !== url);
+  const w = await writeGallery(db, slug, gallery);
+  if (w.ok) revalidateStorefront(slug);
+  return w;
+}
+
+export async function reorderGallery(slug: string, urls: string[]): Promise<ActionResult> {
+  if (!(await getIsAdmin())) throw new Error("unauthorized");
+  if (!Array.isArray(urls) || urls.some((u) => typeof u !== "string")) {
+    return { ok: false, error: "Invalid gallery order." };
+  }
+  const db = createAdminSupabase();
+  // Only persist a permutation of the existing set (never inject arbitrary URLs).
+  const current = new Set(await readGallery(db, slug));
+  if (
+    urls.length !== current.size ||
+    new Set(urls).size !== urls.length ||
+    urls.some((u) => !current.has(u))
+  ) {
+    return { ok: false, error: "Gallery order does not match current images." };
+  }
+  const w = await writeGallery(db, slug, urls);
+  if (w.ok) revalidateStorefront(slug);
+  return w;
+}
+
 /** Fields required/accepted when creating a product. `image` is an optional
  *  photo File (passed straight through a Server Action — React serializes it).
  *  Prices/quantities are whole BDT / counts. */
@@ -360,6 +459,7 @@ export type CreateProductInput = {
   preorderDeliveryDate?: string | null;
   preorderAdvancePct?: number | null;
   image?: File | null;
+  detailContent?: DetailContent | null;
 };
 
 /**
@@ -374,6 +474,8 @@ type ProductsInsertExt = Database["public"]["Tables"]["products"]["Insert"] & {
   preorder_ship_date?: string | null;
   preorder_delivery_date?: string | null;
   preorder_advance_pct?: number | null;
+  detail_content?: DetailContent | null;
+  gallery_urls?: string[] | null;
 };
 
 export async function createProduct(
@@ -457,6 +559,7 @@ export async function createProduct(
     image_label: title,
     image_tones: ["cream", "neem-soft"],
     active: true,
+    detail_content: input.detailContent ? cleanDetailContent(input.detailContent) : null,
   };
 
   const { data: inserted, error: insertErr } = await db

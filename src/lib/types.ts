@@ -132,6 +132,20 @@ export type ProductDetail = {
   videoUrl?: string;
 };
 
+/** The admin-editable subset of ProductDetail stored in `products.detail_content`
+ *  (jsonb). description lives in its own column; reviews/saleCountdown/gallery are
+ *  handled outside this object. */
+export type DetailContent = {
+  features: string[];
+  benefits: string[];
+  whyPlay: string[];
+  howPlay: string[];
+  returnPolicy: string;
+  specs: ProductSpecs;
+  deliveryEstimate: string;
+  videoUrl: string | null;
+};
+
 /** Hero banner slide. */
 export type HeroSlide = {
   id: string;
