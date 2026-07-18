@@ -109,7 +109,7 @@ function cleanDetailContent(input: unknown): DetailContent | null {
   if (input == null || typeof input !== "object") return null;
   const i = input as Record<string, unknown>;
   const list = (v: unknown): string[] =>
-    Array.isArray(v) ? v.map((x) => String(x).trim()).filter((x) => x !== "") : [];
+    Array.isArray(v) ? v.filter((x) => typeof x === "string").map((x) => x.trim()).filter((x) => x !== "") : [];
   const str = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
   const specsIn = (i.specs ?? {}) as Record<string, unknown>;
   const video = str(i.videoUrl);
@@ -127,7 +127,7 @@ function cleanDetailContent(input: unknown): DetailContent | null {
       ageRange: str(specsIn.ageRange),
     },
     deliveryEstimate: str(i.deliveryEstimate),
-    videoUrl: video === "" ? null : video,
+    videoUrl: video.startsWith("https") ? video : null,
   };
 }
 
@@ -428,7 +428,11 @@ export async function reorderGallery(slug: string, urls: string[]): Promise<Acti
   const db = createAdminSupabase();
   // Only persist a permutation of the existing set (never inject arbitrary URLs).
   const current = new Set(await readGallery(db, slug));
-  if (urls.length !== current.size || urls.some((u) => !current.has(u))) {
+  if (
+    urls.length !== current.size ||
+    new Set(urls).size !== urls.length ||
+    urls.some((u) => !current.has(u))
+  ) {
     return { ok: false, error: "Gallery order does not match current images." };
   }
   const w = await writeGallery(db, slug, urls);
