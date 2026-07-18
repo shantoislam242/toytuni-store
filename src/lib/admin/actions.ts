@@ -6,6 +6,7 @@ import { createAdminSupabase } from "@/lib/supabase/admin";
 import type { Database } from "@/lib/supabase/database.types";
 import type { DetailContent } from "@/lib/types";
 import type { Settings } from "@/lib/data/settings-shape";
+import { TAXONOMY_TABLES, validateTaxonomyInput, isPermutation, type TaxonomyKind } from "@/lib/admin/taxonomy";
 
 /** Mirrors the `orders.status` check constraint (`supabase/migrations/0001_init.sql`). */
 const ORDER_STATUSES = ["pending", "confirmed", "shipped", "delivered", "cancelled"] as const;
@@ -657,5 +658,108 @@ export async function updateSettings(next: Settings): Promise<ActionResult> {
   revalidatePath("/checkout");
   revalidatePath("/contact");
   revalidatePath("/admin/settings");
+  return { ok: true };
+}
+
+/** Refresh the storefront taxonomy caches after a category/age-tier write. */
+function revalidateTaxonomy(): void {
+  revalidateTag("taxonomy", "max");
+  revalidateTag("catalog", "max"); // catalog rows carry category/age-tier slugs used by collection views
+  revalidatePath("/");
+  revalidatePath("/collections/[slug]", "page");
+  revalidatePath("/admin/categories");
+}
+
+type TaxonomyWriteInput = { slug: string; title: string; tone: string; tagline: string | null; sort: number };
+
+/**
+ * Create a category or age-tier row. Server Action — re-checks admin, then
+ * validates the input (slug required + url-safe on create) and rejects a
+ * duplicate slug with a clean error before the DB's unique index would.
+ */
+export async function createTaxonomy(kind: TaxonomyKind, input: TaxonomyWriteInput): Promise<ActionResult> {
+  if (!(await getIsAdmin())) throw new Error("unauthorized");
+  const slug = input.slug.trim().toLowerCase();
+  const v = validateTaxonomyInput({ slug, title: input.title, tone: input.tone, sort: input.sort }, { requireSlug: true });
+  if (!v.ok) return v;
+
+  const { table } = TAXONOMY_TABLES[kind];
+  const db = createAdminSupabase();
+  const { data: existing, error: dupErr } = await db.from(table).select("slug").eq("slug", slug).maybeSingle();
+  if (dupErr) return { ok: false, error: dupErr.message };
+  if (existing) return { ok: false, error: `"${slug}" already exists.` };
+
+  const { error } = await db.from(table).insert({
+    slug, title: input.title.trim(), tone: input.tone,
+    tagline: input.tagline?.trim() || null, sort: input.sort,
+  } as never);
+  if (error) return { ok: false, error: error.message };
+  revalidateTaxonomy();
+  return { ok: true };
+}
+
+/**
+ * Update a category or age-tier row's title/tone/tagline/sort. Server Action
+ * — re-checks admin; never writes `slug` (it's immutable once created, and is
+ * used here only to locate the row).
+ */
+export async function updateTaxonomy(
+  kind: TaxonomyKind, slug: string, patch: { title: string; tone: string; tagline: string | null; sort: number },
+): Promise<ActionResult> {
+  if (!(await getIsAdmin())) throw new Error("unauthorized");
+  const v = validateTaxonomyInput({ title: patch.title, tone: patch.tone, sort: patch.sort }, { requireSlug: false });
+  if (!v.ok) return v;
+  const { table } = TAXONOMY_TABLES[kind];
+  const db = createAdminSupabase();
+  const { error } = await db.from(table).update({
+    title: patch.title.trim(), tone: patch.tone, tagline: patch.tagline?.trim() || null, sort: patch.sort,
+  } as never).eq("slug", slug);
+  if (error) return { ok: false, error: error.message };
+  revalidateTaxonomy();
+  return { ok: true };
+}
+
+/**
+ * Delete a category or age-tier row. Server Action — re-checks admin, then
+ * FK-safe blocks the delete if any product still references this slug
+ * (surfacing a clean "reassign them first" error rather than a raw FK
+ * violation from the DB).
+ */
+export async function deleteTaxonomy(kind: TaxonomyKind, slug: string): Promise<ActionResult> {
+  if (!(await getIsAdmin())) throw new Error("unauthorized");
+  const { table, fkColumn } = TAXONOMY_TABLES[kind];
+  const db = createAdminSupabase();
+  const { count, error: cErr } = await db
+    .from("products").select("id", { count: "exact", head: true }).eq(fkColumn, slug);
+  if (cErr) return { ok: false, error: cErr.message };
+  if ((count ?? 0) > 0) {
+    return { ok: false, error: `${count} product(s) use this — reassign them first.` };
+  }
+  const { error } = await db.from(table).delete().eq("slug", slug);
+  if (error) return { ok: false, error: error.message };
+  revalidateTaxonomy();
+  return { ok: true };
+}
+
+/**
+ * Persist a new display order for a taxonomy's rows. Server Action —
+ * re-checks admin; guards that `slugs` is exactly a permutation of the
+ * current row set (never trusts client-supplied order blindly) before
+ * writing `sort = index` for each row.
+ */
+export async function reorderTaxonomy(kind: TaxonomyKind, slugs: string[]): Promise<ActionResult> {
+  if (!(await getIsAdmin())) throw new Error("unauthorized");
+  const { table } = TAXONOMY_TABLES[kind];
+  const db = createAdminSupabase();
+  const { data, error: rErr } = await db.from(table).select("slug")
+    .overrideTypes<{ slug: string }[], { merge: false }>();
+  if (rErr) return { ok: false, error: rErr.message };
+  const current = (data ?? []).map((r) => r.slug);
+  if (!isPermutation(slugs, current)) return { ok: false, error: "Order does not match the current set." };
+  for (let i = 0; i < slugs.length; i += 1) {
+    const { error } = await db.from(table).update({ sort: i } as never).eq("slug", slugs[i]);
+    if (error) return { ok: false, error: error.message };
+  }
+  revalidateTaxonomy();
   return { ok: true };
 }
