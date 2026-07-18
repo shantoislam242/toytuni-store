@@ -3,6 +3,7 @@ import { products, productDetailBySlug, basicProductDetail } from "../src/lib/mo
 import { categories } from "../src/lib/mock/categories";
 import { ageTiers } from "../src/lib/mock/age-tiers";
 import { giftKits, giftCards } from "../src/lib/mock/gifts";
+import { DEFAULT_SETTINGS } from "../src/lib/data/settings-shape";
 import type { Product } from "../src/lib/types";
 import type { Database, Json } from "../src/lib/supabase/database.types";
 
@@ -112,6 +113,13 @@ async function main() {
   for (const p of [...giftKits, ...giftCards]) {
     await seedProduct(p, 9999);
   }
+
+  const settingsRes = await db.from("site_settings").upsert(
+    { key: "general", value: DEFAULT_SETTINGS as unknown as Json },
+    { onConflict: "key" },
+  );
+  if (settingsRes.error) throw settingsRes.error;
+  console.log("site_settings: general row seeded");
 
   // Report counts.
   for (const t of ["categories", "age_tiers", "products", "inventory", "product_variants"]) {
