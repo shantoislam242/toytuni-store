@@ -77,6 +77,7 @@ type AdminOrderDetailRow = {
   delivery_fee: number;
   total: number;
   notes: string | null;
+  advance_total: number;
   order_items: {
     id: string;
     product_id: string | null;
@@ -86,6 +87,7 @@ type AdminOrderDetailRow = {
     line_total: number;
     fulfillment_type: string;
     preorder_ship_date: string | null;
+    preorder_advance_pct: number | null;
   }[] | null;
 };
 
@@ -168,6 +170,7 @@ export type AdminOrderDetail = {
   subtotal: number;
   deliveryFee: number;
   total: number;
+  advanceTotal: number;
   notes: string | null;
   items: {
     id: string;
@@ -178,6 +181,7 @@ export type AdminOrderDetail = {
     lineTotal: number;
     fulfillmentType: string;
     preorderShipDate: string | null;
+    preorderAdvancePct: number | null;
   }[];
 };
 
@@ -306,7 +310,7 @@ export async function getAdminOrderById(id: string): Promise<AdminOrderDetail | 
   const { data, error } = await db
     .from("orders")
     .select(
-      "id, order_number, created_at, customer_name, customer_phone, customer_email, division, district, area, address_line, landmark, status, payment_method, subtotal, delivery_fee, total, notes, order_items(id, product_id, title, unit_price, qty, line_total, fulfillment_type, preorder_ship_date)",
+      "id, order_number, created_at, customer_name, customer_phone, customer_email, division, district, area, address_line, landmark, status, payment_method, subtotal, delivery_fee, total, advance_total, notes, order_items(id, product_id, title, unit_price, qty, line_total, fulfillment_type, preorder_ship_date, preorder_advance_pct)",
     )
     .eq("id", id)
     .maybeSingle()
@@ -331,6 +335,7 @@ export async function getAdminOrderById(id: string): Promise<AdminOrderDetail | 
     subtotal: data.subtotal,
     deliveryFee: data.delivery_fee,
     total: data.total,
+    advanceTotal: data.advance_total,
     notes: data.notes,
     items: (data.order_items ?? []).map((i) => ({
       id: i.id,
@@ -341,6 +346,7 @@ export async function getAdminOrderById(id: string): Promise<AdminOrderDetail | 
       lineTotal: i.line_total,
       fulfillmentType: i.fulfillment_type,
       preorderShipDate: i.preorder_ship_date,
+      preorderAdvancePct: i.preorder_advance_pct,
     })),
   };
 }
