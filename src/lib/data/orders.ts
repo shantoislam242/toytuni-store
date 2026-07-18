@@ -3,6 +3,8 @@ import { createAdminSupabase } from "@/lib/supabase/admin";
 import { getProductState } from "@/lib/data/product-state";
 import { computeOrderTotals } from "@/lib/data/order-totals";
 import { computeAdvance } from "@/lib/data/advance";
+import { getSettings } from "@/lib/data/settings";
+import { shippingFeeFor } from "@/lib/shipping";
 
 export type CreateOrderInput = {
   customer: { name: string; phone: string; email?: string };
@@ -35,10 +37,15 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
   if (!input.lines.length) return { ok: false, error: "Your cart is empty." };
   const db = createAdminSupabase();
 
-  // Never trust a client-supplied fee: a negative value would understate the
-  // COD total. Clamp to a non-negative integer. (Server-side recompute from
-  // district is a documented follow-up.)
-  const deliveryFee = Math.max(0, Math.round(input.deliveryFee));
+  // Never trust a client-supplied fee: recompute the delivery charge (and the
+  // COD fee) server-side from admin settings + the order's district. The
+  // client-supplied `input.deliveryFee` is display-only and ignored here.
+  const settings = await getSettings();
+  const deliveryFee = shippingFeeFor(input.address.district, {
+    insideDhakaFee: settings.shipping.insideDhakaFee,
+    outsideDhakaFee: settings.shipping.outsideDhakaFee,
+  });
+  const codFee = settings.codFee; // all orders are COD today
 
   // Re-read price + stock server-side — never trust the client.
   const slugs = input.lines.map((l) => l.slug);
@@ -85,8 +92,9 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
     });
   }
 
-  const { subtotal, total } = computeOrderTotals(
+  const { subtotal } = computeOrderTotals(
     items.map((i) => ({ unitPrice: i.unit_price, qty: i.qty })), deliveryFee);
+  const total = subtotal + deliveryFee + codFee;
 
   const advanceTotal = items.reduce(
     (sum, i) =>

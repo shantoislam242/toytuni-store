@@ -17,6 +17,7 @@ export function OrderSummary({
   delivery,
   deliveryZoneLabel,
   discount,
+  codFee,
   total,
   ctaLabel,
   onCta,
@@ -28,6 +29,8 @@ export function OrderSummary({
   /** Zone name for the chosen address (e.g. "Inside Dhaka"), if any. */
   deliveryZoneLabel?: string | null;
   discount: number;
+  /** Cash-on-delivery fee (BDT), if the chosen payment method is COD. */
+  codFee?: number;
   total: number;
   ctaLabel: string;
   onCta: () => void;
@@ -81,6 +84,12 @@ export function OrderSummary({
             {delivery === 0 ? "Free" : formatTk(delivery)}
           </dd>
         </div>
+        {codFee && codFee > 0 ? (
+          <div className="flex justify-between">
+            <dt className="text-ink-muted">COD fee</dt>
+            <dd className="font-medium text-ink">{formatTk(codFee)}</dd>
+          </div>
+        ) : null}
         {discount > 0 ? (
           <div className="flex justify-between">
             <dt className="text-neem-deep">Discount</dt>
