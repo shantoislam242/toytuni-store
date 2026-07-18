@@ -20,6 +20,7 @@ export function OrderSummary({
   total,
   ctaLabel,
   onCta,
+  advanceDueNow,
 }: {
   items: CartItem[];
   subtotal: number;
@@ -30,6 +31,8 @@ export function OrderSummary({
   total: number;
   ctaLabel: string;
   onCta: () => void;
+  /** Pre-order advance total (BDT) due now, if any cart line is a pre-order. */
+  advanceDueNow?: number;
 }) {
   return (
     <div className="rounded-2xl border border-cream-300 bg-card p-5 shadow-sm sm:p-6">
@@ -92,6 +95,22 @@ export function OrderSummary({
         <span className="font-semibold text-ink">Total</span>
         <span className="font-display text-2xl font-bold text-ink">{formatTk(total)}</span>
       </div>
+
+      {advanceDueNow && advanceDueNow > 0 ? (
+        <div className="mt-4 rounded-lg border border-cream-200 bg-cream-50/60 p-3 text-sm">
+          <div className="flex justify-between">
+            <span className="text-ink-muted">Advance due now (pre-order)</span>
+            <span className="font-semibold text-ink">{formatTk(advanceDueNow)}</span>
+          </div>
+          <div className="mt-1 flex justify-between">
+            <span className="text-ink-muted">Pay on delivery</span>
+            <span className="font-medium text-ink">{formatTk(total - advanceDueNow)}</span>
+          </div>
+          <p className="mt-1.5 text-xs text-ink-soft">
+            Online advance payment goes live soon — for now the full amount is Cash on Delivery.
+          </p>
+        </div>
+      ) : null}
 
       <Button className="mt-5 w-full" size="lg" onClick={onCta}>
         {ctaLabel}
