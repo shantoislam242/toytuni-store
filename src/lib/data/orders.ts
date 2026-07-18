@@ -2,6 +2,7 @@
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import { getProductState } from "@/lib/data/product-state";
 import { computeOrderTotals } from "@/lib/data/order-totals";
+import { computeAdvance } from "@/lib/data/advance";
 
 export type CreateOrderInput = {
   customer: { name: string; phone: string; email?: string };
@@ -13,6 +14,22 @@ export type CreateOrderInput = {
 export type CreateOrderResult =
   | { ok: true; orderNumber: string; total: number }
   | { ok: false; error: string };
+
+/** Row shape for the products select below, supplied via `.overrideTypes()`
+ *  rather than inferred from the `.select()` string — `preorder_advance_pct`
+ *  (added by migration 0006) is absent from the generated types, which makes
+ *  automatic `.select()` parsing resolve to a `SelectQueryError` for the
+ *  whole row. See the note in `src/lib/data/products.ts` for the general
+ *  pattern. */
+type OrderProductRow = {
+  id: string;
+  slug: string;
+  title: string;
+  price: number;
+  preorder_ship_date: string | null;
+  preorder_advance_pct: number | null;
+  inventory: { stock_qty: number } | { stock_qty: number }[] | null;
+};
 
 export async function createOrder(input: CreateOrderInput): Promise<CreateOrderResult> {
   if (!input.lines.length) return { ok: false, error: "Your cart is empty." };
@@ -27,9 +44,10 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
   const slugs = input.lines.map((l) => l.slug);
   const { data: rows, error: readErr } = await db
     .from("products")
-    .select("id, slug, title, price, preorder_ship_date, inventory(stock_qty)")
+    .select("id, slug, title, price, preorder_ship_date, preorder_advance_pct, inventory(stock_qty)")
     .in("slug", slugs)
-    .eq("active", true);
+    .eq("active", true)
+    .overrideTypes<OrderProductRow[], { merge: false }>();
   if (readErr) return { ok: false, error: "Could not read products." };
   const bySlug = new Map((rows ?? []).map((r) => [r.slug, r]));
 
@@ -37,6 +55,7 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
     product_id: string; title: string; unit_price: number; qty: number;
     line_total: number; fulfillment_type: "in_stock" | "preorder";
     preorder_ship_date: string | null;
+    preorder_advance_pct: number | null;
   }[] = [];
 
   for (const line of input.lines) {
@@ -56,15 +75,24 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
       return { ok: false, error: `Sold out: ${p.title}` };
     }
 
+    const advancePct = fulfillment === "preorder" ? (p.preorder_advance_pct ?? null) : null;
+
     items.push({
       product_id: p.id, title: p.title, unit_price: p.price, qty: line.qty,
       line_total: p.price * line.qty, fulfillment_type: fulfillment,
       preorder_ship_date: fulfillment === "preorder" ? p.preorder_ship_date : null,
+      preorder_advance_pct: advancePct,
     });
   }
 
   const { subtotal, total } = computeOrderTotals(
     items.map((i) => ({ unitPrice: i.unit_price, qty: i.qty })), deliveryFee);
+
+  const advanceTotal = items.reduce(
+    (sum, i) =>
+      sum + (i.fulfillment_type === "preorder" ? computeAdvance(i.line_total, i.preorder_advance_pct) : 0),
+    0,
+  );
 
   const orderNumber = `TT-${Date.now().toString(36).toUpperCase()}`;
   const p_order = {
@@ -76,11 +104,13 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
     area: input.address.area, address_line: input.address.addressLine,
     landmark: input.address.landmark ?? null,
     subtotal, delivery_fee: deliveryFee, total, notes: input.notes ?? null,
+    advance_total: advanceTotal,
   };
   const p_items = items.map((i) => ({
     product_id: i.product_id, title: i.title, unit_price: i.unit_price, qty: i.qty,
     line_total: i.line_total, fulfillment_type: i.fulfillment_type,
     preorder_ship_date: i.preorder_ship_date,
+    preorder_advance_pct: i.preorder_advance_pct,
   }));
 
   const { data: orderNumberResult, error } = await db.rpc("place_order", {
