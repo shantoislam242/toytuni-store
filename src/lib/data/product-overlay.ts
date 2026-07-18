@@ -6,6 +6,9 @@ export type ProductOverride = {
   compareAtPrice: number | null;
   stockQty: number;
   preorderShipDate: string | null;
+  /** Admin-uploaded product photo (Supabase Storage public URL), or null when
+   *  the product still relies on the public/images/products/<slug> probing. */
+  imageUrl: string | null;
 };
 
 export type OverlaidProduct = Product & { availability: ProductAvailability };
@@ -30,6 +33,7 @@ export function applyOverride(
     ...base,
     price: override.price,
     compareAtPrice: override.compareAtPrice ?? undefined,
+    imageUrl: override.imageUrl ?? undefined,
     availability: getProductState({
       stockQty: override.stockQty,
       preorderShipDate: override.preorderShipDate,

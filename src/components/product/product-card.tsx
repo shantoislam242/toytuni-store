@@ -104,6 +104,7 @@ export function ProductCard({
               imageNum={1}
               label={product.imageLabelBn}
               fallbackTone={product.imageTones[0]}
+              imageUrl={product.imageUrl}
               className="absolute inset-0 transition-opacity duration-300 group-hover/card:opacity-0"
             />
             {/* Hover image */}
@@ -112,6 +113,7 @@ export function ProductCard({
               imageNum={2}
               label={product.imageLabelBn}
               fallbackTone={product.imageTones[1]}
+              imageUrl={product.imageUrl}
               className="absolute inset-0 opacity-0 transition-opacity duration-300 group-hover/card:opacity-100"
             />
           </motion.div>

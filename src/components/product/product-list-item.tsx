@@ -80,6 +80,7 @@ export function ProductListItem({ product }: { product: Product }) {
           imageNum={1}
           label={product.imageLabelBn}
           fallbackTone={product.imageTones[0]}
+          imageUrl={product.imageUrl}
           className="absolute inset-0 transition-transform duration-300 group-hover/row:scale-105"
         />
         {discountPercent ? (

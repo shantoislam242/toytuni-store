@@ -53,6 +53,11 @@ export type Product = {
   /** at least two tones → hover-swap "image" */
   imageTones: [Tone, Tone];
   imageLabelBn: string; // shown on the placeholder
+  /** Admin-uploaded product photo (Supabase Storage public URL). When set, the
+   *  storefront renders it directly instead of probing
+   *  public/images/products/<slug>/. Only ever populated via the DB overlay
+   *  (`applyOverride`) — absent on plain mock products. */
+  imageUrl?: string;
   /** "What's inside" — shown on gift-kit cards only (optional). */
   kitContents?: string[];
   variants?: Variant[];
