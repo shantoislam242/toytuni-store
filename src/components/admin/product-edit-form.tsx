@@ -16,6 +16,8 @@ import {
 } from "@/components/ui/select";
 import { ProductImage } from "@/components/product/product-image";
 import { ProductFrame } from "@/components/product/product-frame";
+import { StringListEditor } from "@/components/admin/string-list-editor";
+import { GalleryEditor } from "@/components/admin/gallery-editor";
 import {
   updateProduct,
   uploadProductImage,
@@ -24,7 +26,7 @@ import {
 } from "@/lib/admin/actions";
 import type { TaxonomyOption } from "@/components/admin/product-create-form";
 import type { AdminProductDetail } from "@/lib/admin/queries";
-import type { Tone } from "@/lib/types";
+import type { DetailContent, Tone } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const BADGE_OPTIONS = ["New", "Best Seller", "Limited"] as const;
@@ -96,6 +98,21 @@ export function ProductEditForm({
   const [active, setActive] = useState(product.active);
   const [badge, setBadge] = useState(product.badge ?? BADGE_NONE);
 
+  const dc = product.detailContent;
+  const [features, setFeatures] = useState<string[]>(dc?.features ?? []);
+  const [benefits, setBenefits] = useState<string[]>(dc?.benefits ?? []);
+  const [whyPlay, setWhyPlay] = useState<string[]>(dc?.whyPlay ?? []);
+  const [howPlay, setHowPlay] = useState<string[]>(dc?.howPlay ?? []);
+  const [returnPolicy, setReturnPolicy] = useState(dc?.returnPolicy ?? "");
+  const [deliveryEstimate, setDeliveryEstimate] = useState(dc?.deliveryEstimate ?? "");
+  const [videoUrl, setVideoUrl] = useState(dc?.videoUrl ?? "");
+  const [specMaterials, setSpecMaterials] = useState(dc?.specs?.materials ?? "");
+  const [specSafety, setSpecSafety] = useState(dc?.specs?.safety ?? "");
+  const [specWeight, setSpecWeight] = useState(dc?.specs?.weight ?? "");
+  const [specDimensions, setSpecDimensions] = useState(dc?.specs?.dimensions ?? "");
+  const [specAgeRange, setSpecAgeRange] = useState(dc?.specs?.ageRange ?? "");
+  const [gallery, setGallery] = useState<string[]>(product.galleryUrls ?? []);
+
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -154,6 +171,17 @@ export function ProductEditForm({
     patch.preorder_advance_pct = advancePctVal;
     patch.active = active;
     patch.badge = badge === BADGE_NONE ? null : (badge as (typeof BADGE_OPTIONS)[number]);
+
+    const detailContent: DetailContent = {
+      features, benefits, whyPlay, howPlay,
+      returnPolicy, deliveryEstimate,
+      videoUrl: videoUrl.trim() === "" ? null : videoUrl.trim(),
+      specs: {
+        materials: specMaterials, safety: specSafety, weight: specWeight,
+        dimensions: specDimensions, ageRange: specAgeRange,
+      },
+    };
+    patch.detailContent = detailContent;
 
     startSaving(async () => {
       const result = await updateProduct(product.slug, patch);
@@ -413,6 +441,38 @@ export function ProductEditForm({
                 className="mt-1 w-full rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
               />
             </label>
+          </CardContent>
+        </Card>
+
+        <Card className="border-cream-300">
+          <CardHeader><CardTitle>Content</CardTitle></CardHeader>
+          <CardContent className="space-y-5">
+            <StringListEditor label="Features" value={features} onChange={setFeatures} addLabel="Add feature" />
+            <StringListEditor label="Benefits" value={benefits} onChange={setBenefits} addLabel="Add benefit" />
+            <StringListEditor label="Why play (tab)" value={whyPlay} onChange={setWhyPlay} addLabel="Add point" />
+            <StringListEditor label="How to play (tab)" value={howPlay} onChange={setHowPlay} addLabel="Add step" />
+            <label className="block">
+              <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">Return policy</span>
+              <textarea value={returnPolicy} onChange={(e) => setReturnPolicy(e.target.value)} rows={3}
+                className="mt-1 w-full rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50" />
+            </label>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <label className="block"><span className="text-xs font-medium uppercase tracking-wide text-ink-muted">Delivery estimate</span>
+                <Input value={deliveryEstimate} onChange={(e) => setDeliveryEstimate(e.target.value)} className="mt-1" /></label>
+              <label className="block"><span className="text-xs font-medium uppercase tracking-wide text-ink-muted">Video URL (YouTube)</span>
+                <Input value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} placeholder="https://…" className="mt-1" /></label>
+            </div>
+            <div>
+              <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">Specs</span>
+              <div className="mt-1 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Input value={specMaterials} onChange={(e) => setSpecMaterials(e.target.value)} placeholder="Materials" />
+                <Input value={specSafety} onChange={(e) => setSpecSafety(e.target.value)} placeholder="Safety" />
+                <Input value={specWeight} onChange={(e) => setSpecWeight(e.target.value)} placeholder="Weight" />
+                <Input value={specDimensions} onChange={(e) => setSpecDimensions(e.target.value)} placeholder="Dimensions" />
+                <Input value={specAgeRange} onChange={(e) => setSpecAgeRange(e.target.value)} placeholder="Age range" />
+              </div>
+            </div>
+            <GalleryEditor slug={product.slug} images={gallery} onChange={setGallery} />
           </CardContent>
         </Card>
 
