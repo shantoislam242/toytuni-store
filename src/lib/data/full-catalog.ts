@@ -2,6 +2,7 @@ import "server-only";
 import { createServerSupabase } from "@/lib/supabase/server";
 import type { Product, Tone } from "@/lib/types";
 import { products as mockProducts } from "@/lib/mock/products";
+import { giftKits, giftCards } from "@/lib/mock/gifts";
 import { getProductState } from "@/lib/data/product-state";
 import type { OverlaidProduct } from "@/lib/data/product-overlay";
 
@@ -22,8 +23,8 @@ export type FullProductRow = {
   compare_at_price: number | null;
   rating: number;
   review_count: number;
-  age_tier_slug: string;
-  category_slug: string;
+  age_tier_slug: string | null;
+  category_slug: string | null;
   badge: "New" | "Best Seller" | "Limited" | null;
   image_label: string;
   image_tones: string[];
@@ -58,8 +59,8 @@ export function rowToFullProduct(row: FullProductRow): Product {
     compareAtPrice: row.compare_at_price ?? undefined,
     rating: row.rating,
     reviewCount: row.review_count,
-    ageTierSlug: row.age_tier_slug,
-    categorySlug: row.category_slug,
+    ageTierSlug: row.age_tier_slug ?? "",
+    categorySlug: row.category_slug ?? "",
     badge: row.badge ?? undefined,
     imageTones: row.image_tones as [Tone, Tone],
     imageLabelBn: row.image_label,
@@ -94,6 +95,7 @@ export async function getFullCatalog(): Promise<OverlaidProduct[]> {
         "slug, sku, title, price, compare_at_price, rating, review_count, age_tier_slug, category_slug, badge, image_label, image_tones, image_url, kit_contents, preorder_ship_date, inventory(stock_qty), product_variants(name, tone)",
       )
       .eq("active", true)
+      .order("created_at", { ascending: true })
       .overrideTypes<FullProductRow[], { merge: false }>();
     if (error) throw error;
     return (data ?? []).map((row) => ({
@@ -105,7 +107,7 @@ export async function getFullCatalog(): Promise<OverlaidProduct[]> {
     }));
   } catch (err) {
     console.error("getFullCatalog failed; falling back to mock catalog:", err);
-    return mockProducts.map((p) => ({
+    return [...mockProducts, ...giftKits, ...giftCards].map((p) => ({
       ...p,
       availability: { state: "in_stock", stockQty: 1 },
     }));

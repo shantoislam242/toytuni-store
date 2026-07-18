@@ -1,6 +1,5 @@
 import "server-only";
 import { cache } from "react";
-import { giftKits, giftCards } from "@/lib/mock/gifts";
 import { getFullCatalog } from "@/lib/data/full-catalog";
 import type { OverlaidProduct } from "@/lib/data/product-overlay";
 import * as sel from "@/lib/data/catalog-selectors";
@@ -23,16 +22,14 @@ const fullCatalog = cache(getFullCatalog);
 // Gift kits + gift cards are cart-addable products that also live in the DB
 // (seeded so checkout can resolve them), but — like in Phase 1 — they must NOT
 // surface in the main PLPs, rails or hub counts; they appear only on /gift and
-// their own PDPs. They carry no shelf category in the DB, and their slugs are
-// defined by the mock, so exclude them from the shelf catalogue by slug.
-const GIFT_SLUGS = new Set(
-  [...giftKits, ...giftCards].map((p) => p.slug),
-);
-
+// their own PDPs. They carry no shelf category in the DB (`category_slug` is
+// nulled by the seed, mapped to "" by `rowToFullProduct`), so exclude them
+// from the shelf catalogue by that DB-native discriminator rather than a
+// mock-derived slug list.
 /** The shelf catalogue: every active product except gift kits/cards. */
 export const getCatalog = cache(async (): Promise<OverlaidProduct[]> => {
   const all = await fullCatalog();
-  return all.filter((p) => !GIFT_SLUGS.has(p.slug));
+  return all.filter((p) => p.categorySlug !== "");
 });
 
 /**
