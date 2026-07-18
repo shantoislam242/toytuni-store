@@ -1,6 +1,7 @@
 import "server-only";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import { computeDashboardStats, type DashboardStats } from "@/lib/admin/stats";
+import type { DetailContent } from "@/lib/types";
 
 /** Row shapes supplied via `.overrideTypes()` — see the note in
  *  `src/lib/data/products.ts` on why `.select()` string inference resolves to
@@ -44,6 +45,8 @@ type AdminProductDetailRow = {
   active: boolean;
   created_at: string;
   updated_at: string;
+  detail_content: DetailContent | null;
+  gallery_urls: string[] | null;
   inventory: { stock_qty: number; low_stock_threshold: number } | { stock_qty: number; low_stock_threshold: number }[] | null;
   product_variants: { id: string; name: string; tone: string }[] | null;
 };
@@ -140,6 +143,8 @@ export type AdminProductDetail = {
   stockQty: number;
   lowStockThreshold: number;
   variants: { id: string; name: string; tone: string }[];
+  detailContent: DetailContent | null;
+  galleryUrls: string[];
 };
 
 export type AdminOrderListItem = {
@@ -238,7 +243,7 @@ export async function getAdminProductBySlug(slug: string): Promise<AdminProductD
   const { data, error } = await db
     .from("products")
     .select(
-      "id, slug, sku, title, price, compare_at_price, rating, review_count, age_tier_slug, category_slug, badge, description, image_label, image_tones, image_url, preorder_ship_date, preorder_delivery_date, preorder_advance_pct, active, created_at, updated_at, inventory(stock_qty, low_stock_threshold), product_variants(id, name, tone)",
+      "id, slug, sku, title, price, compare_at_price, rating, review_count, age_tier_slug, category_slug, badge, description, image_label, image_tones, image_url, preorder_ship_date, preorder_delivery_date, preorder_advance_pct, active, created_at, updated_at, detail_content, gallery_urls, inventory(stock_qty, low_stock_threshold), product_variants(id, name, tone)",
     )
     .eq("slug", slug)
     .maybeSingle()
@@ -272,6 +277,8 @@ export async function getAdminProductBySlug(slug: string): Promise<AdminProductD
     stockQty: inv?.stock_qty ?? 0,
     lowStockThreshold: inv?.low_stock_threshold ?? 0,
     variants: data.product_variants ?? [],
+    detailContent: data.detail_content,
+    galleryUrls: data.gallery_urls ?? [],
   };
 }
 
