@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   Package,
   ShoppingCart,
+  Tags,
   Users,
   Warehouse,
   Newspaper,
@@ -33,12 +34,13 @@ type NavItem = {
   disabled?: boolean;
 };
 
-// Live sections (Task 1 slice): Dashboard, Products, Orders. Everything else
-// is on the roadmap and shown disabled with a "Soon" tag so the eventual nav
+// Live sections: Dashboard, Products, Categories, Orders. Everything else is
+// on the roadmap and shown disabled with a "Soon" tag so the eventual nav
 // shape is visible without shipping half-built pages.
 const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
   { label: "Products", href: "/admin/products", icon: Package },
+  { label: "Categories", href: "/admin/categories", icon: Tags },
   { label: "Orders", href: "/admin/orders", icon: ShoppingCart },
   { label: "Customers", href: "/admin/customers", icon: Users, disabled: true },
   { label: "Inventory", href: "/admin/inventory", icon: Warehouse, disabled: true },
