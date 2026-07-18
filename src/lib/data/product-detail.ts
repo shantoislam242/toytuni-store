@@ -57,7 +57,12 @@ async function readProductDetail(slug: string): Promise<ProductDetail> {
       .maybeSingle()
       .overrideTypes<ProductDetailRow, { merge: false }>();
     if (error) throw error;
-    if (!data || !data.detail_content) return mock; // unseeded / gift kit → mock
+    if (!data) return mock;
+    if (!data.detail_content) {
+      // Row exists but has no editable content yet (unseeded / gift kit):
+      // prefer hand-written mock copy, else a basic detail that keeps the DB description.
+      return productDetailBySlug(slug) ?? basicProductDetail(slug, data.description ?? undefined);
+    }
     return rowToProductDetail(
       { ...data, detail_content: data.detail_content },
       { reviews: mock.reviews ?? [], fallbackImages: mock.imageSrcs },

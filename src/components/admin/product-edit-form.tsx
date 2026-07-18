@@ -460,7 +460,9 @@ export function ProductEditForm({
               <label className="block"><span className="text-xs font-medium uppercase tracking-wide text-ink-muted">Delivery estimate</span>
                 <Input value={deliveryEstimate} onChange={(e) => setDeliveryEstimate(e.target.value)} className="mt-1" /></label>
               <label className="block"><span className="text-xs font-medium uppercase tracking-wide text-ink-muted">Video URL (YouTube)</span>
-                <Input value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} placeholder="https://…" className="mt-1" /></label>
+                <Input value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} placeholder="https://…" className="mt-1" />
+                <p className="mt-1 text-xs text-ink-soft">Use an https link (YouTube). Other links are ignored.</p>
+              </label>
             </div>
             <div>
               <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">Specs</span>
@@ -562,6 +564,10 @@ export function ProductEditForm({
           <p className="text-xs text-ink-soft">
             JPG, PNG, WebP or GIF, up to 5 MB. The uploaded photo replaces the
             bundled image everywhere on the storefront.
+          </p>
+
+          <p className="text-xs text-ink-soft">
+            Used for catalog thumbnails. The product page gallery is set in the Content section below.
           </p>
         </CardContent>
       </Card>
