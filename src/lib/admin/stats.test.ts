@@ -9,6 +9,7 @@ describe("computeDashboardStats", () => {
         { total: 2500, status: "confirmed" },
         { total: 500, status: "pending" },
         { total: 3200, status: "delivered" },
+        { total: 9999, status: "cancelled" },
       ],
       inventory: [
         { stock_qty: 2, low_stock_threshold: 5 }, // below -> low
@@ -17,8 +18,8 @@ describe("computeDashboardStats", () => {
         { stock_qty: 0, low_stock_threshold: 3 }, // below -> low
       ],
     });
-    expect(r.orderCount).toBe(4);
-    expect(r.revenue).toBe(7200);
+    expect(r.orderCount).toBe(5);
+    expect(r.revenue).toBe(7200); // cancelled order's total excluded
     expect(r.pendingCount).toBe(2);
     expect(r.lowStockCount).toBe(3);
   });

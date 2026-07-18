@@ -69,7 +69,7 @@ export function ProductEditForm({ product }: { product: AdminProductDetail }) {
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
 
   const fallbackTone = (product.imageTones[0] as Tone | undefined) ?? "cream";
-  const shownImageUrl = uploadedUrl ?? previewUrl ?? undefined;
+  const shownImageUrl = uploadedUrl ?? previewUrl ?? product.imageUrl ?? undefined;
 
   const handleSave = () => {
     const patch: ProductPatch = {};

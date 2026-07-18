@@ -4,8 +4,8 @@ import { computeDashboardStats, type DashboardStats } from "@/lib/admin/stats";
 
 /** Row shapes supplied via `.overrideTypes()` — see the note in
  *  `src/lib/data/products.ts` on why `.select()` string inference resolves to
- *  `never` in this repo. Deliberately excludes `products.image_url`: that
- *  column ships in migration 0004, not yet applied. */
+ *  `never` in this repo. Includes `products.image_url` (migration 0004,
+ *  applied) so admins see their uploaded photo, not just the bundled one. */
 type DashboardOrderRow = { total: number; status: string };
 type DashboardInventoryRow = { stock_qty: number; low_stock_threshold: number };
 
@@ -18,6 +18,7 @@ type AdminProductRow = {
   compare_at_price: number | null;
   active: boolean;
   created_at: string;
+  image_url: string | null;
   inventory: { stock_qty: number; low_stock_threshold: number } | { stock_qty: number; low_stock_threshold: number }[] | null;
 };
 
@@ -36,6 +37,7 @@ type AdminProductDetailRow = {
   description: string | null;
   image_label: string | null;
   image_tones: string[];
+  image_url: string | null;
   preorder_ship_date: string | null;
   active: boolean;
   created_at: string;
@@ -106,6 +108,7 @@ export type AdminProductListItem = {
   stockQty: number;
   lowStockThreshold: number;
   createdAt: string;
+  imageUrl: string | null;
 };
 
 export type AdminProductDetail = {
@@ -123,6 +126,7 @@ export type AdminProductDetail = {
   description: string | null;
   imageLabel: string | null;
   imageTones: string[];
+  imageUrl: string | null;
   preorderShipDate: string | null;
   active: boolean;
   createdAt: string;
@@ -197,7 +201,7 @@ export async function getAdminProducts(): Promise<AdminProductListItem[]> {
   const db = createAdminSupabase();
   const { data, error } = await db
     .from("products")
-    .select("id, slug, sku, title, price, compare_at_price, active, created_at, inventory(stock_qty, low_stock_threshold)")
+    .select("id, slug, sku, title, price, compare_at_price, active, created_at, image_url, inventory(stock_qty, low_stock_threshold)")
     .order("created_at", { ascending: false })
     .overrideTypes<AdminProductRow[], { merge: false }>();
   if (error) throw new Error(`getAdminProducts failed: ${error.message}`);
@@ -215,6 +219,7 @@ export async function getAdminProducts(): Promise<AdminProductListItem[]> {
       stockQty: inv?.stock_qty ?? 0,
       lowStockThreshold: inv?.low_stock_threshold ?? 0,
       createdAt: p.created_at,
+      imageUrl: p.image_url,
     };
   });
 }
@@ -225,7 +230,7 @@ export async function getAdminProductBySlug(slug: string): Promise<AdminProductD
   const { data, error } = await db
     .from("products")
     .select(
-      "id, slug, sku, title, price, compare_at_price, rating, review_count, age_tier_slug, category_slug, badge, description, image_label, image_tones, preorder_ship_date, active, created_at, updated_at, inventory(stock_qty, low_stock_threshold), product_variants(id, name, tone)",
+      "id, slug, sku, title, price, compare_at_price, rating, review_count, age_tier_slug, category_slug, badge, description, image_label, image_tones, image_url, preorder_ship_date, active, created_at, updated_at, inventory(stock_qty, low_stock_threshold), product_variants(id, name, tone)",
     )
     .eq("slug", slug)
     .maybeSingle()
@@ -249,6 +254,7 @@ export async function getAdminProductBySlug(slug: string): Promise<AdminProductD
     description: data.description,
     imageLabel: data.image_label,
     imageTones: data.image_tones,
+    imageUrl: data.image_url,
     preorderShipDate: data.preorder_ship_date,
     active: data.active,
     createdAt: data.created_at,
@@ -281,8 +287,15 @@ export async function getAdminOrders(): Promise<AdminOrderListItem[]> {
   }));
 }
 
-/** One order by id, with its line items. */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** One order by id, with its line items. A malformed (non-UUID) `id` can
+ *  never match a row — return `null` up front (the page 404s) instead of
+ *  letting Postgres's `invalid input syntax for type uuid` error bubble up
+ *  as a 500. */
 export async function getAdminOrderById(id: string): Promise<AdminOrderDetail | null> {
+  if (!UUID_RE.test(id)) return null;
+
   const db = createAdminSupabase();
   const { data, error } = await db
     .from("orders")

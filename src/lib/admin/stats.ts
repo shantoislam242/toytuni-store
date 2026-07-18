@@ -15,7 +15,9 @@ export function computeDashboardStats(input: {
   const { orders, inventory } = input;
   return {
     orderCount: orders.length,
-    revenue: orders.reduce((sum, o) => sum + o.total, 0),
+    revenue: orders
+      .filter((o) => o.status !== "cancelled")
+      .reduce((sum, o) => sum + o.total, 0),
     pendingCount: orders.filter((o) => o.status === "pending").length,
     lowStockCount: inventory.filter((i) => i.stock_qty <= i.low_stock_threshold).length,
   };

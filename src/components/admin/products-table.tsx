@@ -86,6 +86,7 @@ export function ProductsTable({ products }: { products: AdminProductListItem[] }
                           imageNum={1}
                           label={product.title}
                           fallbackTone="cream"
+                          imageUrl={product.imageUrl ?? undefined}
                         />
                       </ProductFrame>
                       <Link
