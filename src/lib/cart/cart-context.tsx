@@ -8,11 +8,12 @@ import {
   useMemo,
   useState,
 } from "react";
-import { productBySlug } from "@/lib/mock/products";
+import { useCatalog } from "@/lib/catalog/catalog-context";
 import type { Product } from "@/lib/types";
 
 /** Minimal persisted unit: just what the user chose. Price/title are resolved
- * from the mock catalogue at render time, so the cart never holds stale data. */
+ * from the DB-hydrated catalogue at render time, so the cart never holds stale
+ * data. */
 type CartLine = { slug: string; qty: number };
 
 /** A resolved cart line ready for display. */
@@ -33,6 +34,7 @@ const STORAGE_KEY = "toy-store-cart-v1";
 const CartContext = createContext<CartContextValue | null>(null);
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
+  const catalog = useCatalog();
   const [lines, setLines] = useState<CartLine[]>([]);
   const [hydrated, setHydrated] = useState(false);
 
@@ -99,12 +101,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const items = useMemo<CartItem[]>(() => {
     return lines.flatMap((l) => {
-      const product = productBySlug(l.slug);
+      const product = catalog.bySlug(l.slug);
       return product
         ? [{ product, qty: l.qty, lineTotal: product.price * l.qty }]
         : [];
     });
-  }, [lines]);
+  }, [lines, catalog]);
 
   // Distinct products in the cart — the same product counts once no matter its
   // quantity (drives the header cart badge).

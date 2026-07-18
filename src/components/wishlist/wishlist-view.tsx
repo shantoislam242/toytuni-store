@@ -7,10 +7,11 @@ import { ProductCard } from "@/components/product/product-card";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { crumbs } from "@/lib/breadcrumbs";
 import { useWishlist } from "@/lib/wishlist/wishlist-context";
-import { productBySlug } from "@/lib/mock/products";
+import { useCatalog } from "@/lib/catalog/catalog-context";
 
 export function WishlistView() {
   const { slugs, hydrated, clear } = useWishlist();
+  const { bySlug } = useCatalog();
 
   // Avoid an empty-state flash before storage is read.
   if (!hydrated) {
@@ -18,7 +19,7 @@ export function WishlistView() {
   }
 
   const items = slugs.flatMap((slug) => {
-    const product = productBySlug(slug);
+    const product = bySlug(slug);
     return product ? [product] : [];
   });
 

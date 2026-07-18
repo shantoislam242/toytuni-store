@@ -15,7 +15,7 @@ import {
 import { ProductImage } from "@/components/product/product-image";
 import { useCart } from "@/lib/cart/cart-context";
 import { formatTk } from "@/lib/format";
-import { products } from "@/lib/mock/products";
+import { useCatalog, isShelfProduct } from "@/lib/catalog/catalog-context";
 import { cn } from "@/lib/utils";
 
 /** Minimum units per product for a bulk order. Pricing is unchanged — this is a
@@ -93,20 +93,24 @@ function QtyStepper({
 export function BulkOrderBuilder() {
   const router = useRouter();
   const { items, addItem, setQty: setCartQty } = useCart();
+  const { all } = useCatalog();
   const [query, setQuery] = useState("");
   const [qtys, setQtys] = useState<Record<string, number>>({});
   const [gstNo, setGstNo] = useState("");
   const [shopName, setShopName] = useState("");
 
+  // Bulk covers the shelf catalogue only — gift kits / cards stay out, as before.
+  const shelf = useMemo(() => all.filter(isShelfProduct), [all]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return products;
-    return products.filter(
+    if (!q) return shelf;
+    return shelf.filter(
       (p) =>
         p.titleBn.toLowerCase().includes(q) ||
         p.sku.toLowerCase().includes(q),
     );
-  }, [query]);
+  }, [query, shelf]);
 
   const setQty = (slug: string, qty: number) =>
     setQtys((prev) => {
@@ -118,10 +122,10 @@ export function BulkOrderBuilder() {
 
   const selected = useMemo(
     () =>
-      products
+      shelf
         .filter((p) => (qtys[p.slug] ?? 0) >= MIN_QTY)
         .map((p) => ({ product: p, qty: qtys[p.slug], lineTotal: p.price * qtys[p.slug] })),
-    [qtys],
+    [qtys, shelf],
   );
 
   const totalUnits = selected.reduce((n, l) => n + l.qty, 0);
