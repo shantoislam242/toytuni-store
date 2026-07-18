@@ -22,16 +22,18 @@ export function GalleryEditor({
     const files = Array.from(fileRef.current?.files ?? []);
     if (files.length === 0) return toast.error("Choose image(s) first.");
     start(async () => {
-      let latest = images;
+      let uploaded = 0;
       for (const file of files) {
         const fd = new FormData();
         fd.set("file", file);
         const r = await uploadGalleryImage(slug, fd);
-        if (r.ok) { latest = r.gallery; onChange(r.gallery); }
+        if (r.ok) { onChange(r.gallery); uploaded += 1; }
         else { toast.error(r.error); break; }
       }
       if (fileRef.current) fileRef.current.value = "";
-      toast.success("Gallery updated.");
+      if (uploaded > 0) {
+        toast.success(uploaded === files.length ? "Gallery updated." : `Uploaded ${uploaded} of ${files.length}.`);
+      }
     });
   };
 
@@ -62,6 +64,7 @@ export function GalleryEditor({
           <div key={url} className="relative aspect-square overflow-hidden rounded-lg border border-cream-300 bg-cream-50">
             {/* Plain <img>, matching ProductImage's existing approach for
                 admin-uploaded Storage URLs (tiny thumbnail; no next/image). */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={url} alt="" className="size-full object-cover" />
             <div className="absolute inset-x-0 bottom-0 flex justify-center gap-1 bg-ink/50 p-1">
               <button type="button" aria-label="Move left" disabled={i === 0 || busy}
