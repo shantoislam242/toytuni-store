@@ -1,6 +1,6 @@
 import "server-only";
-import { cache } from "react";
-import { createServerSupabase } from "@/lib/supabase/server";
+import { unstable_cache } from "next/cache";
+import { createPublicSupabase } from "@/lib/supabase/public";
 import type { AgeTier, Category, Tone } from "@/lib/types";
 import { categories as mockCategories } from "@/lib/mock/categories";
 import { ageTiers as mockAgeTiers } from "@/lib/mock/age-tiers";
@@ -30,12 +30,15 @@ const href = (slug: string) => `/collections/${slug}`;
  * e.g. `tone`/`tagline` before migration 0005) falls back to the mock
  * categories so the storefront nav/hubs never 500 on a Supabase blip.
  *
- * Wrapped in React `cache` so metadata + page + nested views in one request
- * share a single DB round-trip.
+ * Uses the cookie-less public client (user-independent read, no session) and
+ * is wrapped in `unstable_cache` (tag `"taxonomy"`) so it persists across
+ * requests, stays out of the per-route dynamic path, and is invalidated on
+ * demand by an admin taxonomy write via `revalidateTag("taxonomy")`.
  */
-export const getCategories = cache(async (): Promise<Category[]> => {
+export const getCategories = unstable_cache(
+  async (): Promise<Category[]> => {
   try {
-    const supabase = await createServerSupabase();
+    const supabase = createPublicSupabase();
     const { data, error } = await supabase
       .from("categories")
       .select("slug, title, tone, tagline, sort")
@@ -53,16 +56,20 @@ export const getCategories = cache(async (): Promise<Category[]> => {
     console.error("getCategories failed; falling back to mock:", err);
     return mockCategories;
   }
-});
+  },
+  ["taxonomy-categories"],
+  { tags: ["taxonomy"], revalidate: 3600 },
+);
 
 /**
  * Age tiers, read from the DB (`age_tiers`: slug, title, tone, tagline, sort),
  * ordered by `sort`, mapped to the app `AgeTier` shape. Fail-soft to mock.
- * Wrapped in React `cache` for per-request dedup.
+ * Cookie-less public client, wrapped in `unstable_cache` (tag `"taxonomy"`).
  */
-export const getAgeTiers = cache(async (): Promise<AgeTier[]> => {
+export const getAgeTiers = unstable_cache(
+  async (): Promise<AgeTier[]> => {
   try {
-    const supabase = await createServerSupabase();
+    const supabase = createPublicSupabase();
     const { data, error } = await supabase
       .from("age_tiers")
       .select("slug, title, tone, tagline, sort")
@@ -80,4 +87,7 @@ export const getAgeTiers = cache(async (): Promise<AgeTier[]> => {
     console.error("getAgeTiers failed; falling back to mock:", err);
     return mockAgeTiers;
   }
-});
+  },
+  ["taxonomy-age-tiers"],
+  { tags: ["taxonomy"], revalidate: 3600 },
+);

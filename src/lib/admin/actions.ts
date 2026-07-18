@@ -99,10 +99,17 @@ function isValidDateStr(s: string): boolean {
   return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;
 }
 
-/** Storefront paths whose cached data derives from the products overlay. Kept
- *  best-effort — the dynamic collection route is refreshed by pattern. */
+/** Invalidate the storefront's cached catalog after an admin write. The public
+ *  catalog read (`getFullCatalog`) is now wrapped in `unstable_cache` tagged
+ *  `"catalog"`, so `revalidateTag("catalog")` actually refreshes the cached
+ *  reads that back the (now static/ISR) storefront pages — the old
+ *  `revalidateTag("products")` was a no-op because nothing carried that tag.
+ *  Also invalidate `"taxonomy"` since a product's category/age-tier assignment
+ *  can change which collection it appears in. Admin paths are still refreshed
+ *  explicitly (they render dynamically). */
 function revalidateStorefront(slug: string): void {
-  revalidateTag("products", "max");
+  revalidateTag("catalog", "max");
+  revalidateTag("taxonomy", "max");
   revalidatePath("/admin/products");
   revalidatePath(`/admin/products/${slug}`);
   revalidatePath(`/products/${slug}`);

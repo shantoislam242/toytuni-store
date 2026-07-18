@@ -1,5 +1,6 @@
 import "server-only";
-import { createServerSupabase } from "@/lib/supabase/server";
+import { unstable_cache } from "next/cache";
+import { createPublicSupabase } from "@/lib/supabase/public";
 import type { Product, Tone } from "@/lib/types";
 import { products as mockProducts } from "@/lib/mock/products";
 import { giftKits, giftCards } from "@/lib/mock/gifts";
@@ -88,9 +89,15 @@ export function rowToFullProduct(row: FullProductRow): Product {
  * read as in stock so they never wrongly block a sale (createOrder re-checks
  * stock authoritatively).
  */
-export async function getFullCatalog(): Promise<OverlaidProduct[]> {
+/**
+ * Uncached read of the full catalog from the DB via the cookie-less public
+ * client. Public/user-independent, so it never reads `cookies()` — that keeps
+ * callers (and the root layout that mounts the catalog provider) prerenderable.
+ * Wrapped by {@link getFullCatalog} in a persistent, tagged cache.
+ */
+async function readFullCatalog(): Promise<OverlaidProduct[]> {
   try {
-    const supabase = await createServerSupabase();
+    const supabase = createPublicSupabase();
     const { data, error } = await supabase
       .from("products")
       .select(
@@ -115,3 +122,16 @@ export async function getFullCatalog(): Promise<OverlaidProduct[]> {
     }));
   }
 }
+
+/**
+ * Cached, tag-invalidatable full catalog. `unstable_cache` persists the read
+ * across requests and includes it in the static shell, so the storefront
+ * renders statically/ISR instead of forcing every route dynamic. Tagged
+ * `"catalog"` — an admin create/edit/soft-delete calls `revalidateTag("catalog")`
+ * (see `src/lib/admin/actions.ts`) to refresh it on demand; a 1-hour
+ * `revalidate` bounds staleness if a tag revalidation is ever missed.
+ */
+export const getFullCatalog = unstable_cache(readFullCatalog, ["full-catalog"], {
+  tags: ["catalog"],
+  revalidate: 3600,
+});
