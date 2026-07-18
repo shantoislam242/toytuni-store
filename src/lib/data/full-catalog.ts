@@ -2,6 +2,8 @@ import "server-only";
 import { createServerSupabase } from "@/lib/supabase/server";
 import type { Product, Tone } from "@/lib/types";
 import { products as mockProducts } from "@/lib/mock/products";
+import { getProductState } from "@/lib/data/product-state";
+import type { OverlaidProduct } from "@/lib/data/product-overlay";
 
 /** Row shape for the full-catalog `products` select below (see 0005_catalog_fields.sql
  *  for `kit_contents`). `inventory` and `product_variants` are joined relations —
@@ -27,9 +29,15 @@ export type FullProductRow = {
   image_tones: string[];
   image_url: string | null;
   kit_contents: string[] | null;
+  preorder_ship_date: string | null;
   inventory?: { stock_qty: number } | { stock_qty: number }[] | null;
   product_variants?: { name: string; tone: string }[];
 };
+
+/** Read the 1:1 `inventory` embed defensively (object, array, or null). */
+function readStock(inv: FullProductRow["inventory"]): number {
+  return Array.isArray(inv) ? (inv[0]?.stock_qty ?? 0) : (inv?.stock_qty ?? 0);
+}
 
 /**
  * Map a joined DB `products` row to the app `Product` shape. Pure — no I/O.
@@ -66,25 +74,40 @@ export function rowToFullProduct(row: FullProductRow): Product {
  * structure — title, price, category/age-tier, badge, variants, gift-kit
  * contents, …). Only `active` products are returned.
  *
+ * Each product carries a computed `availability` (from its stock + optional
+ * pre-order ship date), so the storefront no longer needs the separate Phase-1
+ * price/stock overlay — the full row already is the source of truth.
+ *
  * Fail-soft: any DB error (including a query against a column that doesn't
  * exist yet, e.g. `kit_contents` before migration 0005 is applied) is caught
  * and logged, and the mock catalog is returned instead so the storefront
- * never 500s on a Supabase blip or a pending migration.
+ * never 500s on a Supabase blip or a pending migration. Mock fallback products
+ * read as in stock so they never wrongly block a sale (createOrder re-checks
+ * stock authoritatively).
  */
-export async function getFullCatalog(): Promise<Product[]> {
+export async function getFullCatalog(): Promise<OverlaidProduct[]> {
   try {
     const supabase = await createServerSupabase();
     const { data, error } = await supabase
       .from("products")
       .select(
-        "slug, sku, title, price, compare_at_price, rating, review_count, age_tier_slug, category_slug, badge, image_label, image_tones, image_url, kit_contents, inventory(stock_qty), product_variants(name, tone)",
+        "slug, sku, title, price, compare_at_price, rating, review_count, age_tier_slug, category_slug, badge, image_label, image_tones, image_url, kit_contents, preorder_ship_date, inventory(stock_qty), product_variants(name, tone)",
       )
       .eq("active", true)
       .overrideTypes<FullProductRow[], { merge: false }>();
     if (error) throw error;
-    return (data ?? []).map(rowToFullProduct);
+    return (data ?? []).map((row) => ({
+      ...rowToFullProduct(row),
+      availability: getProductState({
+        stockQty: readStock(row.inventory),
+        preorderShipDate: row.preorder_ship_date,
+      }),
+    }));
   } catch (err) {
     console.error("getFullCatalog failed; falling back to mock catalog:", err);
-    return mockProducts;
+    return mockProducts.map((p) => ({
+      ...p,
+      availability: { state: "in_stock", stockQty: 1 },
+    }));
   }
 }

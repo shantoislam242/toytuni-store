@@ -10,8 +10,7 @@ import { CategoryHubView } from "@/components/collection/category-hub-view";
 import { NewArrivalsView } from "@/components/collection/new-arrivals-view";
 import { BestSellersView } from "@/components/collection/best-sellers/best-sellers-view";
 import { NeemWoodView } from "@/components/collection/neem-wood-view";
-import { ageTierBySlug } from "@/lib/mock/age-tiers";
-import { categoryBySlug } from "@/lib/mock/categories";
+import { getAgeTiers, getCategories } from "@/lib/data/taxonomy";
 
 export async function generateMetadata({
   params,
@@ -75,7 +74,7 @@ export async function generateMetadata({
         "Toys carved from naturally durable, antibacterial neem wood — safe for little hands and gentle on the planet.",
     };
   }
-  const tier = ageTierBySlug(slug);
+  const tier = (await getAgeTiers()).find((t) => t.slug === slug);
   if (tier) {
     return {
       title: tier.labelBn,
@@ -85,7 +84,7 @@ export async function generateMetadata({
       }`.trim(),
     };
   }
-  const category = categoryBySlug(slug);
+  const category = (await getCategories()).find((c) => c.slug === slug);
   if (category) {
     return {
       title: category.nameBn,
@@ -139,7 +138,7 @@ export default async function Page({
     return <NeemWoodView />;
   }
 
-  const tier = ageTierBySlug(slug);
+  const tier = (await getAgeTiers()).find((t) => t.slug === slug);
   if (tier) {
     // key on the slug so navigating age→age (same component type) remounts the
     // grid and resets its filters, instead of carrying the previous tier's
@@ -147,7 +146,7 @@ export default async function Page({
     return <AgeCollectionView key={tier.slug} tier={tier} />;
   }
 
-  const category = categoryBySlug(slug);
+  const category = (await getCategories()).find((c) => c.slug === slug);
   if (category) {
     // key on the slug so navigating category→category (same component type)
     // remounts the grid and resets its filters. See note above.

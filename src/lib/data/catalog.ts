@@ -1,15 +1,16 @@
 import "server-only";
 import { cache } from "react";
-import { products as mockProducts } from "@/lib/mock/products";
 import { giftKits, giftCards } from "@/lib/mock/gifts";
-import { getProductOverrides } from "@/lib/data/products";
-import { applyOverride, type OverlaidProduct } from "@/lib/data/product-overlay";
+import { getFullCatalog } from "@/lib/data/full-catalog";
+import type { OverlaidProduct } from "@/lib/data/product-overlay";
 import * as sel from "@/lib/data/catalog-selectors";
 
 /**
- * Overlay catalogue data module. The mock stays the source of truth for
- * structure + editorial content; the DB is the source of truth for
- * price / compareAtPrice / stock / pre-order. `applyOverride` merges the two.
+ * Storefront catalogue module. The DB (`products` + joined `inventory` /
+ * `product_variants`) is now the source of truth for the whole catalogue —
+ * structure AND price / stock / pre-order — via `getFullCatalog`, which already
+ * returns each product with a computed `availability`. The Phase-1 mock →
+ * overlay merge is gone; the full row is the product.
  *
  * All reads go through React `cache`, so no matter how many selectors a single
  * request calls, the DB is hit at most once per render pass (per the Next.js
@@ -17,28 +18,34 @@ import * as sel from "@/lib/data/catalog-selectors";
  */
 
 // One DB round-trip per request regardless of how many callers.
-const overrides = cache(getProductOverrides);
+const fullCatalog = cache(getFullCatalog);
 
-/** The 17 catalogue products, overlaid with DB price/stock/pre-order. */
+// Gift kits + gift cards are cart-addable products that also live in the DB
+// (seeded so checkout can resolve them), but — like in Phase 1 — they must NOT
+// surface in the main PLPs, rails or hub counts; they appear only on /gift and
+// their own PDPs. They carry no shelf category in the DB, and their slugs are
+// defined by the mock, so exclude them from the shelf catalogue by slug.
+const GIFT_SLUGS = new Set(
+  [...giftKits, ...giftCards].map((p) => p.slug),
+);
+
+/** The shelf catalogue: every active product except gift kits/cards. */
 export const getCatalog = cache(async (): Promise<OverlaidProduct[]> => {
-  const map = await overrides();
-  return mockProducts.map((p) => applyOverride(p, map.get(p.slug)));
+  const all = await fullCatalog();
+  return all.filter((p) => !GIFT_SLUGS.has(p.slug));
 });
 
 /**
- * Resolve any sellable product (catalogue + gift kits + gift cards) for the
- * PDP. Gift kits/cards have no DB override, so they keep their mock price and
- * read as in stock — this is what keeps `/products/gift-card-500` and the
- * gift-kit PDPs working.
+ * Resolve any sellable product (shelf catalogue + gift kits + gift cards) for
+ * the PDP. Gift kits/cards are in the DB catalogue too, so a single lookup over
+ * the full (unfiltered) list resolves them — this is what keeps
+ * `/products/gift-card-500` and the gift-kit PDPs working.
  */
 export async function getCatalogProduct(
   slug: string,
 ): Promise<OverlaidProduct | null> {
-  const map = await overrides();
-  const base = [...mockProducts, ...giftKits, ...giftCards].find(
-    (p) => p.slug === slug,
-  );
-  return base ? applyOverride(base, map.get(slug)) : null;
+  const all = await fullCatalog();
+  return all.find((p) => p.slug === slug) ?? null;
 }
 
 export const getBestSellers = async (): Promise<OverlaidProduct[]> =>

@@ -6,8 +6,7 @@ import { RecentlyViewedTracker } from "@/components/product/recently-viewed-trac
 import { BRAND_NAME, SITE_URL } from "@/lib/config";
 import { JsonLd } from "@/components/seo/json-ld";
 import { productImagePath } from "@/lib/product-og";
-import { ageTierBySlug } from "@/lib/mock/age-tiers";
-import { categoryBySlug } from "@/lib/mock/categories";
+import { getAgeTiers, getCategories } from "@/lib/data/taxonomy";
 import { productDetailBySlug, products } from "@/lib/mock/products";
 import { GiftCardDetailsView } from "@/components/gift/gift-card-details-view";
 import { giftKits, giftCards } from "@/lib/mock/gifts";
@@ -70,7 +69,12 @@ export default async function Page({
     notFound();
   }
 
-  const category = categoryBySlug(product.categorySlug);
+  const [categories, ageTiers] = await Promise.all([
+    getCategories(),
+    getAgeTiers(),
+  ]);
+  const category = categories.find((c) => c.slug === product.categorySlug);
+  const ageTier = ageTiers.find((t) => t.slug === product.ageTierSlug);
   const img = productImagePath(product.slug);
   const availabilitySchema =
     product.availability.state === "preorder"
@@ -129,8 +133,8 @@ export default async function Page({
       <ProductDetailsView
         product={product}
         detail={detail}
-        ageTier={ageTierBySlug(product.ageTierSlug)}
-        category={categoryBySlug(product.categorySlug)}
+        ageTier={ageTier}
+        category={category}
         related={await getRelated(product.slug)}
       />
       <div className="bg-paper">

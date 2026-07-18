@@ -1,6 +1,6 @@
 import { Breadcrumb } from "@/components/breadcrumb";
 import { CategoryCard } from "@/components/collection/category-card";
-import { categories } from "@/lib/mock/categories";
+import { getCategories } from "@/lib/data/taxonomy";
 import { getCatalog } from "@/lib/data/catalog";
 
 /**
@@ -10,7 +10,10 @@ import { getCatalog } from "@/lib/data/catalog";
  * renders as a wider feature card.
  */
 export async function CategoryHubView() {
-  const products = await getCatalog();
+  const [products, categories] = await Promise.all([
+    getCatalog(),
+    getCategories(),
+  ]);
   return (
     <main className="flex-1 bg-paper">
       {/* hero */}

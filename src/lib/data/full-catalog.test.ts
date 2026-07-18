@@ -24,6 +24,7 @@ describe("rowToFullProduct", () => {
       image_tones: ["mustard", "cream"],
       image_url: "https://example.com/img.png",
       kit_contents: ["Rattle", "Blocks", "Book"],
+      preorder_ship_date: null,
       product_variants: [
         { name: "Neem", tone: "neem-soft" },
         { name: "Teak", tone: "wood" },
@@ -70,6 +71,7 @@ describe("rowToFullProduct", () => {
       image_tones: ["terracotta", "cream"],
       image_url: null,
       kit_contents: null,
+      preorder_ship_date: null,
       product_variants: [],
     };
 
@@ -106,6 +108,7 @@ describe("rowToFullProduct", () => {
       image_tones: ["terracotta", "cream"],
       image_url: null,
       kit_contents: null,
+      preorder_ship_date: null,
     };
 
     const p = rowToFullProduct(row);

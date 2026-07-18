@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { categories } from "@/lib/mock/categories";
+import { getCategories } from "@/lib/data/taxonomy";
 import { bulkPrograms } from "@/lib/mock/bulk";
 import { cn } from "@/lib/utils";
 import type { Tone } from "@/lib/types";
@@ -51,7 +51,8 @@ function TileGrid({
   );
 }
 
-export function BrowseTabs() {
+export async function BrowseTabs() {
+  const categories = await getCategories();
   const categoryItems = categories.map((c) => ({
     href: c.href,
     label: c.nameBn,
