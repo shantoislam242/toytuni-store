@@ -711,10 +711,11 @@ export async function updateTaxonomy(
   if (!v.ok) return v;
   const { table } = TAXONOMY_TABLES[kind];
   const db = createAdminSupabase();
-  const { error } = await db.from(table).update({
+  const { data, error } = await db.from(table).update({
     title: patch.title.trim(), tone: patch.tone, tagline: patch.tagline?.trim() || null, sort: patch.sort,
-  } as never).eq("slug", slug);
+  } as never).eq("slug", slug).select("slug").maybeSingle();
   if (error) return { ok: false, error: error.message };
+  if (!data) return { ok: false, error: "This entry no longer exists." };
   revalidateTaxonomy();
   return { ok: true };
 }

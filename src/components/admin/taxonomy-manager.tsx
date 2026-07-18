@@ -131,6 +131,7 @@ export function TaxonomyManager({ kind, items }: { kind: TaxonomyKind; items: Ad
         <TaxonomyDialog
           kind={kind}
           state={dialog}
+          defaultSort={rows.length}
           onClose={() => setDialog(null)}
           onSaved={() => { setDialog(null); refresh(); }}
         />
@@ -140,10 +141,11 @@ export function TaxonomyManager({ kind, items }: { kind: TaxonomyKind; items: Ad
 }
 
 function TaxonomyDialog({
-  kind, state, onClose, onSaved,
+  kind, state, defaultSort, onClose, onSaved,
 }: {
   kind: TaxonomyKind;
   state: { mode: "add" } | { mode: "edit"; item: AdminTaxonomyItem };
+  defaultSort?: number;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -153,7 +155,7 @@ function TaxonomyDialog({
   const [title, setTitle] = useState(existing?.title ?? "");
   const [tone, setTone] = useState(existing?.tone ?? "cream");
   const [tagline, setTagline] = useState(existing?.tagline ?? "");
-  const [sort, setSort] = useState(String(existing?.sort ?? 0));
+  const [sort, setSort] = useState(String(existing?.sort ?? defaultSort ?? 0));
   const [busy, start] = useTransition();
 
   const save = () => {
