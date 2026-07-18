@@ -59,6 +59,8 @@ export type ProductPatch = {
   stock_qty?: number;
   low_stock_threshold?: number;
   preorder_ship_date?: string | null;
+  preorder_delivery_date?: string | null;
+  preorder_advance_pct?: number | null;
   active?: boolean;
   badge?: ProductBadge | null;
   // Structural (now editable, reflected on the storefront):
@@ -125,10 +127,17 @@ function revalidateStorefront(slug: string): void {
  * `products` (price/compare_at_price/badge/active/preorder_ship_date) and
  * `inventory` (stock_qty/low_stock_threshold), via the service-role client.
  */
+/** The generated `products` Update type predates the pre-order/image columns
+ *  (see database.types note). Extend it locally rather than regenerate. */
+type ProductsUpdateExt = Database["public"]["Tables"]["products"]["Update"] & {
+  preorder_delivery_date?: string | null;
+  preorder_advance_pct?: number | null;
+};
+
 export async function updateProduct(slug: string, patch: ProductPatch): Promise<ActionResult> {
   if (!(await getIsAdmin())) throw new Error("unauthorized");
 
-  const productUpdate: Database["public"]["Tables"]["products"]["Update"] = {};
+  const productUpdate: ProductsUpdateExt = {};
   const inventoryUpdate: Database["public"]["Tables"]["inventory"]["Update"] = {};
 
   if (patch.price !== undefined) {
@@ -146,6 +155,23 @@ export async function updateProduct(slug: string, patch: ProductPatch): Promise<
       return { ok: false, error: "Pre-order ship date must be a valid YYYY-MM-DD date or empty." };
     }
     productUpdate.preorder_ship_date = patch.preorder_ship_date;
+  }
+  if (patch.preorder_delivery_date !== undefined) {
+    if (patch.preorder_delivery_date !== null && !isValidDateStr(patch.preorder_delivery_date)) {
+      return { ok: false, error: "Expected delivery date must be a valid YYYY-MM-DD date or empty." };
+    }
+    productUpdate.preorder_delivery_date = patch.preorder_delivery_date;
+  }
+  if (patch.preorder_advance_pct !== undefined) {
+    if (
+      patch.preorder_advance_pct !== null &&
+      !(Number.isInteger(patch.preorder_advance_pct) &&
+        patch.preorder_advance_pct >= 0 &&
+        patch.preorder_advance_pct <= 100)
+    ) {
+      return { ok: false, error: "Advance percentage must be a whole number from 0 to 100, or empty." };
+    }
+    productUpdate.preorder_advance_pct = patch.preorder_advance_pct;
   }
   if (patch.active !== undefined) {
     if (typeof patch.active !== "boolean") return { ok: false, error: "Active must be true or false." };
@@ -203,7 +229,13 @@ export async function updateProduct(slug: string, patch: ProductPatch): Promise<
   }
 
   if (Object.keys(productUpdate).length > 0) {
-    const { error } = await db.from("products").update(productUpdate).eq("slug", slug);
+    // `preorder_delivery_date`/`preorder_advance_pct` predate the generated
+    // types (see `ProductsUpdateExt` above) — cast narrowly at the call site,
+    // same pattern as the `image_url` cast in `putProductImage`.
+    const { error } = await db
+      .from("products")
+      .update(productUpdate as unknown as Database["public"]["Tables"]["products"]["Update"])
+      .eq("slug", slug);
     if (error) return { ok: false, error: error.message };
   }
 
@@ -324,6 +356,9 @@ export type CreateProductInput = {
   lowStockThreshold?: number;
   badge?: ProductBadge | null;
   description?: string | null;
+  preorderShipDate?: string | null;
+  preorderDeliveryDate?: string | null;
+  preorderAdvancePct?: number | null;
   image?: File | null;
 };
 
@@ -335,6 +370,12 @@ export type CreateProductInput = {
  * was supplied, uploads it and sets `image_url`. Revalidates the catalog + admin
  * so the new product is visible on the storefront immediately.
  */
+type ProductsInsertExt = Database["public"]["Tables"]["products"]["Insert"] & {
+  preorder_ship_date?: string | null;
+  preorder_delivery_date?: string | null;
+  preorder_advance_pct?: number | null;
+};
+
 export async function createProduct(
   input: CreateProductInput,
 ): Promise<{ ok: true; slug: string } | { ok: false; error: string }> {
@@ -366,6 +407,20 @@ export async function createProduct(
   if (input.badge != null && !isProductBadge(input.badge)) {
     return { ok: false, error: `Invalid badge: ${input.badge}` };
   }
+  if (input.preorderShipDate != null && !isValidDateStr(input.preorderShipDate)) {
+    return { ok: false, error: "Pre-order ship date must be a valid YYYY-MM-DD date or empty." };
+  }
+  if (input.preorderDeliveryDate != null && !isValidDateStr(input.preorderDeliveryDate)) {
+    return { ok: false, error: "Expected delivery date must be a valid YYYY-MM-DD date or empty." };
+  }
+  if (
+    input.preorderAdvancePct != null &&
+    !(Number.isInteger(input.preorderAdvancePct) &&
+      input.preorderAdvancePct >= 0 &&
+      input.preorderAdvancePct <= 100)
+  ) {
+    return { ok: false, error: "Advance percentage must be a whole number from 0 to 100, or empty." };
+  }
 
   const db = createAdminSupabase();
 
@@ -386,7 +441,7 @@ export async function createProduct(
   if (dupErr) return { ok: false, error: dupErr.message };
   if (existing) return { ok: false, error: `A product with slug "${slug}" already exists.` };
 
-  const insertRow: Database["public"]["Tables"]["products"]["Insert"] = {
+  const insertRow: ProductsInsertExt = {
     slug,
     sku,
     title,
@@ -396,6 +451,9 @@ export async function createProduct(
     age_tier_slug: input.ageTierSlug,
     badge: input.badge ?? null,
     description: input.description?.trim() || null,
+    preorder_ship_date: input.preorderShipDate ?? null,
+    preorder_delivery_date: input.preorderDeliveryDate ?? null,
+    preorder_advance_pct: input.preorderAdvancePct ?? null,
     image_label: title,
     image_tones: ["cream", "neem-soft"],
     active: true,
@@ -403,7 +461,7 @@ export async function createProduct(
 
   const { data: inserted, error: insertErr } = await db
     .from("products")
-    .insert(insertRow)
+    .insert(insertRow as unknown as Database["public"]["Tables"]["products"]["Insert"])
     .select("id")
     .single();
   if (insertErr) return { ok: false, error: insertErr.message };

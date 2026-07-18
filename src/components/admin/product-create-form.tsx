@@ -68,6 +68,11 @@ export function ProductCreateForm({
   const [lowStock, setLowStock] = useState("0");
   const [badge, setBadge] = useState(BADGE_NONE);
   const [description, setDescription] = useState("");
+  const [preorderShip, setPreorderShip] = useState("");
+  const [deliveryDate, setDeliveryDate] = useState("");
+  const ADVANCE_PRESETS = ["10", "20", "30", "50"];
+  const [advanceMode, setAdvanceMode] = useState<string>("none");
+  const [advanceCustom, setAdvanceCustom] = useState<string>("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -106,6 +111,19 @@ export function ProductCreateForm({
     const lowNum = parseIntOrNull(lowStock);
     if (lowNum === null) return toast.error("Low-stock threshold must be a non-negative whole number.");
 
+    let advancePctVal: number | null = null;
+    if (advanceMode === "custom") {
+      if (advanceCustom.trim() !== "") {
+        const n = Number(advanceCustom);
+        if (!Number.isInteger(n) || n < 0 || n > 100) {
+          return toast.error("Advance % must be a whole number from 0 to 100.");
+        }
+        advancePctVal = n;
+      }
+    } else if (advanceMode !== "none") {
+      advancePctVal = Number(advanceMode);
+    }
+
     const input: CreateProductInput = {
       slug: slug.trim(),
       sku: sku.trim(),
@@ -118,6 +136,9 @@ export function ProductCreateForm({
       lowStockThreshold: lowNum,
       badge: badge === BADGE_NONE ? null : (badge as (typeof BADGE_OPTIONS)[number]),
       description: description.trim() || null,
+      preorderShipDate: preorderShip.trim() === "" ? null : preorderShip,
+      preorderDeliveryDate: deliveryDate.trim() === "" ? null : deliveryDate,
+      preorderAdvancePct: advancePctVal,
       image: fileInputRef.current?.files?.[0] ?? null,
     };
 
@@ -287,6 +308,58 @@ export function ProductCreateForm({
                 className="mt-1"
               />
             </label>
+            <label className="block">
+              <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">
+                Shipping starts from
+              </span>
+              <Input
+                type="date"
+                value={preorderShip}
+                onChange={(e) => setPreorderShip(e.target.value)}
+                className="mt-1"
+              />
+            </label>
+            <label className="block">
+              <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">
+                Expected delivery date
+              </span>
+              <Input
+                type="date"
+                value={deliveryDate}
+                onChange={(e) => setDeliveryDate(e.target.value)}
+                className="mt-1"
+              />
+            </label>
+            <div>
+              <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">
+                Advance payment %
+              </span>
+              <Select value={advanceMode} onValueChange={setAdvanceMode}>
+                <SelectTrigger className="mt-1 w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  {ADVANCE_PRESETS.map((p) => (
+                    <SelectItem key={p} value={p}>{p}%</SelectItem>
+                  ))}
+                  <SelectItem value="custom">Custom…</SelectItem>
+                </SelectContent>
+              </Select>
+              {advanceMode === "custom" ? (
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={1}
+                  inputMode="numeric"
+                  value={advanceCustom}
+                  onChange={(e) => setAdvanceCustom(e.target.value)}
+                  placeholder="0–100"
+                  className="mt-2"
+                />
+              ) : null}
+            </div>
           </CardContent>
         </Card>
 

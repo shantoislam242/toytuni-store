@@ -39,6 +39,8 @@ type AdminProductDetailRow = {
   image_tones: string[];
   image_url: string | null;
   preorder_ship_date: string | null;
+  preorder_delivery_date: string | null;
+  preorder_advance_pct: number | null;
   active: boolean;
   created_at: string;
   updated_at: string;
@@ -128,6 +130,8 @@ export type AdminProductDetail = {
   imageTones: string[];
   imageUrl: string | null;
   preorderShipDate: string | null;
+  preorderDeliveryDate: string | null;
+  preorderAdvancePct: number | null;
   active: boolean;
   createdAt: string;
   updatedAt: string;
@@ -230,7 +234,7 @@ export async function getAdminProductBySlug(slug: string): Promise<AdminProductD
   const { data, error } = await db
     .from("products")
     .select(
-      "id, slug, sku, title, price, compare_at_price, rating, review_count, age_tier_slug, category_slug, badge, description, image_label, image_tones, image_url, preorder_ship_date, active, created_at, updated_at, inventory(stock_qty, low_stock_threshold), product_variants(id, name, tone)",
+      "id, slug, sku, title, price, compare_at_price, rating, review_count, age_tier_slug, category_slug, badge, description, image_label, image_tones, image_url, preorder_ship_date, preorder_delivery_date, preorder_advance_pct, active, created_at, updated_at, inventory(stock_qty, low_stock_threshold), product_variants(id, name, tone)",
     )
     .eq("slug", slug)
     .maybeSingle()
@@ -256,6 +260,8 @@ export async function getAdminProductBySlug(slug: string): Promise<AdminProductD
     imageTones: data.image_tones,
     imageUrl: data.image_url,
     preorderShipDate: data.preorder_ship_date,
+    preorderDeliveryDate: data.preorder_delivery_date,
+    preorderAdvancePct: data.preorder_advance_pct,
     active: data.active,
     createdAt: data.created_at,
     updatedAt: data.updated_at,
