@@ -1,6 +1,7 @@
 import "server-only";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import { computeDashboardStats, type DashboardStats } from "@/lib/admin/stats";
+import { TAXONOMY_TABLES, type TaxonomyKind } from "@/lib/admin/taxonomy";
 import type { DetailContent } from "@/lib/types";
 
 /** Row shapes supplied via `.overrideTypes()` — see the note in
@@ -356,4 +357,34 @@ export async function getAdminOrderById(id: string): Promise<AdminOrderDetail | 
       preorderAdvancePct: i.preorder_advance_pct,
     })),
   };
+}
+
+export type AdminTaxonomyItem = {
+  slug: string; title: string; tone: string | null; tagline: string | null; sort: number; productCount: number;
+};
+
+type TaxonomyRow = { slug: string; title: string; tone: string | null; tagline: string | null; sort: number };
+
+/** All rows of a taxonomy (categories / age_tiers) ordered by sort, each with
+ *  its referencing-product count (drives the delete-block UX). Service-role. */
+export async function getAdminTaxonomy(kind: TaxonomyKind): Promise<AdminTaxonomyItem[]> {
+  const { table, fkColumn } = TAXONOMY_TABLES[kind];
+  const db = createAdminSupabase();
+  const { data, error } = await db
+    .from(table)
+    .select("slug, title, tone, tagline, sort")
+    .order("sort", { ascending: true })
+    .overrideTypes<TaxonomyRow[], { merge: false }>();
+  if (error) throw new Error(`getAdminTaxonomy(${kind}) failed: ${error.message}`);
+  const rows = data ?? [];
+  // Per-row referencing-product count. N+1 but tiny (≤ a dozen rows).
+  const counts = await Promise.all(
+    rows.map(async (r) => {
+      const { count } = await db
+        .from("products").select("id", { count: "exact", head: true }).eq(fkColumn, r.slug);
+      return [r.slug, count ?? 0] as const;
+    }),
+  );
+  const byslug = new Map(counts);
+  return rows.map((r) => ({ ...r, productCount: byslug.get(r.slug) ?? 0 }));
 }
