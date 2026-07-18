@@ -7,7 +7,7 @@ import { BRAND_NAME, SITE_URL } from "@/lib/config";
 import { JsonLd } from "@/components/seo/json-ld";
 import { productImagePath } from "@/lib/product-og";
 import { getAgeTiers, getCategories } from "@/lib/data/taxonomy";
-import { productDetailBySlug, products } from "@/lib/mock/products";
+import { productDetailBySlug, basicProductDetail, products } from "@/lib/mock/products";
 import { GiftCardDetailsView } from "@/components/gift/gift-card-details-view";
 import { giftKits, giftCards } from "@/lib/mock/gifts";
 import { getCatalogProduct, getRelated } from "@/lib/data/catalog";
@@ -63,11 +63,15 @@ export default async function Page({
   }
 
   const product = await getCatalogProduct(slug);
-  const detail = productDetailBySlug(slug);
-
-  if (!product || !detail) {
+  if (!product) {
     notFound();
   }
+
+  // Mock products carry rich hand-written copy; a DB-only product (e.g. one an
+  // admin just created) has none, so fall back to a basic detail built from its
+  // own DB fields — this is what lets a brand-new catalog product render a real
+  // PDP instead of 404-ing.
+  const detail = productDetailBySlug(slug) ?? basicProductDetail(slug, product.description);
 
   const [categories, ageTiers] = await Promise.all([
     getCategories(),

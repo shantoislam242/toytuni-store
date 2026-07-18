@@ -591,6 +591,19 @@ export const productDetailBySlug = (slug: string): ProductDetail | undefined => 
   return undefined;
 };
 
+/**
+ * A basic ProductDetail for a DB-only product that has no hand-written mock copy
+ * (e.g. one an admin just created). Uses the shared sensible defaults and the
+ * product's own DB `description` when present, so a brand-new catalog product
+ * renders a real PDP (not a 404) and an edited description reflects there.
+ */
+export const basicProductDetail = (slug: string, description?: string): ProductDetail => ({
+  slug,
+  imageSrcs: productImageSrcs[slug] ?? [],
+  ...defaultDetail,
+  description: description?.trim() || defaultDetail.description,
+});
+
 // Shared review pool so the reviews section is populated for every product.
 const defaultReviews: Review[] = [
   {

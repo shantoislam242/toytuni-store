@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
-import { Package } from "lucide-react";
+import Link from "next/link";
+import { Package, Plus } from "lucide-react";
 import { getAdminProducts } from "@/lib/admin/queries";
 import { ProductsTable } from "@/components/admin/products-table";
+import { Button } from "@/components/ui/button";
 
 export function generateMetadata(): Metadata {
   return {
@@ -34,6 +36,12 @@ export default async function Page() {
           <p className="mt-1 text-sm text-ink-muted">
             Products in the catalog will show up here.
           </p>
+          <Button asChild size="sm" className="mt-5">
+            <Link href="/admin/products/new">
+              <Plus className="size-4" />
+              New product
+            </Link>
+          </Button>
         </div>
       ) : (
         <div className="mt-6">

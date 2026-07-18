@@ -16,7 +16,13 @@ import {
 } from "@/components/ui/select";
 import { ProductImage } from "@/components/product/product-image";
 import { ProductFrame } from "@/components/product/product-frame";
-import { updateProduct, uploadProductImage, type ProductPatch } from "@/lib/admin/actions";
+import {
+  updateProduct,
+  uploadProductImage,
+  softDeleteProduct,
+  type ProductPatch,
+} from "@/lib/admin/actions";
+import type { TaxonomyOption } from "@/components/admin/product-create-form";
 import type { AdminProductDetail } from "@/lib/admin/queries";
 import type { Tone } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -43,17 +49,32 @@ function ReadOnlyField({ label, value }: { label: string; value: string }) {
 }
 
 /**
- * Operational edit form (Task 5). Only the overlay fields an admin may change
- * in Slice 1 are editable — structural fields (title/category/age/description)
- * are shown read-only. Saving calls the `updateProduct` Server Action; the
- * image control calls `uploadProductImage`. No client Supabase import: all
- * writes go through the server actions (service-role stays server-only).
+ * Product edit form (Slice 2). Operational overlay fields AND the structural
+ * fields (title/description/category/age-tier/badge) are now editable — the
+ * catalog is DB-sourced, so structural edits reflect on the storefront. Saving
+ * calls the `updateProduct` Server Action; the image control calls
+ * `uploadProductImage`; "Deactivate" calls `softDeleteProduct`. No client
+ * Supabase import: all writes go through the server actions (service-role stays
+ * server-only).
  */
-export function ProductEditForm({ product }: { product: AdminProductDetail }) {
+export function ProductEditForm({
+  product,
+  categories,
+  ageTiers,
+}: {
+  product: AdminProductDetail;
+  categories: TaxonomyOption[];
+  ageTiers: TaxonomyOption[];
+}) {
   const router = useRouter();
   const [isSaving, startSaving] = useTransition();
   const [isUploading, startUploading] = useTransition();
+  const [isDeleting, startDeleting] = useTransition();
 
+  const [title, setTitle] = useState(product.title);
+  const [description, setDescription] = useState(product.description ?? "");
+  const [category, setCategory] = useState(product.categorySlug ?? "");
+  const [ageTier, setAgeTier] = useState(product.ageTierSlug ?? "");
   const [price, setPrice] = useState(String(product.price));
   const [compareAt, setCompareAt] = useState(
     product.compareAtPrice === null ? "" : String(product.compareAtPrice),
@@ -64,6 +85,8 @@ export function ProductEditForm({ product }: { product: AdminProductDetail }) {
   const [active, setActive] = useState(product.active);
   const [badge, setBadge] = useState(product.badge ?? BADGE_NONE);
 
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
@@ -73,6 +96,15 @@ export function ProductEditForm({ product }: { product: AdminProductDetail }) {
 
   const handleSave = () => {
     const patch: ProductPatch = {};
+
+    const cleanTitle = title.trim();
+    if (cleanTitle === "") return toast.error("Title is required.");
+    patch.title = cleanTitle;
+    patch.description = description.trim() === "" ? null : description.trim();
+    if (!category) return toast.error("Choose a category.");
+    patch.category_slug = category;
+    if (!ageTier) return toast.error("Choose an age tier.");
+    patch.age_tier_slug = ageTier;
 
     const priceNum = parseIntOrNull(price);
     if (priceNum === null) return toast.error("Price must be a non-negative whole number.");
@@ -105,6 +137,19 @@ export function ProductEditForm({ product }: { product: AdminProductDetail }) {
         router.refresh();
       } else {
         toast.error(result.error);
+      }
+    });
+  };
+
+  const handleDeactivate = () => {
+    startDeleting(async () => {
+      const result = await softDeleteProduct(product.slug);
+      if (result.ok) {
+        toast.success("Product deactivated.");
+        router.push("/admin/products");
+      } else {
+        toast.error(result.error);
+        setConfirmOpen(false);
       }
     });
   };
@@ -256,25 +301,104 @@ export function ProductEditForm({ product }: { product: AdminProductDetail }) {
             <CardTitle>Details</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-xs text-ink-soft">
-              Editable when the catalog moves to the DB (next slice).
-            </p>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <ReadOnlyField label="Title" value={product.title} />
+              <label className="block">
+                <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">Title</span>
+                <Input value={title} onChange={(e) => setTitle(e.target.value)} className="mt-1" />
+              </label>
               <ReadOnlyField label="SKU" value={product.sku} />
-              <ReadOnlyField label="Category" value={product.categorySlug ?? ""} />
-              <ReadOnlyField label="Age tier" value={product.ageTierSlug ?? ""} />
+              <div>
+                <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">Category</span>
+                <Select value={category} onValueChange={setCategory}>
+                  <SelectTrigger className="mt-1 w-full">
+                    <SelectValue placeholder="Choose category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((c) => (
+                      <SelectItem key={c.slug} value={c.slug}>
+                        {c.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">Age tier</span>
+                <Select value={ageTier} onValueChange={setAgeTier}>
+                  <SelectTrigger className="mt-1 w-full">
+                    <SelectValue placeholder="Choose age tier" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ageTiers.map((a) => (
+                      <SelectItem key={a.slug} value={a.slug}>
+                        {a.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <ReadOnlyField label="Description" value={product.description ?? ""} />
+            <label className="block">
+              <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">Description</span>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={4}
+                className="mt-1 w-full rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+              />
+            </label>
           </CardContent>
         </Card>
 
-        <div className="flex justify-end">
+        <div className="flex items-center justify-between gap-3">
+          <Button
+            variant="outline"
+            className="border-danger/40 text-danger hover:bg-danger/10 hover:text-danger"
+            onClick={() => setConfirmOpen(true)}
+            disabled={isDeleting || !product.active}
+          >
+            {product.active ? "Deactivate" : "Already inactive"}
+          </Button>
           <Button size="lg" onClick={handleSave} disabled={isSaving}>
             {isSaving ? "Saving…" : "Save changes"}
           </Button>
         </div>
       </div>
+
+      {confirmOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="deactivate-title"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4"
+          onClick={() => !isDeleting && setConfirmOpen(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl border border-cream-300 bg-white p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 id="deactivate-title" className="font-display text-lg font-bold text-ink">
+              Deactivate this product?
+            </h2>
+            <p className="mt-2 text-sm text-ink-muted">
+              It will be hidden from the storefront but kept in the catalog and in
+              existing orders. You can reactivate it later from the Status toggle.
+            </p>
+            <div className="mt-5 flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setConfirmOpen(false)} disabled={isDeleting}>
+                Cancel
+              </Button>
+              <Button
+                className="bg-danger text-white hover:bg-danger/90"
+                onClick={handleDeactivate}
+                disabled={isDeleting}
+              >
+                {isDeleting ? "Deactivating…" : "Deactivate"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Card className="border-cream-300 lg:col-span-1">
         <CardHeader>
