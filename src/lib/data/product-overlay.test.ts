@@ -21,7 +21,7 @@ describe("applyOverride", () => {
 
   it("computes pre-order availability when stock 0 and a future ship date", () => {
     const r = applyOverride(base, { price: 720, compareAtPrice: null, stockQty: 0, preorderShipDate: "2026-09-01", imageUrl: null }, now);
-    expect(r.availability).toEqual({ state: "preorder", shipDate: "2026-09-01" });
+    expect(r.availability).toEqual({ state: "preorder", shipDate: "2026-09-01", deliveryDate: null, advancePct: null, advanceAmount: 0 });
     expect(r.compareAtPrice).toBeUndefined();
   });
 
