@@ -11,7 +11,8 @@ import {
   type NavLink,
   type Social,
 } from "@/lib/mock/nav";
-import { BRAND_NAME, BRAND_DESCRIPTION } from "@/lib/config";
+import { BRAND_NAME } from "@/lib/config";
+import { getSettings } from "@/lib/data/settings";
 import { cn } from "@/lib/utils";
 
 // ── Scalloped top trim ──────────────────────────────────────────────────────
@@ -183,7 +184,9 @@ function FooterColumn({ title, links }: { title: string; links: NavLink[] }) {
   );
 }
 
-export function Footer() {
+export async function Footer() {
+  const settings = await getSettings();
+
   return (
     <footer className="bg-cream-200 text-ink">
       <ScallopTop />
@@ -200,7 +203,7 @@ export function Footer() {
               {BRAND_NAME}
             </FooterLink>
             <p className="mt-3 max-w-sm text-sm text-ink-muted">
-              {BRAND_DESCRIPTION}
+              {settings.brand.description}
             </p>
 
             {/* follow us */}

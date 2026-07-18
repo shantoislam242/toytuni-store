@@ -21,11 +21,7 @@ import { computeAdvance } from "@/lib/data/advance";
 import { createOrder } from "@/lib/data/orders";
 import type { OverlaidProduct } from "@/lib/data/product-overlay";
 import { shippingOptions } from "@/lib/mock/checkout";
-import { getShippingFee, zoneForDistrict } from "@/lib/shipping";
-
-// Orders at/above this (BDT) ship free, regardless of the chosen method —
-// mirrors the cart's free-shipping threshold.
-const FREE_SHIPPING_THRESHOLD = 2000;
+import { priceDelivery, zoneForDistrict } from "@/lib/shipping";
 
 function Section({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
   return (
@@ -44,7 +40,17 @@ function Section({ children, delay = 0 }: { children: React.ReactNode; delay?: n
  * delivery summary and the guest form. Order submission is wired
  * (`createOrder`); payment remains UI-only.
  */
-export function CheckoutView() {
+export function CheckoutView({
+  insideDhakaFee,
+  outsideDhakaFee,
+  freeShippingThreshold,
+  codFee,
+}: {
+  insideDhakaFee: number;
+  outsideDhakaFee: number;
+  freeShippingThreshold: number;
+  codFee: number;
+}) {
   const { items, subtotal, hydrated, clear } = useCart();
   // Delivery address chosen in the cart's address modal (drives the summary +
   // the delivery zone label). The actual delivery charge is driven by the
@@ -63,7 +69,7 @@ export function CheckoutView() {
   // Free shipping unlocks at the threshold. Keep the selection valid: auto-apply
   // free once it unlocks (matches the cart), and never leave "free" selected on
   // an order that no longer qualifies.
-  const freeUnlocked = subtotal >= FREE_SHIPPING_THRESHOLD;
+  const freeUnlocked = subtotal >= freeShippingThreshold;
   const deliveryZone = address ? zoneForDistrict(address.district) : null;
   const expressAvailable = deliveryZone?.id === "inside_dhaka";
 
@@ -108,14 +114,19 @@ export function CheckoutView() {
       : shipping;
   const deliveryOption =
     shippingOptions.find((o) => o.id === effectiveShippingId) ?? shippingOptions[0];
-  const delivery =
-    deliveryOption.id === "standard" && address
-      ? getShippingFee(address.district)
-      : deliveryOption.price;
+  // Same helper the server uses in `createOrder` — display and charge can
+  // never disagree. Before an address is chosen there's no district to price
+  // against, so fall back to the selected option's flat mock price.
+  const delivery = address
+    ? priceDelivery(shipping, subtotal, address.district, {
+        insideDhakaFee, outsideDhakaFee, freeShippingThreshold,
+      })
+    : deliveryOption.price;
   const deliveryZoneLabel = deliveryZone?.label ?? null;
   // No promo/discount system yet — real orders never apply a phantom discount.
   const discount = 0;
-  const total = subtotal + delivery;
+  const codLine = payment === "cod" ? codFee : 0;
+  const total = subtotal + delivery + codLine;
 
   const advanceDueNow = items.reduce((sum, it) => {
     // `bySlug` is typed to the base `Product` shape, but the client catalogue is
@@ -149,6 +160,7 @@ export function CheckoutView() {
         lines: items.map((it) => ({ slug: it.product.slug, qty: it.qty })),
         notes: notes || undefined,
         deliveryFee: delivery,
+        shippingMethodId: effectiveShippingId,
       });
 
       if (result.ok) {
@@ -205,7 +217,7 @@ export function CheckoutView() {
               value={effectiveShippingId}
               onChange={setShipping}
               subtotal={subtotal}
-              freeShippingThreshold={FREE_SHIPPING_THRESHOLD}
+              freeShippingThreshold={freeShippingThreshold}
               district={address?.district ?? null}
             />
           </Section>
@@ -245,6 +257,7 @@ export function CheckoutView() {
                 delivery={delivery}
                 deliveryZoneLabel={deliveryZoneLabel}
                 discount={discount}
+                codFee={codLine}
                 total={total}
                 ctaLabel={ctaLabel}
                 onCta={onCta}
