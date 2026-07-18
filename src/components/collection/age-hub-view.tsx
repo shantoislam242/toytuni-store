@@ -1,6 +1,6 @@
 import { Breadcrumb } from "@/components/breadcrumb";
 import { AgeHubBrowser } from "@/components/collection/age-hub-browser";
-import { ageTiers } from "@/lib/mock/age-tiers";
+import { getAgeTiers } from "@/lib/data/taxonomy";
 import { getCatalog } from "@/lib/data/catalog";
 import { cn } from "@/lib/utils";
 import type { Tone } from "@/lib/types";
@@ -28,7 +28,10 @@ const MAX_PER_TIER = 8;
  * the reused ProductRail / ProductCard.
  */
 export async function AgeHubView() {
-  const products = await getCatalog();
+  const [products, ageTiers] = await Promise.all([
+    getCatalog(),
+    getAgeTiers(),
+  ]);
   return (
     <main className="flex-1 bg-paper">
       {/* hero */}

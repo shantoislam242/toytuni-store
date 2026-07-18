@@ -9,13 +9,9 @@ import { PlaceholderImage } from "@/components/placeholder-image";
 import { ageTiers } from "@/lib/mock/age-tiers";
 import { categories } from "@/lib/mock/categories";
 import { bulkPrograms } from "@/lib/mock/bulk";
-import { products } from "@/lib/mock/products";
+import { useCatalog, isShelfProduct } from "@/lib/catalog/catalog-context";
 import { cn } from "@/lib/utils";
 import type { Tone } from "@/lib/types";
-
-/** how many products sit in a given age tier (for the card's count line). */
-const countFor = (slug: string) =>
-  products.filter((p) => p.ageTierSlug === slug).length;
 
 const toneBg: Record<Tone, string> = {
   cream: "bg-cream-200 text-ink",
@@ -133,6 +129,12 @@ function AgeTierImage({
 }
 
 export function ShopByAge() {
+  const { all } = useCatalog();
+  // how many shelf products sit in a given age tier (for the card's count line);
+  // gifts are excluded so the count matches the browsable PLP, as before.
+  const countFor = (slug: string) =>
+    all.filter((p) => isShelfProduct(p) && p.ageTierSlug === slug).length;
+
   return (
     <section
       id="shop-by-age"

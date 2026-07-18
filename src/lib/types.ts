@@ -50,6 +50,10 @@ export type Product = {
   ageTierSlug: string;
   categorySlug: string; // Category.slug
   badge?: "New" | "Best Seller" | "Limited";
+  /** Short catalog description (DB `products.description`). Absent on mock
+   *  products, which carry richer copy in `productDetailBySlug`. Threaded into
+   *  the catalog so an admin-edited description reflects on a DB-only PDP. */
+  description?: string;
   /** at least two tones → hover-swap "image" */
   imageTones: [Tone, Tone];
   imageLabelBn: string; // shown on the placeholder

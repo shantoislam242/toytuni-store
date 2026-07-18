@@ -3,8 +3,7 @@ import { SITE_URL } from "@/lib/config";
 import { products } from "@/lib/mock/products";
 import { giftKits, giftCards } from "@/lib/mock/gifts";
 import { blogPosts } from "@/lib/mock/blog";
-import { ageTiers } from "@/lib/mock/age-tiers";
-import { categories } from "@/lib/mock/categories";
+import { getAgeTiers, getCategories } from "@/lib/data/taxonomy";
 
 /**
  * XML sitemap covering every indexable route: content pages, all collection /
@@ -12,9 +11,13 @@ import { categories } from "@/lib/mock/categories";
  * Utility/account/dev routes are intentionally excluded (also disallowed in
  * robots). The `refund` policy alias is omitted (it duplicates `returns`).
  */
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
   const at = (path: string) => `${SITE_URL}${path}`;
+  const [ageTiers, categories] = await Promise.all([
+    getAgeTiers(),
+    getCategories(),
+  ]);
 
   const staticPages: MetadataRoute.Sitemap = [
     { url: at("/"), lastModified: now, changeFrequency: "weekly", priority: 1 },

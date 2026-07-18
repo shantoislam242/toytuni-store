@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Search } from "lucide-react";
+import { Plus, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ProductImage } from "@/components/product/product-image";
 import { ProductFrame } from "@/components/product/product-frame";
@@ -43,14 +44,22 @@ export function ProductsTable({ products }: { products: AdminProductListItem[] }
 
   return (
     <div>
-      <div className="relative max-w-sm">
-        <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search product or SKU…"
-          className="h-9 pl-8"
-        />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="relative max-w-sm flex-1">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search product or SKU…"
+            className="h-9 pl-8"
+          />
+        </div>
+        <Button asChild size="sm">
+          <Link href="/admin/products/new">
+            <Plus className="size-4" />
+            New product
+          </Link>
+        </Button>
       </div>
 
       <div className="mt-4 overflow-x-auto rounded-xl border border-cream-300">

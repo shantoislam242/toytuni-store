@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { getAdminProductBySlug } from "@/lib/admin/queries";
+import { getCategories, getAgeTiers } from "@/lib/data/taxonomy";
 import { ProductEditForm } from "@/components/admin/product-edit-form";
 
 export function generateMetadata(): Metadata {
@@ -23,7 +24,11 @@ export default async function Page({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const product = await getAdminProductBySlug(slug);
+  const [product, categories, ageTiers] = await Promise.all([
+    getAdminProductBySlug(slug),
+    getCategories(),
+    getAgeTiers(),
+  ]);
   if (!product) notFound();
 
   return (
@@ -45,7 +50,11 @@ export default async function Page({
       </div>
 
       <div className="mt-6">
-        <ProductEditForm product={product} />
+        <ProductEditForm
+          product={product}
+          categories={categories.map((c) => ({ slug: c.slug, label: c.nameBn }))}
+          ageTiers={ageTiers.map((a) => ({ slug: a.slug, label: a.labelBn }))}
+        />
       </div>
     </div>
   );

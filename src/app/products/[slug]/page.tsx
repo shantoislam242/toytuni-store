@@ -6,9 +6,8 @@ import { RecentlyViewedTracker } from "@/components/product/recently-viewed-trac
 import { BRAND_NAME, SITE_URL } from "@/lib/config";
 import { JsonLd } from "@/components/seo/json-ld";
 import { productImagePath } from "@/lib/product-og";
-import { ageTierBySlug } from "@/lib/mock/age-tiers";
-import { categoryBySlug } from "@/lib/mock/categories";
-import { productDetailBySlug, products } from "@/lib/mock/products";
+import { getAgeTiers, getCategories } from "@/lib/data/taxonomy";
+import { productDetailBySlug, basicProductDetail, products } from "@/lib/mock/products";
 import { GiftCardDetailsView } from "@/components/gift/gift-card-details-view";
 import { giftKits, giftCards } from "@/lib/mock/gifts";
 import { getCatalogProduct, getRelated } from "@/lib/data/catalog";
@@ -64,13 +63,22 @@ export default async function Page({
   }
 
   const product = await getCatalogProduct(slug);
-  const detail = productDetailBySlug(slug);
-
-  if (!product || !detail) {
+  if (!product) {
     notFound();
   }
 
-  const category = categoryBySlug(product.categorySlug);
+  // Mock products carry rich hand-written copy; a DB-only product (e.g. one an
+  // admin just created) has none, so fall back to a basic detail built from its
+  // own DB fields — this is what lets a brand-new catalog product render a real
+  // PDP instead of 404-ing.
+  const detail = productDetailBySlug(slug) ?? basicProductDetail(slug, product.description);
+
+  const [categories, ageTiers] = await Promise.all([
+    getCategories(),
+    getAgeTiers(),
+  ]);
+  const category = categories.find((c) => c.slug === product.categorySlug);
+  const ageTier = ageTiers.find((t) => t.slug === product.ageTierSlug);
   const img = productImagePath(product.slug);
   const availabilitySchema =
     product.availability.state === "preorder"
@@ -129,8 +137,8 @@ export default async function Page({
       <ProductDetailsView
         product={product}
         detail={detail}
-        ageTier={ageTierBySlug(product.ageTierSlug)}
-        category={categoryBySlug(product.categorySlug)}
+        ageTier={ageTier}
+        category={category}
         related={await getRelated(product.slug)}
       />
       <div className="bg-paper">

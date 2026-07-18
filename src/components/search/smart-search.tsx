@@ -19,8 +19,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { ProductImage } from "@/components/product/product-image";
 import { GiftCardThumb } from "@/components/cart/gift-card-thumb";
-import { products } from "@/lib/mock/products";
-import { giftKits, giftCards } from "@/lib/mock/gifts";
+import { useCatalog } from "@/lib/catalog/catalog-context";
 import { categories } from "@/lib/mock/categories";
 import {
   addRecentSearch,
@@ -31,11 +30,10 @@ import { formatTk } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { Category, Product } from "@/lib/types";
 
-// Search spans the FULL catalogue, including gift kits + gift cards. These live
-// outside the main `products` array (so they stay off PLPs / home rails) but
-// should still be discoverable by search — each resolves to a working
-// /products/<slug> page (kit detail, or the dedicated gift-card page).
-const SEARCH_PRODUCTS: Product[] = [...products, ...giftKits, ...giftCards];
+// Search spans the FULL catalogue, including gift kits + gift cards — the
+// DB-hydrated `useCatalog().all` already carries every sellable product, so each
+// match resolves to a working /products/<slug> page (kit detail, or the
+// dedicated gift-card page).
 
 const POPULAR_SEARCHES = ["Rattle", "Teether", "Stacking", "Montessori", "Building blocks", "Puzzle", "Gift"];
 // Combined product + category suggestions are capped at this total. Products take
@@ -128,6 +126,7 @@ export function SmartSearch({
   autoFocus?: boolean;
 }) {
   const router = useRouter();
+  const { all: searchProducts } = useCatalog();
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
@@ -176,13 +175,13 @@ export function SmartSearch({
   const matchedProducts = useMemo(
     () =>
       q
-        ? SEARCH_PRODUCTS.filter(
+        ? searchProducts.filter(
             (p) =>
               p.titleBn.toLowerCase().includes(q) ||
               p.sku.toLowerCase().includes(q),
           )
         : [],
-    [q],
+    [q, searchProducts],
   );
   const matchedCategories = useMemo(
     () =>
@@ -210,11 +209,11 @@ export function SmartSearch({
   // completions (clicking one refines the search — it does not navigate).
   const suggestionPool = useMemo(() => {
     const pool = new Set<string>();
-    SEARCH_PRODUCTS.forEach((p) => pool.add(p.titleBn));
+    searchProducts.forEach((p) => pool.add(p.titleBn));
     categories.forEach((c) => pool.add(c.nameBn));
     POPULAR_SEARCHES.forEach((t) => pool.add(t));
     return [...pool];
-  }, []);
+  }, [searchProducts]);
   const termSuggestions = useMemo(
     () =>
       q

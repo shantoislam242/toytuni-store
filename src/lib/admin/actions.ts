@@ -49,9 +49,10 @@ function isProductBadge(value: string): value is ProductBadge {
   return (PRODUCT_BADGES as readonly string[]).includes(value);
 }
 
-/** Operational (overlay) fields an admin may edit in Slice 1. Structural
- *  fields (title/category/age-tier/description) stay read-only until the
- *  catalog moves to the DB. All keys optional — only supplied ones are written. */
+/** Fields an admin may edit. Operational (overlay) fields plus — now that the
+ *  catalog is DB-sourced (Slice 2) — the STRUCTURAL fields
+ *  (title/description/category/age-tier/badge) that reflect on the storefront.
+ *  All keys optional — only supplied ones are written. */
 export type ProductPatch = {
   price?: number;
   compare_at_price?: number | null;
@@ -60,11 +61,35 @@ export type ProductPatch = {
   preorder_ship_date?: string | null;
   active?: boolean;
   badge?: ProductBadge | null;
+  // Structural (now editable, reflected on the storefront):
+  title?: string;
+  description?: string | null;
+  category_slug?: string | null;
+  age_tier_slug?: string | null;
 };
 
 /** Non-negative safe integer (BDT is stored as whole Taka; quantities are counts). */
 function isNonNegativeInt(n: unknown): n is number {
   return typeof n === "number" && Number.isInteger(n) && n >= 0;
+}
+
+/** URL-safe slug: lowercase alphanumerics in dash-separated words, no leading/
+ *  trailing/double dashes (mirrors how storefront slugs are shaped). */
+const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+type AdminDb = ReturnType<typeof createAdminSupabase>;
+
+/** Does a taxonomy row (`categories` / `age_tiers`) with this slug exist? Used
+ *  to validate `category_slug` / `age_tier_slug` before writing a product (the
+ *  DB FK would reject a bad slug, but we want a clean error message, not a 500). */
+async function taxonomySlugExists(
+  db: AdminDb,
+  table: "categories" | "age_tiers",
+  slug: string,
+): Promise<boolean> {
+  const { data, error } = await db.from(table).select("slug").eq("slug", slug).maybeSingle();
+  if (error) throw new Error(error.message);
+  return data !== null;
 }
 
 /** Accept `YYYY-MM-DD` that round-trips to a real calendar date. */
@@ -74,10 +99,17 @@ function isValidDateStr(s: string): boolean {
   return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;
 }
 
-/** Storefront paths whose cached data derives from the products overlay. Kept
- *  best-effort — the dynamic collection route is refreshed by pattern. */
+/** Invalidate the storefront's cached catalog after an admin write. The public
+ *  catalog read (`getFullCatalog`) is now wrapped in `unstable_cache` tagged
+ *  `"catalog"`, so `revalidateTag("catalog")` actually refreshes the cached
+ *  reads that back the (now static/ISR) storefront pages — the old
+ *  `revalidateTag("products")` was a no-op because nothing carried that tag.
+ *  Also invalidate `"taxonomy"` since a product's category/age-tier assignment
+ *  can change which collection it appears in. Admin paths are still refreshed
+ *  explicitly (they render dynamically). */
 function revalidateStorefront(slug: string): void {
-  revalidateTag("products", "max");
+  revalidateTag("catalog", "max");
+  revalidateTag("taxonomy", "max");
   revalidatePath("/admin/products");
   revalidatePath(`/admin/products/${slug}`);
   revalidatePath(`/products/${slug}`);
@@ -125,6 +157,15 @@ export async function updateProduct(slug: string, patch: ProductPatch): Promise<
     }
     productUpdate.badge = patch.badge;
   }
+  if (patch.title !== undefined) {
+    const title = patch.title.trim();
+    if (title === "") return { ok: false, error: "Title is required." };
+    productUpdate.title = title;
+  }
+  if (patch.description !== undefined) {
+    const desc = patch.description === null ? null : patch.description.trim();
+    productUpdate.description = desc === "" ? null : desc;
+  }
   if (patch.stock_qty !== undefined) {
     if (!isNonNegativeInt(patch.stock_qty)) return { ok: false, error: "Stock must be a non-negative whole number." };
     inventoryUpdate.stock_qty = patch.stock_qty;
@@ -137,6 +178,29 @@ export async function updateProduct(slug: string, patch: ProductPatch): Promise<
   }
 
   const db = createAdminSupabase();
+
+  // Structural taxonomy fields need an existence check (async) before writing —
+  // a bad slug would otherwise be a raw FK-violation 500.
+  if (patch.category_slug !== undefined) {
+    if (patch.category_slug === null || patch.category_slug === "") {
+      productUpdate.category_slug = null;
+    } else {
+      if (!(await taxonomySlugExists(db, "categories", patch.category_slug))) {
+        return { ok: false, error: `Unknown category: ${patch.category_slug}` };
+      }
+      productUpdate.category_slug = patch.category_slug;
+    }
+  }
+  if (patch.age_tier_slug !== undefined) {
+    if (patch.age_tier_slug === null || patch.age_tier_slug === "") {
+      productUpdate.age_tier_slug = null;
+    } else {
+      if (!(await taxonomySlugExists(db, "age_tiers", patch.age_tier_slug))) {
+        return { ok: false, error: `Unknown age tier: ${patch.age_tier_slug}` };
+      }
+      productUpdate.age_tier_slug = patch.age_tier_slug;
+    }
+  }
 
   if (Object.keys(productUpdate).length > 0) {
     const { error } = await db.from("products").update(productUpdate).eq("slug", slug);
@@ -183,36 +247,23 @@ function extFromType(type: string): string | null {
 }
 
 /**
- * Upload a product photo to the public `product-images` bucket and point
- * `products.image_url` at its public URL (which the storefront prefers over
- * the bundled `/images/products/<slug>/` files). Server Action — re-checks
- * admin, validates content-type + size, uploads via the service-role storage
- * client, and requires an `https` public URL before persisting.
- */
-export async function uploadProductImage(
+ * Validate + upload a product photo to the public `product-images` bucket and
+ * point `products.image_url` at its public https URL. Shared by
+ * `uploadProductImage` (edit form) and `createProduct` (new-product form). NO
+ * admin re-check or revalidate here — callers own those (so `createProduct`
+ * revalidates once, after the whole product exists). */
+async function putProductImage(
+  db: AdminDb,
   slug: string,
-  formData: FormData,
+  file: File,
 ): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
-  if (!(await getIsAdmin())) throw new Error("unauthorized");
-
-  const file = formData.get("file");
-  if (!(file instanceof File) || file.size === 0) {
-    return { ok: false, error: "No image file provided." };
-  }
-  if (!file.type.startsWith("image/")) {
-    return { ok: false, error: "File must be an image." };
-  }
-  if (file.size > MAX_IMAGE_BYTES) {
-    return { ok: false, error: "Image must be 5 MB or smaller." };
-  }
+  if (file.size === 0) return { ok: false, error: "No image file provided." };
+  if (!file.type.startsWith("image/")) return { ok: false, error: "File must be an image." };
+  if (file.size > MAX_IMAGE_BYTES) return { ok: false, error: "Image must be 5 MB or smaller." };
   const ext = extFromType(file.type);
-  if (!ext) {
-    return { ok: false, error: `Unsupported image type: ${file.type}` };
-  }
+  if (!ext) return { ok: false, error: `Unsupported image type: ${file.type}` };
 
-  const db = createAdminSupabase();
   const objectPath = `${slug}/${Date.now()}.${ext}`;
-
   const { error: uploadErr } = await db.storage
     .from("product-images")
     .upload(objectPath, file, { contentType: file.type, upsert: false });
@@ -233,6 +284,165 @@ export async function uploadProductImage(
     .eq("slug", slug);
   if (updateErr) return { ok: false, error: updateErr.message };
 
-  revalidateStorefront(slug);
   return { ok: true, url };
+}
+
+/**
+ * Upload a product photo to the public `product-images` bucket and point
+ * `products.image_url` at its public URL (which the storefront prefers over
+ * the bundled `/images/products/<slug>/` files). Server Action — re-checks
+ * admin, validates content-type + size, uploads via the service-role storage
+ * client, and requires an `https` public URL before persisting.
+ */
+export async function uploadProductImage(
+  slug: string,
+  formData: FormData,
+): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+  if (!(await getIsAdmin())) throw new Error("unauthorized");
+
+  const file = formData.get("file");
+  if (!(file instanceof File)) return { ok: false, error: "No image file provided." };
+
+  const db = createAdminSupabase();
+  const result = await putProductImage(db, slug, file);
+  if (result.ok) revalidateStorefront(slug);
+  return result;
+}
+
+/** Fields required/accepted when creating a product. `image` is an optional
+ *  photo File (passed straight through a Server Action — React serializes it).
+ *  Prices/quantities are whole BDT / counts. */
+export type CreateProductInput = {
+  slug: string;
+  sku: string;
+  title: string;
+  price: number;
+  compareAtPrice?: number | null;
+  categorySlug: string;
+  ageTierSlug: string;
+  stockQty?: number;
+  lowStockThreshold?: number;
+  badge?: ProductBadge | null;
+  description?: string | null;
+  image?: File | null;
+};
+
+/**
+ * Create a new product (Slice 2). Server Action — re-checks admin FIRST, then
+ * validates every field (slug unique + url-safe, sku/title required, price a
+ * non-negative whole number, category + age-tier exist in the DB taxonomy).
+ * Inserts the `products` row (active=true) and its `inventory` row; if a photo
+ * was supplied, uploads it and sets `image_url`. Revalidates the catalog + admin
+ * so the new product is visible on the storefront immediately.
+ */
+export async function createProduct(
+  input: CreateProductInput,
+): Promise<{ ok: true; slug: string } | { ok: false; error: string }> {
+  if (!(await getIsAdmin())) throw new Error("unauthorized");
+
+  const slug = input.slug.trim().toLowerCase();
+  const sku = input.sku.trim();
+  const title = input.title.trim();
+
+  if (!SLUG_RE.test(slug)) {
+    return { ok: false, error: "Slug must be lowercase letters, numbers and single dashes." };
+  }
+  if (sku === "") return { ok: false, error: "SKU is required." };
+  if (title === "") return { ok: false, error: "Title is required." };
+  if (!isNonNegativeInt(input.price)) {
+    return { ok: false, error: "Price must be a non-negative whole number." };
+  }
+  if (input.compareAtPrice != null && !isNonNegativeInt(input.compareAtPrice)) {
+    return { ok: false, error: "Compare-at price must be a non-negative whole number or empty." };
+  }
+  const stockQty = input.stockQty ?? 0;
+  if (!isNonNegativeInt(stockQty)) {
+    return { ok: false, error: "Stock must be a non-negative whole number." };
+  }
+  const lowStockThreshold = input.lowStockThreshold ?? 0;
+  if (!isNonNegativeInt(lowStockThreshold)) {
+    return { ok: false, error: "Low-stock threshold must be a non-negative whole number." };
+  }
+  if (input.badge != null && !isProductBadge(input.badge)) {
+    return { ok: false, error: `Invalid badge: ${input.badge}` };
+  }
+
+  const db = createAdminSupabase();
+
+  if (!(await taxonomySlugExists(db, "categories", input.categorySlug))) {
+    return { ok: false, error: `Unknown category: ${input.categorySlug}` };
+  }
+  if (!(await taxonomySlugExists(db, "age_tiers", input.ageTierSlug))) {
+    return { ok: false, error: `Unknown age tier: ${input.ageTierSlug}` };
+  }
+
+  // Slug must be unique — check up front for a clean error (the unique index
+  // would otherwise surface as a raw Postgres conflict).
+  const { data: existing, error: dupErr } = await db
+    .from("products")
+    .select("id")
+    .eq("slug", slug)
+    .maybeSingle();
+  if (dupErr) return { ok: false, error: dupErr.message };
+  if (existing) return { ok: false, error: `A product with slug "${slug}" already exists.` };
+
+  const insertRow: Database["public"]["Tables"]["products"]["Insert"] = {
+    slug,
+    sku,
+    title,
+    price: input.price,
+    compare_at_price: input.compareAtPrice ?? null,
+    category_slug: input.categorySlug,
+    age_tier_slug: input.ageTierSlug,
+    badge: input.badge ?? null,
+    description: input.description?.trim() || null,
+    image_label: title,
+    image_tones: ["cream", "neem-soft"],
+    active: true,
+  };
+
+  const { data: inserted, error: insertErr } = await db
+    .from("products")
+    .insert(insertRow)
+    .select("id")
+    .single();
+  if (insertErr) return { ok: false, error: insertErr.message };
+
+  const { error: invErr } = await db
+    .from("inventory")
+    .insert({ product_id: inserted.id, stock_qty: stockQty, low_stock_threshold: lowStockThreshold });
+  if (invErr) {
+    // Roll back the orphan product so a retry with the same slug isn't blocked.
+    await db.from("products").delete().eq("id", inserted.id);
+    return { ok: false, error: invErr.message };
+  }
+
+  if (input.image instanceof File && input.image.size > 0) {
+    const imgResult = await putProductImage(db, slug, input.image);
+    if (!imgResult.ok) {
+      // The product exists and is valid without an image — surface the upload
+      // error but keep the row (admin can retry the upload from the edit form).
+      revalidateStorefront(slug);
+      return { ok: false, error: `Product created, but image upload failed: ${imgResult.error}` };
+    }
+  }
+
+  revalidateStorefront(slug);
+  return { ok: true, slug };
+}
+
+/**
+ * Soft-delete a product (Slice 2): set `active=false` so it disappears from the
+ * storefront catalog while its row (and order history) is preserved. Server
+ * Action — re-checks admin, then revalidates the catalog + admin.
+ */
+export async function softDeleteProduct(slug: string): Promise<ActionResult> {
+  if (!(await getIsAdmin())) throw new Error("unauthorized");
+
+  const db = createAdminSupabase();
+  const { error } = await db.from("products").update({ active: false }).eq("slug", slug);
+  if (error) return { ok: false, error: error.message };
+
+  revalidateStorefront(slug);
+  return { ok: true };
 }

@@ -11,6 +11,7 @@ import { MobileBottomBar } from "@/components/layout/mobile-bottom-bar";
 import { WhatsAppButton } from "@/components/layout/whatsapp-button";
 import { DeferredIslands } from "@/components/layout/deferred-islands";
 import { AuthProvider } from "@/lib/auth/auth-context";
+import { CatalogProviderServer } from "@/lib/catalog/catalog-provider.server";
 import { CartProvider } from "@/lib/cart/cart-context";
 import { CheckoutProvider } from "@/lib/checkout/checkout-context";
 import { WishlistProvider } from "@/lib/wishlist/wishlist-context";
@@ -92,25 +93,27 @@ export default function RootLayout({
         <Preloader />
         <SiteBackground />
         <AuthProvider>
-          <CartProvider>
-            <CheckoutProvider>
-              <WishlistProvider>
-                <HomeResetProvider>
-                  <Header />
-                  <div className="flex flex-1 flex-col">
-                    <HomeResetBoundary>{children}</HomeResetBoundary>
-                  </div>
-                  <FooterGate>
-                    <Footer />
-                  </FooterGate>
-                  <MobileBottomBar />
-                  <WhatsAppButton />
-                  <DeferredIslands />
-                  <Toaster />
-                </HomeResetProvider>
-              </WishlistProvider>
-            </CheckoutProvider>
-          </CartProvider>
+          <CatalogProviderServer>
+            <CartProvider>
+              <CheckoutProvider>
+                <WishlistProvider>
+                  <HomeResetProvider>
+                    <Header />
+                    <div className="flex flex-1 flex-col">
+                      <HomeResetBoundary>{children}</HomeResetBoundary>
+                    </div>
+                    <FooterGate>
+                      <Footer />
+                    </FooterGate>
+                    <MobileBottomBar />
+                    <WhatsAppButton />
+                    <DeferredIslands />
+                    <Toaster />
+                  </HomeResetProvider>
+                </WishlistProvider>
+              </CheckoutProvider>
+            </CartProvider>
+          </CatalogProviderServer>
         </AuthProvider>
       </body>
     </html>

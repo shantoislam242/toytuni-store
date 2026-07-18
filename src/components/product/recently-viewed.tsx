@@ -12,14 +12,11 @@ import {
 } from "@/components/ui/carousel";
 import { AddToCartButton } from "@/components/cart/add-to-cart-button";
 import { ProductImage } from "@/components/product/product-image";
-import { productBySlug, products } from "@/lib/mock/products";
+import { useCatalog, isShelfProduct } from "@/lib/catalog/catalog-context";
 import { readRecentlyViewed } from "@/lib/recently-viewed";
 import { formatTk } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { Product } from "@/lib/types";
-
-// Mock selection shown to first-time visitors who have no real history yet.
-const defaultRecentlyViewed = products.slice(0, 8);
 
 function Stars({ rating }: { rating: number }) {
   const rounded = Math.round(rating);
@@ -97,19 +94,26 @@ function RecentlyViewedCard({ product }: { product: Product }) {
  */
 export function RecentlyViewed({
   excludeSlug,
-  fallback = defaultRecentlyViewed,
+  fallback,
   title = "Recently Viewed",
   subtitle = "Pick up right where you left off.",
   max = 10,
 }: {
   /** Product to omit (e.g. the one currently open on a product page). */
   excludeSlug?: string;
-  /** Shown when the visitor has no stored history yet. */
+  /** Shown when the visitor has no stored history yet. Defaults to the first
+   *  few shelf products from the catalogue. */
   fallback?: Product[];
   title?: string;
   subtitle?: string;
   max?: number;
 }) {
+  const { all, bySlug } = useCatalog();
+
+  // Selection shown to first-time visitors who have no real history yet: the
+  // first few shelf products (gifts excluded, matching the previous behaviour).
+  const resolvedFallback = fallback ?? all.filter(isShelfProduct).slice(0, 8);
+
   // `null` until mounted, so server + first client render match (they show the
   // fallback), then we swap in the real history after reading localStorage.
   const [slugs, setSlugs] = useState<string[] | null>(null);
@@ -120,11 +124,13 @@ export function RecentlyViewed({
   const fromHistory =
     slugs
       ?.filter((s) => s !== excludeSlug)
-      .map((s) => productBySlug(s))
+      .map((s) => bySlug(s))
       .filter((p): p is Product => Boolean(p)) ?? [];
 
   const items = (
-    fromHistory.length > 0 ? fromHistory : fallback.filter((p) => p.slug !== excludeSlug)
+    fromHistory.length > 0
+      ? fromHistory
+      : resolvedFallback.filter((p) => p.slug !== excludeSlug)
   ).slice(0, max);
 
   if (!items.length) return null;
