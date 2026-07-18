@@ -25,6 +25,7 @@ async function seedProduct(p: Product, stockQty: number) {
     badge: p.badge ?? null,
     image_label: p.imageLabelBn, image_tones: p.imageTones,
     description: null, preorder_ship_date: null, active: true,
+    kit_contents: p.kitContents ?? null,
   }, { onConflict: "slug" }).select("id").single();
   if (error || !prod) throw error ?? new Error(`no id for ${p.slug}`);
 
@@ -47,13 +48,19 @@ async function seedProduct(p: Product, stockQty: number) {
 async function main() {
   // Lookup tables first (products FK-reference them).
   const cat = await db.from("categories").upsert(
-    categories.map((c, i) => ({ slug: c.slug, title: c.nameBn, sort: i })),
+    categories.map((c, i) => ({
+      slug: c.slug, title: c.nameBn, sort: i,
+      tone: c.tone, tagline: c.taglineBn ?? null,
+    })),
     { onConflict: "slug" },
   );
   if (cat.error) throw cat.error;
 
   const age = await db.from("age_tiers").upsert(
-    ageTiers.map((a, i) => ({ slug: a.slug, title: a.labelBn, sort: i })),
+    ageTiers.map((a, i) => ({
+      slug: a.slug, title: a.labelBn, sort: i,
+      tone: a.tone, tagline: a.taglineBn ?? null,
+    })),
     { onConflict: "slug" },
   );
   if (age.error) throw age.error;

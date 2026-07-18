@@ -21,16 +21,22 @@ export type Database = {
           slug: string;
           title: string;
           sort: number;
+          tone: string | null;
+          tagline: string | null;
         };
         Insert: {
           slug: string;
           title: string;
           sort?: number;
+          tone?: string | null;
+          tagline?: string | null;
         };
         Update: {
           slug?: string;
           title?: string;
           sort?: number;
+          tone?: string | null;
+          tagline?: string | null;
         };
         Relationships: [];
       };
@@ -39,16 +45,22 @@ export type Database = {
           slug: string;
           title: string;
           sort: number;
+          tone: string | null;
+          tagline: string | null;
         };
         Insert: {
           slug: string;
           title: string;
           sort?: number;
+          tone?: string | null;
+          tagline?: string | null;
         };
         Update: {
           slug?: string;
           title?: string;
           sort?: number;
+          tone?: string | null;
+          tagline?: string | null;
         };
         Relationships: [];
       };
@@ -70,6 +82,7 @@ export type Database = {
           image_tones: string[];
           preorder_ship_date: string | null;
           active: boolean;
+          kit_contents: Json | null;
           created_at: string;
           updated_at: string;
         };
@@ -90,6 +103,7 @@ export type Database = {
           image_tones?: string[];
           preorder_ship_date?: string | null;
           active?: boolean;
+          kit_contents?: Json | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -110,6 +124,7 @@ export type Database = {
           image_tones?: string[];
           preorder_ship_date?: string | null;
           active?: boolean;
+          kit_contents?: Json | null;
           created_at?: string;
           updated_at?: string;
         };
