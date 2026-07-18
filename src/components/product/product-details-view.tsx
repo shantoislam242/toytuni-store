@@ -213,11 +213,11 @@ export function ProductDetailsView({
 
       {/* ===== top: gallery + purchase (balanced 50/50) ===== */}
       <section className="mx-auto grid w-full max-w-6xl gap-8 px-4 pb-8 pt-3 sm:px-6 sm:pb-10 sm:pt-4 lg:max-w-[90rem] lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:gap-10 lg:px-8">
-        {/* An admin-set image_url (via the DB overlay) wins over the mock
-            image list; absent, the PDP keeps showing the existing mock
-            gallery unchanged. */}
+        {/* Gallery precedence (gallery_urls → image_url → mock fallback) is
+            resolved server-side in getProductDetail; the view just renders
+            detail.imageSrcs. */}
         <ProductGallery
-          images={product.imageUrl ? [product.imageUrl] : detail.imageSrcs}
+          images={detail.imageSrcs}
           imageLabel={product.imageLabelBn}
           imageTones={product.imageTones}
         />

@@ -7,10 +7,11 @@ import { BRAND_NAME, SITE_URL } from "@/lib/config";
 import { JsonLd } from "@/components/seo/json-ld";
 import { productImagePath } from "@/lib/product-og";
 import { getAgeTiers, getCategories } from "@/lib/data/taxonomy";
-import { productDetailBySlug, basicProductDetail, products } from "@/lib/mock/products";
+import { products } from "@/lib/mock/products";
 import { GiftCardDetailsView } from "@/components/gift/gift-card-details-view";
 import { giftKits, giftCards } from "@/lib/mock/gifts";
 import { getCatalogProduct, getRelated } from "@/lib/data/catalog";
+import { getProductDetail } from "@/lib/data/product-detail";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -31,7 +32,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 
   const description =
-    productDetailBySlug(slug)?.description ??
+    product.description ||
+    (await getProductDetail(slug)).description ||
     `${product.titleBn} — handmade, non-toxic neem-wood Montessori toy from ${BRAND_NAME}.`;
   const img = productImagePath(slug);
 
@@ -67,11 +69,10 @@ export default async function Page({
     notFound();
   }
 
-  // Mock products carry rich hand-written copy; a DB-only product (e.g. one an
-  // admin just created) has none, so fall back to a basic detail built from its
-  // own DB fields — this is what lets a brand-new catalog product render a real
-  // PDP instead of 404-ing.
-  const detail = productDetailBySlug(slug) ?? basicProductDetail(slug, product.description);
+  // DB-sourced editorial content (fails soft to mock copy / a basic detail
+  // built from the product's own DB fields), so a brand-new catalog product
+  // still renders a real PDP instead of 404-ing.
+  const detail = await getProductDetail(slug);
 
   const [categories, ageTiers] = await Promise.all([
     getCategories(),
