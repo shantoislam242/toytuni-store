@@ -5,6 +5,7 @@ import { getIsAdmin } from "@/lib/auth/session";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import type { Database } from "@/lib/supabase/database.types";
 import type { DetailContent } from "@/lib/types";
+import type { Settings } from "@/lib/data/settings-shape";
 
 /** Mirrors the `orders.status` check constraint (`supabase/migrations/0001_init.sql`). */
 const ORDER_STATUSES = ["pending", "confirmed", "shipped", "delivered", "cancelled"] as const;
@@ -605,5 +606,52 @@ export async function softDeleteProduct(slug: string): Promise<ActionResult> {
   if (error) return { ok: false, error: error.message };
 
   revalidateStorefront(slug);
+  return { ok: true };
+}
+
+/** Validate + persist store settings to the single `site_settings.general` row.
+ *  Server Action — admin re-check + service-role. Money fields are non-negative
+ *  integers; strings are trimmed. */
+export async function updateSettings(next: Settings): Promise<ActionResult> {
+  if (!(await getIsAdmin())) throw new Error("unauthorized");
+
+  const ints = [
+    next.shipping?.insideDhakaFee, next.shipping?.outsideDhakaFee,
+    next.shipping?.freeShippingThreshold, next.codFee,
+  ];
+  if (ints.some((n) => !isNonNegativeInt(n))) {
+    return { ok: false, error: "Fees and threshold must be non-negative whole numbers." };
+  }
+  const value = {
+    shipping: {
+      insideDhakaFee: next.shipping.insideDhakaFee,
+      outsideDhakaFee: next.shipping.outsideDhakaFee,
+      freeShippingThreshold: next.shipping.freeShippingThreshold,
+    },
+    codFee: next.codFee,
+    contact: {
+      phone: (next.contact?.phone ?? "").trim(),
+      whatsapp: (next.contact?.whatsapp ?? "").trim(),
+      email: (next.contact?.email ?? "").trim(),
+      address: (next.contact?.address ?? "").trim(),
+    },
+    brand: {
+      tagline: (next.brand?.tagline ?? "").trim(),
+      description: (next.brand?.description ?? "").trim(),
+    },
+  };
+
+  const db = createAdminSupabase();
+  const { error } = await db.from("site_settings").upsert(
+    { key: "general", value: value as unknown as Database["public"]["Tables"]["site_settings"]["Insert"]["value"] },
+    { onConflict: "key" },
+  );
+  if (error) return { ok: false, error: error.message };
+
+  revalidateTag("settings", "max");
+  revalidatePath("/");
+  revalidatePath("/checkout");
+  revalidatePath("/contact");
+  revalidatePath("/admin/settings");
   return { ok: true };
 }

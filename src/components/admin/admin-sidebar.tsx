@@ -43,7 +43,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Customers", href: "/admin/customers", icon: Users, disabled: true },
   { label: "Inventory", href: "/admin/inventory", icon: Warehouse, disabled: true },
   { label: "Blog", href: "/admin/blog", icon: Newspaper, disabled: true },
-  { label: "Settings", href: "/admin/settings", icon: Settings, disabled: true },
+  { label: "Settings", href: "/admin/settings", icon: Settings },
 ];
 
 /** True iff `pathname` is `href` exactly, or a child route of it — except for
