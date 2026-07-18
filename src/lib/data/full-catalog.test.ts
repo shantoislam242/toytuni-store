@@ -25,6 +25,8 @@ describe("rowToFullProduct", () => {
       image_url: "https://example.com/img.png",
       kit_contents: ["Rattle", "Blocks", "Book"],
       preorder_ship_date: null,
+      preorder_delivery_date: null,
+      preorder_advance_pct: null,
       product_variants: [
         { name: "Neem", tone: "neem-soft" },
         { name: "Teak", tone: "wood" },
@@ -47,6 +49,8 @@ describe("rowToFullProduct", () => {
       imageTones: ["mustard", "cream"],
       imageLabelBn: "Explorer Kit",
       imageUrl: "https://example.com/img.png",
+      preorderDeliveryDate: null,
+      preorderAdvancePct: null,
       kitContents: ["Rattle", "Blocks", "Book"],
       variants: [
         { name: "Neem", tone: "neem-soft" },
@@ -72,6 +76,8 @@ describe("rowToFullProduct", () => {
       image_url: null,
       kit_contents: null,
       preorder_ship_date: null,
+      preorder_delivery_date: null,
+      preorder_advance_pct: null,
       product_variants: [],
     };
 
@@ -109,9 +115,25 @@ describe("rowToFullProduct", () => {
       image_url: null,
       kit_contents: null,
       preorder_ship_date: null,
+      preorder_delivery_date: null,
+      preorder_advance_pct: null,
     };
 
     const p = rowToFullProduct(row);
     expect(p.variants).toBeUndefined();
+  });
+
+  it("maps pre-order delivery date and advance pct", () => {
+    const row: FullProductRow = {
+      slug: "p", sku: "S-1", title: "T", price: 720, compare_at_price: null,
+      rating: 5, review_count: 0, age_tier_slug: null, category_slug: null,
+      badge: null, image_label: "T", image_tones: ["cream", "cream"],
+      image_url: null, kit_contents: null, preorder_ship_date: "2099-01-05",
+      preorder_delivery_date: "2099-01-10", preorder_advance_pct: 20,
+      inventory: { stock_qty: 0 }, product_variants: [],
+    };
+    const p = rowToFullProduct(row);
+    expect(p.preorderDeliveryDate).toBe("2099-01-10");
+    expect(p.preorderAdvancePct).toBe(20);
   });
 });

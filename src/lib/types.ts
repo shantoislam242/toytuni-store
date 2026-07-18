@@ -62,6 +62,12 @@ export type Product = {
    *  public/images/products/<slug>/. Only ever populated via the DB overlay
    *  (`applyOverride`) — absent on plain mock products. */
   imageUrl?: string;
+  /** Pre-order: expected-delivery date (DB `products.preorder_delivery_date`),
+   *  shown as "Expected delivery". Null/absent when not set. */
+  preorderDeliveryDate?: string | null;
+  /** Pre-order: advance-payment percentage 0–100 (DB `products.preorder_advance_pct`).
+   *  Drives the "advance now / balance on delivery" split. Null/absent = no advance. */
+  preorderAdvancePct?: number | null;
   /** "What's inside" — shown on gift-kit cards only (optional). */
   kitContents?: string[];
   variants?: Variant[];
