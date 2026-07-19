@@ -4,6 +4,8 @@
 -- Run in the Supabase SQL editor after 0007_pdp_content.sql, then re-seed.
 
 alter table blog_posts alter column body drop default;
+-- Discards any existing body content (jsonb -> '' text); safe only because
+-- blog_posts is empty at this point. Do not re-run against a populated table.
 alter table blog_posts alter column body type text using '';
 alter table blog_posts alter column body set default '';
 alter table blog_posts alter column body set not null;

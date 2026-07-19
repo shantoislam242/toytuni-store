@@ -1,6 +1,17 @@
+import { type ReactNode, isValidElement } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { headingId } from "@/components/blog/blog-body";
+
+/** Recursively extract plain text from React children (handles nested inline
+ *  markdown elements like `**bold**` inside a heading) so heading ids match
+ *  `markdownHeadings`' raw-text-derived ids. */
+function toText(node: ReactNode): string {
+  if (typeof node === "string" || typeof node === "number") return String(node);
+  if (Array.isArray(node)) return node.map(toText).join("");
+  if (isValidElement(node)) return toText((node.props as { children?: ReactNode }).children);
+  return "";
+}
 
 /** Render post markdown with the article's prose styling. Safe (react-markdown,
  *  no raw HTML). h2s get stable ids for the table-of-contents anchors. */
@@ -10,7 +21,7 @@ export function Markdown({ source }: { source: string }) {
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
-          h2: ({ children }) => <h2 id={headingId(String(children))} className="scroll-mt-32 font-display text-xl font-bold tracking-tight text-ink sm:text-2xl">{children}</h2>,
+          h2: ({ children }) => <h2 id={headingId(toText(children))} className="scroll-mt-32 font-display text-xl font-bold tracking-tight text-ink sm:text-2xl">{children}</h2>,
           h3: ({ children }) => <h3 className="font-display text-lg font-bold text-ink">{children}</h3>,
           p: ({ children }) => <p className="break-words leading-relaxed text-ink-muted">{children}</p>,
           ul: ({ children }) => <ul className="list-disc space-y-2 pl-5 text-ink-muted marker:text-neem">{children}</ul>,

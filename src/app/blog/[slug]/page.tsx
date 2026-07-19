@@ -45,6 +45,9 @@ export default async function Page({ params }: Props) {
     notFound();
   }
 
+  const coverUrl = post.coverImage
+    ? (post.coverImage.startsWith("http") ? post.coverImage : `${SITE_URL}${post.coverImage}`)
+    : `${SITE_URL}/og-default.png`;
   const articleLd = {
     "@context": "https://schema.org",
     "@type": "Article",
@@ -57,7 +60,7 @@ export default async function Page({ params }: Props) {
       name: BRAND_NAME,
       logo: { "@type": "ImageObject", url: `${SITE_URL}/og-default.png` },
     },
-    image: [`${SITE_URL}${post.coverImage ?? "/og-default.png"}`],
+    image: [coverUrl],
     mainEntityOfPage: `${SITE_URL}/blog/${post.slug}`,
   };
   const breadcrumbLd = {
