@@ -359,6 +359,37 @@ export async function getAdminOrderById(id: string): Promise<AdminOrderDetail | 
   };
 }
 
+export type AdminInventoryItem = {
+  slug: string; sku: string; title: string; imageUrl: string | null;
+  stockQty: number; lowStockThreshold: number;
+};
+
+type InventoryProductRow = {
+  slug: string; sku: string; title: string; image_url: string | null;
+  inventory: { stock_qty: number; low_stock_threshold: number } | { stock_qty: number; low_stock_threshold: number }[] | null;
+};
+
+/** Every product with its current stock + threshold, ordered out-of-stock/low
+ *  first (most actionable), then by title. Service-role. */
+export async function getAdminInventory(): Promise<AdminInventoryItem[]> {
+  const db = createAdminSupabase();
+  const { data, error } = await db
+    .from("products")
+    .select("slug, sku, title, image_url, inventory(stock_qty, low_stock_threshold)")
+    .overrideTypes<InventoryProductRow[], { merge: false }>();
+  if (error) throw new Error(`getAdminInventory failed: ${error.message}`);
+
+  const items = (data ?? []).map((p) => {
+    const inv = oneInventory(p.inventory);
+    return {
+      slug: p.slug, sku: p.sku, title: p.title, imageUrl: p.image_url ?? null,
+      stockQty: inv?.stock_qty ?? 0, lowStockThreshold: inv?.low_stock_threshold ?? 0,
+    };
+  });
+  const rank = (i: AdminInventoryItem) => (i.stockQty <= 0 ? 0 : i.stockQty <= i.lowStockThreshold ? 1 : 2);
+  return items.sort((a, b) => rank(a) - rank(b) || a.title.localeCompare(b.title));
+}
+
 export type AdminTaxonomyItem = {
   slug: string; title: string; tone: string | null; tagline: string | null; sort: number; productCount: number;
 };

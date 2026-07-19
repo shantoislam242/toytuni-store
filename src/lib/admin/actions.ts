@@ -7,6 +7,7 @@ import type { Database } from "@/lib/supabase/database.types";
 import type { DetailContent } from "@/lib/types";
 import type { Settings } from "@/lib/data/settings-shape";
 import { TAXONOMY_TABLES, validateTaxonomyInput, isPermutation, type TaxonomyKind } from "@/lib/admin/taxonomy";
+import { clampAdjust } from "@/lib/admin/inventory-status";
 
 /** Mirrors the `orders.status` check constraint (`supabase/migrations/0001_init.sql`). */
 const ORDER_STATUSES = ["pending", "confirmed", "shipped", "delivered", "cancelled"] as const;
@@ -292,6 +293,56 @@ export async function updateProduct(slug: string, patch: ProductPatch): Promise<
 
   revalidateStorefront(slug);
   return { ok: true };
+}
+
+/** Set a product's stock and/or low-stock threshold (inventory management view).
+ *  Server Action — admin re-check + service-role; both fields non-negative ints. */
+export async function updateInventory(
+  slug: string, patch: { stockQty?: number; lowStockThreshold?: number },
+): Promise<ActionResult> {
+  if (!(await getIsAdmin())) throw new Error("unauthorized");
+  const update: { stock_qty?: number; low_stock_threshold?: number } = {};
+  if (patch.stockQty !== undefined) {
+    if (!isNonNegativeInt(patch.stockQty)) return { ok: false, error: "Stock must be a non-negative whole number." };
+    update.stock_qty = patch.stockQty;
+  }
+  if (patch.lowStockThreshold !== undefined) {
+    if (!isNonNegativeInt(patch.lowStockThreshold)) return { ok: false, error: "Threshold must be a non-negative whole number." };
+    update.low_stock_threshold = patch.lowStockThreshold;
+  }
+  if (Object.keys(update).length === 0) return { ok: true };
+
+  const db = createAdminSupabase();
+  const { data: prod, error: lookupErr } = await db.from("products").select("id").eq("slug", slug).maybeSingle();
+  if (lookupErr) return { ok: false, error: lookupErr.message };
+  if (!prod) return { ok: false, error: `Product not found: ${slug}` };
+  const { error } = await db.from("inventory").update(update).eq("product_id", prod.id);
+  if (error) return { ok: false, error: error.message };
+  revalidateStorefront(slug);
+  return { ok: true };
+}
+
+/** Adjust a product's stock by `delta` (restock / deduct), clamped to ≥ 0.
+ *  Returns the new stock. Server Action — admin re-check + service-role. */
+export async function adjustStock(
+  slug: string, delta: number,
+): Promise<{ ok: true; stock: number } | { ok: false; error: string }> {
+  if (!(await getIsAdmin())) throw new Error("unauthorized");
+  if (!Number.isInteger(delta) || delta === 0) {
+    return { ok: false, error: "Adjustment must be a non-zero whole number." };
+  }
+  const db = createAdminSupabase();
+  const { data: prod, error: lookupErr } = await db
+    .from("products").select("id, inventory(stock_qty)").eq("slug", slug).maybeSingle()
+    .overrideTypes<{ id: string; inventory: { stock_qty: number } | { stock_qty: number }[] | null }, { merge: false }>();
+  if (lookupErr) return { ok: false, error: lookupErr.message };
+  if (!prod) return { ok: false, error: `Product not found: ${slug}` };
+  const inv = Array.isArray(prod.inventory) ? prod.inventory[0] : prod.inventory;
+  const next = clampAdjust(inv?.stock_qty ?? 0, delta);
+  const { error } = await db.from("inventory").update({ stock_qty: next }).eq("product_id", prod.id);
+  if (error) return { ok: false, error: error.message };
+  revalidateStorefront(slug);
+  return { ok: true, stock: next };
 }
 
 /** ~5 MB cap on uploaded product photos. */
