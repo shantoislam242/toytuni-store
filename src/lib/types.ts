@@ -292,4 +292,6 @@ export type BlogPostData = {
    *  storefront metadata falls back to title/excerpt/coverImage. */
   seoTitle: string | null; metaDescription: string | null; ogImage: string | null;
   focusKeyword: string | null;
+  /** Blog 3c (migration 0010): free-form post tags (hub filter + post chips). */
+  tags: string[];
 };

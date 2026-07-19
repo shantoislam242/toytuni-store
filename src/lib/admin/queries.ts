@@ -473,13 +473,13 @@ export async function getAdminTaxonomy(kind: TaxonomyKind): Promise<AdminTaxonom
 
 export type AdminBlogListItem = {
   slug: string; title: string; category: string | null; author: string | null;
-  dateISO: string | null; featured: boolean; published: boolean;
+  dateISO: string | null; featured: boolean; published: boolean; scheduledAt: string | null;
 };
 export type AdminBlogPost = AdminBlogListItem & {
   excerpt: string; bodyMarkdown: string; coverImage: string | null;
   coverTone: string | null; coverLabel: string | null;
   seoTitle: string | null; metaDescription: string | null; ogImage: string | null;
-  focusKeyword: string | null;
+  focusKeyword: string | null; tags: string[];
 };
 
 /** All blog posts (every status, incl. drafts/unpublished), newest first.
@@ -489,20 +489,20 @@ export type AdminBlogPost = AdminBlogListItem & {
 export async function getAdminBlogPosts(): Promise<AdminBlogListItem[]> {
   const db = createAdminSupabase();
   const { data, error } = await db.from("blog_posts" as never)
-    .select("slug, title, category, author, date_iso, featured, published")
+    .select("slug, title, category, author, date_iso, featured, published, scheduled_at")
     .order("date_iso", { ascending: false })
-    .overrideTypes<{ slug: string; title: string; category: string | null; author: string | null; date_iso: string | null; featured: boolean; published: boolean }[], { merge: false }>();
+    .overrideTypes<{ slug: string; title: string; category: string | null; author: string | null; date_iso: string | null; featured: boolean; published: boolean; scheduled_at: string | null }[], { merge: false }>();
   if (error) throw new Error(`getAdminBlogPosts failed: ${error.message}`);
-  return (data ?? []).map((r) => ({ slug: r.slug, title: r.title, category: r.category, author: r.author, dateISO: r.date_iso, featured: r.featured, published: r.published }));
+  return (data ?? []).map((r) => ({ slug: r.slug, title: r.title, category: r.category, author: r.author, dateISO: r.date_iso, featured: r.featured, published: r.published, scheduledAt: r.scheduled_at }));
 }
 
 /** One blog post (any status) by slug, full editable content. Service-role. */
 export async function getAdminBlogPostBySlug(slug: string): Promise<AdminBlogPost | null> {
   const db = createAdminSupabase();
   const { data, error } = await db.from("blog_posts" as never)
-    .select("slug, title, excerpt, body, author, cover_image, category, date_iso, featured, published, cover_tone, cover_label, focus_keyword, seo_title, meta_description, og_image")
+    .select("slug, title, excerpt, body, author, cover_image, category, date_iso, featured, published, cover_tone, cover_label, focus_keyword, seo_title, meta_description, og_image, tags, scheduled_at")
     .eq("slug", slug).maybeSingle()
-    .overrideTypes<{ slug: string; title: string; excerpt: string | null; body: string; author: string | null; cover_image: string | null; category: string | null; date_iso: string | null; featured: boolean; published: boolean; cover_tone: string | null; cover_label: string | null; focus_keyword: string | null; seo_title: string | null; meta_description: string | null; og_image: string | null }, { merge: false }>();
+    .overrideTypes<{ slug: string; title: string; excerpt: string | null; body: string; author: string | null; cover_image: string | null; category: string | null; date_iso: string | null; featured: boolean; published: boolean; cover_tone: string | null; cover_label: string | null; focus_keyword: string | null; seo_title: string | null; meta_description: string | null; og_image: string | null; tags: string[] | null; scheduled_at: string | null }, { merge: false }>();
   if (error) throw new Error(`getAdminBlogPostBySlug failed: ${error.message}`);
   if (!data) return null;
   return {
@@ -510,6 +510,35 @@ export async function getAdminBlogPostBySlug(slug: string): Promise<AdminBlogPos
     author: data.author, category: data.category, dateISO: data.date_iso, featured: data.featured,
     published: data.published, coverImage: data.cover_image, coverTone: data.cover_tone, coverLabel: data.cover_label,
     seoTitle: data.seo_title, metaDescription: data.meta_description, ogImage: data.og_image,
-    focusKeyword: data.focus_keyword,
+    focusKeyword: data.focus_keyword, tags: data.tags ?? [], scheduledAt: data.scheduled_at,
   };
+}
+
+export type AdminBlogCategory = { slug: string; name: string; sort: number; postCount: number };
+
+type BlogCategoryRow = { slug: string; name: string; sort: number };
+
+/** All blog categories ordered by sort, each with its referencing-post count
+ *  (drives the delete-block UX). Service-role. `blog_categories` predates
+ *  the generated types — same `as never` table-name cast used elsewhere in
+ *  this file's blog code. */
+export async function getAdminBlogCategories(): Promise<AdminBlogCategory[]> {
+  const db = createAdminSupabase();
+  const { data, error } = await db
+    .from("blog_categories" as never)
+    .select("slug, name, sort")
+    .order("sort", { ascending: true })
+    .overrideTypes<BlogCategoryRow[], { merge: false }>();
+  if (error) throw new Error(`getAdminBlogCategories failed: ${error.message}`);
+  const rows = data ?? [];
+  // Per-row referencing-post count. N+1 but tiny (≤ a dozen rows) — mirrors getAdminTaxonomy.
+  const counts = await Promise.all(
+    rows.map(async (r) => {
+      const { count } = await db
+        .from("blog_posts" as never).select("slug", { count: "exact", head: true }).eq("category", r.slug);
+      return [r.slug, count ?? 0] as const;
+    }),
+  );
+  const bySlug = new Map(counts);
+  return rows.map((r) => ({ ...r, postCount: bySlug.get(r.slug) ?? 0 }));
 }

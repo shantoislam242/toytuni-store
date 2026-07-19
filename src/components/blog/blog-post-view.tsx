@@ -99,6 +99,18 @@ export function BlogPostView({
             {post.readMins} min read
           </span>
         </div>
+        {post.tags.length > 0 ? (
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-1.5">
+            {post.tags.map((tag) => (
+              <span
+                key={tag}
+                className="rounded-full bg-cream-100 px-2.5 py-0.5 text-xs text-ink-muted"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        ) : null}
       </header>
 
       {/* cover — real photo when the post has one, else the illustrated fallback */}

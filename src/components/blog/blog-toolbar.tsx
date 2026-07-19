@@ -13,12 +13,18 @@ export function BlogToolbar({
   onCategoryChange,
   query,
   onQueryChange,
+  tags,
+  activeTag,
+  onTagChange,
 }: {
   categories: BlogCategory[];
   active: string;
   onCategoryChange: (slug: string) => void;
   query: string;
   onQueryChange: (value: string) => void;
+  tags: string[];
+  activeTag: string | null;
+  onTagChange: (tag: string) => void;
 }) {
   return (
     <div>
@@ -68,6 +74,35 @@ export function BlogToolbar({
           );
         })}
       </div>
+
+      {/* tag chips — optional, single-select toggle */}
+      {tags.length > 0 ? (
+        <div
+          role="group"
+          aria-label="Filter by tag"
+          className="mt-3 flex flex-wrap gap-2"
+        >
+          {tags.map((t) => {
+            const selected = activeTag === t;
+            return (
+              <button
+                key={t}
+                type="button"
+                aria-pressed={selected}
+                onClick={() => onTagChange(t)}
+                className={cn(
+                  "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                  selected
+                    ? "border-neem bg-neem text-paper"
+                    : "border-cream-300 bg-paper text-ink-muted hover:border-neem-soft hover:text-ink",
+                )}
+              >
+                {t}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
     </div>
   );
 }
