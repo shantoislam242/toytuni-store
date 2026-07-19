@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath, revalidateTag } from "next/cache";
-import { getIsAdmin } from "@/lib/auth/session";
+import { getIsAdmin, getSessionUser } from "@/lib/auth/session";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import type { Database } from "@/lib/supabase/database.types";
 import type { DetailContent } from "@/lib/types";
@@ -10,14 +10,7 @@ import { TAXONOMY_TABLES, validateTaxonomyInput, isPermutation, type TaxonomyKin
 import { validateBlogCategory } from "@/lib/admin/blog-taxonomy";
 import { clampAdjust } from "@/lib/admin/inventory-status";
 import { cleanTags } from "@/lib/blog/tags";
-
-/** Mirrors the `orders.status` check constraint (`supabase/migrations/0001_init.sql`). */
-const ORDER_STATUSES = ["pending", "confirmed", "shipped", "delivered", "cancelled"] as const;
-type OrderStatus = (typeof ORDER_STATUSES)[number];
-
-function isOrderStatus(value: string): value is OrderStatus {
-  return (ORDER_STATUSES as readonly string[]).includes(value);
-}
+import { canTransition, timestampFieldFor, isOrderStatus, type OrderStatus } from "@/lib/orders/status-workflow";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -25,28 +18,157 @@ export type ActionResult = { ok: true } | { ok: false; error: string };
  *  can't import that file's non-exported regex. */
 const CUSTOMER_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+/** Carriers offered in the ship-order form (Bangladesh courier services). */
+export const ORDER_CARRIERS = ["Pathao", "Steadfast", "RedX", "Sundarban", "Paperfly", "eCourier", "Other"] as const;
+
+/** Look up an order's current status, narrowed to `OrderStatus` (null if the
+ *  order doesn't exist or its status is somehow outside the known set). */
+async function currentOrderStatus(db: ReturnType<typeof createAdminSupabase>, orderId: string): Promise<OrderStatus | null> {
+  const { data } = await db.from("orders").select("status").eq("id", orderId)
+    .maybeSingle().overrideTypes<{ status: string }, { merge: false }>();
+  return data && isOrderStatus(data.status) ? data.status : null;
+}
+
+/** The signed-in admin's email for `order_status_history.changed_by`, or
+ *  `"system"` if the session can't be resolved. */
+async function actorEmail(): Promise<string> {
+  const user = await getSessionUser();
+  return user?.email ?? "system";
+}
+
+/** Append a row to `order_status_history`. New table (migration 0011) absent
+ *  from the generated types — `as never` on the insert payload, same
+ *  escape hatch used elsewhere in this file for post-generation tables. */
+async function appendHistory(db: ReturnType<typeof createAdminSupabase>, orderId: string, status: string, note: string | null, by: string) {
+  await db.from("order_status_history").insert({ order_id: orderId, status, note, changed_by: by } as never);
+}
+
+/** Refresh the admin orders list + this order's detail page after a write. */
+function revalidateOrder(orderId: string) {
+  revalidatePath("/admin/orders");
+  revalidatePath(`/admin/orders/${orderId}`);
+}
+
 /**
  * Update an order's status. Server Action — reachable directly (not just via
  * the admin UI), so it re-checks admin itself rather than trusting the
- * `src/proxy.ts` gate or the admin layout's re-check.
+ * `src/proxy.ts` gate or the admin layout's re-check. Routes through the
+ * `status-workflow` transition table server-side (never trusts a client-
+ * supplied transition) and rejects `cancelled` — cancelling goes through the
+ * atomic `cancelOrder`/`cancel_order` RPC instead, which also restores stock.
  */
-export async function updateOrderStatus(orderId: string, status: string): Promise<ActionResult> {
+export async function updateOrderStatus(orderId: string, to: string): Promise<ActionResult> {
   if (!(await getIsAdmin())) throw new Error("unauthorized");
-
-  if (!isOrderStatus(status)) {
-    return { ok: false, error: `Invalid status: ${status}` };
-  }
-
+  if (!isOrderStatus(to)) return { ok: false, error: "Invalid status." };
+  if (to === "cancelled") return { ok: false, error: "Use cancel to cancel an order." };
   const db = createAdminSupabase();
-  const { error } = await db.from("orders").update({ status }).eq("id", orderId);
+  const from = await currentOrderStatus(db, orderId);
+  if (!from) return { ok: false, error: "Order not found." };
+  if (!canTransition(from, to)) return { ok: false, error: `Cannot move ${from} → ${to}.` };
+  const patch: Record<string, unknown> = { status: to };
+  const ts = timestampFieldFor(to);
+  if (ts) patch[ts] = new Date().toISOString();
+  const { error } = await db.from("orders").update(patch as never).eq("id", orderId);
+  if (error) return { ok: false, error: error.message };
+  await appendHistory(db, orderId, to, null, await actorEmail());
+  revalidateOrder(orderId);
+  return { ok: true };
+}
 
+/**
+ * Mark a `confirmed` order as `shipped`, recording the carrier + tracking
+ * number (and optional tracking URL). Server Action — admin re-check,
+ * validates the carrier against `ORDER_CARRIERS` and requires a non-empty
+ * tracking number, guards the transition via `canTransition`, and appends a
+ * history row noting the carrier/tracking.
+ */
+export async function shipOrder(
+  orderId: string, input: { carrier: string; trackingNumber: string; trackingUrl?: string },
+): Promise<ActionResult> {
+  if (!(await getIsAdmin())) throw new Error("unauthorized");
+  const carrier = input.carrier.trim();
+  const trackingNumber = input.trackingNumber.trim();
+  if (!(ORDER_CARRIERS as readonly string[]).includes(carrier)) return { ok: false, error: "Invalid carrier." };
+  if (!trackingNumber) return { ok: false, error: "Tracking number is required." };
+  const trackingUrl = input.trackingUrl?.trim() || null;
+  const db = createAdminSupabase();
+  const from = await currentOrderStatus(db, orderId);
+  if (!from) return { ok: false, error: "Order not found." };
+  if (!canTransition(from, "shipped")) return { ok: false, error: `Cannot ship from ${from}.` };
+  const { error } = await db.from("orders").update({
+    status: "shipped", shipped_at: new Date().toISOString(),
+    carrier, tracking_number: trackingNumber, tracking_url: trackingUrl,
+  } as never).eq("id", orderId);
+  if (error) return { ok: false, error: error.message };
+  await appendHistory(db, orderId, "shipped", `${carrier} · ${trackingNumber}`, await actorEmail());
+  revalidateOrder(orderId);
+  return { ok: true };
+}
+
+/**
+ * Mark a Cash-on-Delivery order's payment as settled. Server Action — admin
+ * re-check; blocks a cancelled order and a no-op re-mark of an already-
+ * settled payment_status. Does not touch `orders.status` — payment and
+ * fulfillment status are tracked independently.
+ */
+export async function markOrderPaid(orderId: string): Promise<ActionResult> {
+  if (!(await getIsAdmin())) throw new Error("unauthorized");
+  const db = createAdminSupabase();
+  const { data } = await db.from("orders").select("status, payment_status").eq("id", orderId)
+    .maybeSingle().overrideTypes<{ status: string; payment_status: string }, { merge: false }>();
+  if (!data) return { ok: false, error: "Order not found." };
+  if (data.status === "cancelled") return { ok: false, error: "Order is cancelled." };
+  if (data.payment_status !== "pending") return { ok: false, error: "Already settled." };
+  const { error } = await db.from("orders").update({
+    payment_status: "paid", paid_at: new Date().toISOString(),
+  } as never).eq("id", orderId);
+  if (error) return { ok: false, error: error.message };
+  await appendHistory(db, orderId, data.status, "Marked paid", await actorEmail());
+  revalidateOrder(orderId);
+  return { ok: true };
+}
+
+/**
+ * Cancel an order. Server Action — admin re-check; the actual cancel + stock
+ * restore happens atomically in the `cancel_order` Postgres function
+ * (migration 0011) so a concurrent order can't read stale inventory between
+ * the status flip and the restock — this action is a thin, validated wrapper
+ * around that RPC. The RPC itself appends the history row (with the reason
+ * as its note) and enforces the `cannot_cancel_from` guard (only
+ * pending/confirmed orders may be cancelled), which is mapped here to a
+ * friendly message.
+ */
+export async function cancelOrder(orderId: string, reason: string): Promise<ActionResult> {
+  if (!(await getIsAdmin())) throw new Error("unauthorized");
+  const db = createAdminSupabase();
+  const { error } = await db.rpc("cancel_order" as never, {
+    p_order_id: orderId, p_reason: reason.trim(), p_changed_by: await actorEmail(),
+  } as never);
   if (error) {
-    return { ok: false, error: error.message };
+    const msg = error.message.includes("cannot_cancel_from")
+      ? "Only pending or confirmed orders can be cancelled." : error.message;
+    return { ok: false, error: msg };
   }
+  revalidateOrder(orderId);
+  return { ok: true };
+}
 
-  revalidatePath("/admin/orders");
-  revalidatePath(`/admin/orders/${orderId}`);
-
+/**
+ * Add an internal note to an order's history without changing its status.
+ * Server Action — admin re-check; rejects an empty/whitespace-only note and
+ * caps length at 1000 chars. Appends a history row stamped with the order's
+ * CURRENT status (the note doesn't represent a transition).
+ */
+export async function addOrderNote(orderId: string, note: string): Promise<ActionResult> {
+  if (!(await getIsAdmin())) throw new Error("unauthorized");
+  const trimmed = note.trim();
+  if (!trimmed) return { ok: false, error: "Note is empty." };
+  if (trimmed.length > 1000) return { ok: false, error: "Note too long." };
+  const db = createAdminSupabase();
+  const from = await currentOrderStatus(db, orderId);
+  if (!from) return { ok: false, error: "Order not found." };
+  await appendHistory(db, orderId, from, trimmed, await actorEmail());
+  revalidateOrder(orderId);
   return { ok: true };
 }
 
