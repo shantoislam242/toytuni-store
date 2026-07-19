@@ -43,10 +43,16 @@ begin
     raise exception 'cannot_cancel_from:%', v_status;
   end if;
 
-  update inventory i set stock_qty = i.stock_qty + oi.qty
-    from order_items oi
-    where oi.order_id = p_order_id and oi.fulfillment_type = 'in_stock'
-      and i.product_id = oi.product_id;
+  -- Aggregate by product first: a set-based join would restock a product only once
+  -- even if the order has two in_stock lines for it, whereas place_order decremented per line.
+  update inventory i set stock_qty = i.stock_qty + agg.qty
+    from (
+      select product_id, sum(qty) as qty
+      from order_items
+      where order_id = p_order_id and fulfillment_type = 'in_stock'
+      group by product_id
+    ) agg
+    where i.product_id = agg.product_id;
 
   update orders set
     status = 'cancelled', cancelled_at = now(), cancel_reason = nullif(p_reason,''),

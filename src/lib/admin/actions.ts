@@ -40,7 +40,12 @@ async function actorEmail(): Promise<string> {
  *  from the generated types — `as never` on the insert payload, same
  *  escape hatch used elsewhere in this file for post-generation tables. */
 async function appendHistory(db: ReturnType<typeof createAdminSupabase>, orderId: string, status: string, note: string | null, by: string) {
-  await db.from("order_status_history").insert({ order_id: orderId, status, note, changed_by: by } as never);
+  const { error } = await db
+    .from("order_status_history")
+    .insert({ order_id: orderId, status, note, changed_by: by } as never);
+  // The order mutation already succeeded; a missing timeline row shouldn't fail the
+  // action, but log it so a silently-dropped history entry is discoverable.
+  if (error) console.error(`appendHistory failed for order ${orderId}:`, error.message);
 }
 
 /** Refresh the admin orders list + this order's detail page after a write. */
