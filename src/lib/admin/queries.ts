@@ -2,6 +2,7 @@ import "server-only";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import { computeDashboardStats, type DashboardStats } from "@/lib/admin/stats";
 import { TAXONOMY_TABLES, type TaxonomyKind } from "@/lib/admin/taxonomy";
+import { aggregateCustomers, type CustomerRow, type OrderAggRow, type CustomerListItem } from "@/lib/admin/customer-metrics";
 import type { DetailContent } from "@/lib/types";
 
 /** Row shapes supplied via `.overrideTypes()` — see the note in
@@ -356,6 +357,52 @@ export async function getAdminOrderById(id: string): Promise<AdminOrderDetail | 
       preorderShipDate: i.preorder_ship_date,
       preorderAdvancePct: i.preorder_advance_pct,
     })),
+  };
+}
+
+export type AdminCustomerOrder = {
+  id: string; orderNumber: string; createdAt: string; total: number; status: string;
+};
+export type AdminCustomerDetail = {
+  id: string; name: string; phone: string; email: string | null; createdAt: string;
+  orderCount: number; totalSpent: number; lastOrderAt: string | null;
+  orders: AdminCustomerOrder[];
+};
+
+/** All customers with per-customer order metrics. Service-role. */
+export async function getAdminCustomers(): Promise<CustomerListItem[]> {
+  const db = createAdminSupabase();
+  const [custRes, ordRes] = await Promise.all([
+    db.from("customers").select("id, name, phone, email, created_at").overrideTypes<CustomerRow[], { merge: false }>(),
+    db.from("orders").select("customer_id, total, status, created_at").overrideTypes<OrderAggRow[], { merge: false }>(),
+  ]);
+  if (custRes.error) throw new Error(`getAdminCustomers: customers read failed: ${custRes.error.message}`);
+  if (ordRes.error) throw new Error(`getAdminCustomers: orders read failed: ${ordRes.error.message}`);
+  return aggregateCustomers(custRes.data ?? [], ordRes.data ?? []);
+}
+
+/** One customer + their order history (newest first). Non-UUID id → null (404). */
+export async function getAdminCustomerById(id: string): Promise<AdminCustomerDetail | null> {
+  if (!UUID_RE.test(id)) return null;
+  const db = createAdminSupabase();
+  const { data: c, error } = await db
+    .from("customers").select("id, name, phone, email, created_at").eq("id", id).maybeSingle()
+    .overrideTypes<CustomerRow, { merge: false }>();
+  if (error) throw new Error(`getAdminCustomerById failed: ${error.message}`);
+  if (!c) return null;
+
+  const { data: ords, error: oErr } = await db
+    .from("orders").select("id, order_number, created_at, total, status").eq("customer_id", id)
+    .order("created_at", { ascending: false })
+    .overrideTypes<{ id: string; order_number: string; created_at: string; total: number; status: string }[], { merge: false }>();
+  if (oErr) throw new Error(`getAdminCustomerById orders failed: ${oErr.message}`);
+  const orders = ords ?? [];
+
+  const totalSpent = orders.filter((o) => o.status !== "cancelled").reduce((s, o) => s + o.total, 0);
+  return {
+    id: c.id, name: c.name, phone: c.phone, email: c.email, createdAt: c.created_at,
+    orderCount: orders.length, totalSpent, lastOrderAt: orders[0]?.created_at ?? null,
+    orders: orders.map((o) => ({ id: o.id, orderNumber: o.order_number, createdAt: o.created_at, total: o.total, status: o.status })),
   };
 }
 

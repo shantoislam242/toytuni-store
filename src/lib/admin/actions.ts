@@ -44,6 +44,28 @@ export async function updateOrderStatus(orderId: string, status: string): Promis
   return { ok: true };
 }
 
+/** Correct a customer's contact (name required; email optional + light-validated).
+ *  Phone (the unique identity key) is never editable. Server Action — admin
+ *  re-check + service-role. Does not rewrite past orders' name/email snapshots. */
+export async function updateCustomer(id: string, patch: { name: string; email: string | null }): Promise<ActionResult> {
+  if (!(await getIsAdmin())) throw new Error("unauthorized");
+  const name = patch.name.trim();
+  if (name === "") return { ok: false, error: "Name is required." };
+  const email = (patch.email ?? "").trim();
+  if (email !== "" && !/^\S+@\S+\.\S+$/.test(email)) {
+    return { ok: false, error: "Enter a valid email address or leave it blank." };
+  }
+  const db = createAdminSupabase();
+  const { data, error } = await db
+    .from("customers").update({ name, email: email === "" ? null : email }).eq("id", id)
+    .select("id").maybeSingle();
+  if (error) return { ok: false, error: error.message };
+  if (!data) return { ok: false, error: "Customer not found." };
+  revalidatePath("/admin/customers");
+  revalidatePath(`/admin/customers/${id}`);
+  return { ok: true };
+}
+
 /** Badges allowed on a product — mirrors the storefront `Product["badge"]`
  *  union (`src/lib/types.ts`). `null` clears the badge. */
 const PRODUCT_BADGES = ["New", "Best Seller", "Limited"] as const;
