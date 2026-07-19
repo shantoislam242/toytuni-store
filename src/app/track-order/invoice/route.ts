@@ -1,4 +1,4 @@
-import { findVerifiedOrder } from "@/lib/orders/track-actions";
+import { findVerifiedOrder } from "@/lib/orders/verified-order";
 import { isRateLimited } from "@/lib/orders/track-throttle";
 import { getSettings } from "@/lib/data/settings";
 import { buildInvoiceData } from "@/lib/invoice/build-invoice-data";
