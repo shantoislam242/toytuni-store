@@ -19,6 +19,10 @@ function isOrderStatus(value: string): value is OrderStatus {
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
+/** Mirrors `UUID_RE` in `src/lib/admin/queries.ts` — kept local since actions.ts
+ *  can't import that file's non-exported regex. */
+const CUSTOMER_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /**
  * Update an order's status. Server Action — reachable directly (not just via
  * the admin UI), so it re-checks admin itself rather than trusting the
@@ -41,6 +45,29 @@ export async function updateOrderStatus(orderId: string, status: string): Promis
   revalidatePath("/admin/orders");
   revalidatePath(`/admin/orders/${orderId}`);
 
+  return { ok: true };
+}
+
+/** Correct a customer's contact (name required; email optional + light-validated).
+ *  Phone (the unique identity key) is never editable. Server Action — admin
+ *  re-check + service-role. Does not rewrite past orders' name/email snapshots. */
+export async function updateCustomer(id: string, patch: { name: string; email: string | null }): Promise<ActionResult> {
+  if (!(await getIsAdmin())) throw new Error("unauthorized");
+  if (!CUSTOMER_UUID_RE.test(id)) return { ok: false, error: "Customer not found." };
+  const name = patch.name.trim();
+  if (name === "") return { ok: false, error: "Name is required." };
+  const email = (patch.email ?? "").trim();
+  if (email !== "" && !/^\S+@\S+\.\S+$/.test(email)) {
+    return { ok: false, error: "Enter a valid email address or leave it blank." };
+  }
+  const db = createAdminSupabase();
+  const { data, error } = await db
+    .from("customers").update({ name, email: email === "" ? null : email }).eq("id", id)
+    .select("id").maybeSingle();
+  if (error) return { ok: false, error: error.message };
+  if (!data) return { ok: false, error: "Customer not found." };
+  revalidatePath("/admin/customers");
+  revalidatePath(`/admin/customers/${id}`);
   return { ok: true };
 }
 
