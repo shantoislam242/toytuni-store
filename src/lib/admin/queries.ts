@@ -470,3 +470,42 @@ export async function getAdminTaxonomy(kind: TaxonomyKind): Promise<AdminTaxonom
   const byslug = new Map(counts);
   return rows.map((r) => ({ ...r, productCount: byslug.get(r.slug) ?? 0 }));
 }
+
+export type AdminBlogListItem = {
+  slug: string; title: string; category: string | null; author: string | null;
+  dateISO: string | null; featured: boolean; published: boolean;
+};
+export type AdminBlogPost = AdminBlogListItem & {
+  excerpt: string; bodyMarkdown: string; coverImage: string | null;
+  coverTone: string | null; coverLabel: string | null;
+};
+
+/** All blog posts (every status, incl. drafts/unpublished), newest first.
+ *  Service-role. `blog_posts`'s current columns (migration 0008: `body` as
+ *  text, `cover_tone`/`cover_label`) predate the generated types — same
+ *  `as never` table-name cast used elsewhere in this file/the seed script. */
+export async function getAdminBlogPosts(): Promise<AdminBlogListItem[]> {
+  const db = createAdminSupabase();
+  const { data, error } = await db.from("blog_posts" as never)
+    .select("slug, title, category, author, date_iso, featured, published")
+    .order("date_iso", { ascending: false })
+    .overrideTypes<{ slug: string; title: string; category: string | null; author: string | null; date_iso: string | null; featured: boolean; published: boolean }[], { merge: false }>();
+  if (error) throw new Error(`getAdminBlogPosts failed: ${error.message}`);
+  return (data ?? []).map((r) => ({ slug: r.slug, title: r.title, category: r.category, author: r.author, dateISO: r.date_iso, featured: r.featured, published: r.published }));
+}
+
+/** One blog post (any status) by slug, full editable content. Service-role. */
+export async function getAdminBlogPostBySlug(slug: string): Promise<AdminBlogPost | null> {
+  const db = createAdminSupabase();
+  const { data, error } = await db.from("blog_posts" as never)
+    .select("slug, title, excerpt, body, author, cover_image, category, date_iso, featured, published, cover_tone, cover_label")
+    .eq("slug", slug).maybeSingle()
+    .overrideTypes<{ slug: string; title: string; excerpt: string | null; body: string; author: string | null; cover_image: string | null; category: string | null; date_iso: string | null; featured: boolean; published: boolean; cover_tone: string | null; cover_label: string | null }, { merge: false }>();
+  if (error) throw new Error(`getAdminBlogPostBySlug failed: ${error.message}`);
+  if (!data) return null;
+  return {
+    slug: data.slug, title: data.title, excerpt: data.excerpt ?? "", bodyMarkdown: data.body ?? "",
+    author: data.author, category: data.category, dateISO: data.date_iso, featured: data.featured,
+    published: data.published, coverImage: data.cover_image, coverTone: data.cover_tone, coverLabel: data.cover_label,
+  };
+}
