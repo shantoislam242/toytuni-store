@@ -83,6 +83,7 @@ export const footerShop: NavLink[] = [
 
 export const footerCustomerCare: NavLink[] = [
   { labelBn: "My Account", href: "/account" },
+  { labelBn: "Track Order", href: "/track-order" },
   { labelBn: "Sign In", href: "/signin" },
   { labelBn: "Create Account", href: "/signin" },
   { labelBn: "Wishlist", href: "/wishlist" },

@@ -11,6 +11,8 @@ import { validateBlogCategory } from "@/lib/admin/blog-taxonomy";
 import { clampAdjust } from "@/lib/admin/inventory-status";
 import { cleanTags } from "@/lib/blog/tags";
 import { canTransition, timestampFieldFor, isOrderStatus, type OrderStatus } from "@/lib/orders/status-workflow";
+import { sendOrderEmail } from "@/lib/email/send-order-email";
+import { getAdminOrderById } from "@/lib/admin/queries";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -54,6 +56,27 @@ function revalidateOrder(orderId: string) {
   revalidatePath(`/admin/orders/${orderId}`);
 }
 
+/** Fail-soft shipped/delivered/cancelled order-status email. Re-reads the
+ *  order (for the customer's email + current carrier/tracking/status) rather
+ *  than threading that data through every caller. No-ops silently if the
+ *  order has no email on file. Never rethrows — a broken email send must
+ *  never fail the admin action that already succeeded. */
+async function emailOrder(orderId: string, kind: "shipped" | "delivered" | "cancelled") {
+  try {
+    const order = await getAdminOrderById(orderId);
+    if (!order?.customerEmail) return;
+    await sendOrderEmail(kind, {
+      orderNumber: order.orderNumber, customerName: order.customerName, customerEmail: order.customerEmail,
+      status: order.status,
+      items: order.items.map((i) => ({ title: i.title, qty: i.qty, lineTotal: i.lineTotal })),
+      subtotal: order.subtotal, deliveryFee: order.deliveryFee, advanceTotal: order.advanceTotal, total: order.total,
+      carrier: order.carrier, trackingNumber: order.trackingNumber, trackingUrl: order.trackingUrl,
+    });
+  } catch (err) {
+    console.error(`emailOrder(${kind}) failed:`, err);
+  }
+}
+
 /**
  * Update an order's status. Server Action — reachable directly (not just via
  * the admin UI), so it re-checks admin itself rather than trusting the
@@ -77,6 +100,7 @@ export async function updateOrderStatus(orderId: string, to: string): Promise<Ac
   if (error) return { ok: false, error: error.message };
   await appendHistory(db, orderId, to, null, await actorEmail());
   revalidateOrder(orderId);
+  if (to === "delivered") await emailOrder(orderId, "delivered");
   return { ok: true };
 }
 
@@ -107,6 +131,7 @@ export async function shipOrder(
   if (error) return { ok: false, error: error.message };
   await appendHistory(db, orderId, "shipped", `${carrier} · ${trackingNumber}`, await actorEmail());
   revalidateOrder(orderId);
+  await emailOrder(orderId, "shipped");
   return { ok: true };
 }
 
@@ -155,6 +180,7 @@ export async function cancelOrder(orderId: string, reason: string): Promise<Acti
     return { ok: false, error: msg };
   }
   revalidateOrder(orderId);
+  await emailOrder(orderId, "cancelled");
   return { ok: true };
 }
 
