@@ -848,3 +848,121 @@ export async function reorderTaxonomy(kind: TaxonomyKind, slugs: string[]): Prom
   revalidateTaxonomy();
   return { ok: true };
 }
+
+/** Fields an admin sets when creating/editing a blog post (Task 5). `coverImage`
+ *  is a Storage https URL, set separately via `uploadBlogCover` — the form
+ *  passes the returned URL back in here on create/update, this action never
+ *  uploads a file itself. `coverTone`/`coverLabel` are optional cosmetic
+ *  fallbacks the storefront placeholder art uses when there's no `coverImage`. */
+export type BlogPostInput = {
+  title: string;
+  excerpt: string;
+  bodyMarkdown: string;
+  category: string;
+  author: string;
+  coverImage?: string | null;
+  coverTone?: string;
+  coverLabel?: string;
+  featured: boolean;
+  published: boolean;
+};
+
+/** Refresh the public blog (list + this post) and the admin list after a write. */
+function revalidateBlog(slug: string): void {
+  revalidateTag("blog", "max");
+  revalidatePath("/blog");
+  revalidatePath(`/blog/${slug}`);
+  revalidatePath("/admin/blog");
+}
+
+/**
+ * Create a blog post. Server Action — re-checks admin, validates slug/title,
+ * and rejects a duplicate slug with a clean error before the DB's primary key
+ * would. `blog_posts`'s current columns (migration 0008: `body` as text, plus
+ * `cover_tone`/`cover_label`) predate the generated `database.types.ts` Insert
+ * type, so the row is cast `as never` — same escape hatch used by the seed
+ * script and `src/lib/data/blog.ts`/`src/lib/admin/queries.ts` elsewhere.
+ */
+export async function createBlogPost(input: { slug: string } & BlogPostInput): Promise<ActionResult> {
+  if (!(await getIsAdmin())) throw new Error("unauthorized");
+  const slug = input.slug.trim().toLowerCase();
+  if (!SLUG_RE.test(slug)) return { ok: false, error: "Slug must be lowercase letters, numbers and single dashes." };
+  if (input.title.trim() === "") return { ok: false, error: "Title is required." };
+  const db = createAdminSupabase();
+  const { data: existing } = await db.from("blog_posts").select("slug").eq("slug", slug).maybeSingle();
+  if (existing) return { ok: false, error: `A post with slug "${slug}" already exists.` };
+  const { error } = await db.from("blog_posts").insert({
+    slug, title: input.title.trim(), excerpt: input.excerpt.trim(), body: input.bodyMarkdown,
+    author: input.author.trim(), category: input.category || null, cover_image: input.coverImage ?? null,
+    cover_tone: input.coverTone ?? "cream", cover_label: input.coverLabel ?? input.title.trim(),
+    featured: input.featured, published: input.published,
+    date_iso: new Date().toISOString().slice(0, 10),
+  } as never);
+  if (error) return { ok: false, error: error.message };
+  revalidateBlog(slug);
+  return { ok: true };
+}
+
+/**
+ * Update a blog post's editable fields. Server Action — re-checks admin;
+ * only supplied keys are written, and `slug` is never one of them (it's
+ * immutable once created — used here only to locate the row).
+ */
+export async function updateBlogPost(slug: string, patch: Partial<BlogPostInput>): Promise<ActionResult> {
+  if (!(await getIsAdmin())) throw new Error("unauthorized");
+  const update: Record<string, unknown> = {};
+  if (patch.title !== undefined) { if (patch.title.trim() === "") return { ok: false, error: "Title is required." }; update.title = patch.title.trim(); }
+  if (patch.excerpt !== undefined) update.excerpt = patch.excerpt.trim();
+  if (patch.bodyMarkdown !== undefined) update.body = patch.bodyMarkdown;
+  if (patch.author !== undefined) update.author = patch.author.trim();
+  if (patch.category !== undefined) update.category = patch.category || null;
+  if (patch.coverImage !== undefined) update.cover_image = patch.coverImage;
+  if (patch.featured !== undefined) update.featured = patch.featured;
+  if (patch.published !== undefined) update.published = patch.published;
+  if (Object.keys(update).length === 0) return { ok: true };
+  const db = createAdminSupabase();
+  const { data, error } = await db.from("blog_posts").update(update as never).eq("slug", slug).select("slug").maybeSingle();
+  if (error) return { ok: false, error: error.message };
+  if (!data) return { ok: false, error: "Post not found." };
+  revalidateBlog(slug);
+  return { ok: true };
+}
+
+/** Delete a blog post. Server Action — re-checks admin + service-role. */
+export async function deleteBlogPost(slug: string): Promise<ActionResult> {
+  if (!(await getIsAdmin())) throw new Error("unauthorized");
+  const db = createAdminSupabase();
+  const { error } = await db.from("blog_posts").delete().eq("slug", slug);
+  if (error) return { ok: false, error: error.message };
+  revalidateBlog(slug);
+  return { ok: true };
+}
+
+/**
+ * Upload a blog cover photo, reusing the same public `product-images` bucket
+ * and validation as product photos (`uploadImageToBucket`), and return its
+ * public https URL. Unlike `putProductImage`, this does NOT write any DB
+ * column — the blog form passes the returned URL back as `coverImage` to
+ * `createBlogPost`/`updateBlogPost` itself. That's what makes cover upload
+ * work on the NEW-post form too, before any `blog_posts` row exists: the
+ * Storage object path only needs a valid slug *string* to namespace it under
+ * (same as a product's `<slug>/<file>` path) — not an existing row — and the
+ * new-post form already knows its slug (typed, or derived from the title)
+ * before the admin clicks "Create". Server Action — re-checks admin and
+ * validates the slug shape itself (it's untrusted client input here, not yet
+ * a real row to look up).
+ */
+export async function uploadBlogCover(
+  slug: string,
+  formData: FormData,
+): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+  if (!(await getIsAdmin())) throw new Error("unauthorized");
+  const cleanSlug = slug.trim().toLowerCase();
+  if (!SLUG_RE.test(cleanSlug)) {
+    return { ok: false, error: "Enter a valid slug before uploading a cover image." };
+  }
+  const file = formData.get("file");
+  if (!(file instanceof File)) return { ok: false, error: "No image file provided." };
+  const db = createAdminSupabase();
+  return uploadImageToBucket(db, cleanSlug, file);
+}

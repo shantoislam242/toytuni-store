@@ -8,32 +8,42 @@ import { BlogToolbar } from "@/components/blog/blog-toolbar";
 import { BlogCard } from "@/components/blog/blog-card";
 import { BlogPagination } from "@/components/blog/blog-pagination";
 import { BlogNewsletter } from "@/components/blog/blog-newsletter";
-import { blogCategories, blogPosts } from "@/lib/mock/blog";
-import type { BlogCategory } from "@/lib/types";
+import type { BlogCategory, BlogPostData } from "@/lib/types";
 
 const PAGE_SIZE = 6;
-
-const FILTER_CATEGORIES: BlogCategory[] = [
-  { slug: "all", name: "All" },
-  ...blogCategories,
-];
-
-// Static mock data → derive the spotlight once at module scope.
-// Spotlight: the pinned featured post + the next three most-recent stories.
-const featured = blogPosts.find((p) => p.featured) ?? blogPosts[0];
-const rest = blogPosts.filter((p) => p.slug !== featured.slug);
-const topReads = rest.slice(0, 3);
 
 /**
  * Blog index — hero, featured + top-reads spotlight, then a searchable /
  * filterable, paginated grid and a newsletter band. Owns all client state
  * (query, category, page); the spotlight stays static above the filters.
  */
-export function BlogView() {
+export function BlogView({
+  posts,
+  categories,
+}: {
+  posts: BlogPostData[];
+  categories: BlogCategory[];
+}) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("all");
   const [page, setPage] = useState(1);
   const gridRef = useRef<HTMLElement>(null);
+
+  const filterCategories: BlogCategory[] = useMemo(
+    () => [{ slug: "all", name: "All" }, ...categories],
+    [categories],
+  );
+
+  // Spotlight: the pinned featured post + the next three most-recent stories.
+  const featured = useMemo(
+    () => posts.find((p) => p.featured) ?? posts[0],
+    [posts],
+  );
+  const rest = useMemo(
+    () => (featured ? posts.filter((p) => p.slug !== featured.slug) : posts),
+    [posts, featured],
+  );
+  const topReads = useMemo(() => rest.slice(0, 3), [rest]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -44,7 +54,7 @@ export function BlogView() {
         p.title.toLowerCase().includes(q) || p.excerpt.toLowerCase().includes(q)
       );
     });
-  }, [query, category]);
+  }, [rest, query, category]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
@@ -68,14 +78,16 @@ export function BlogView() {
     <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 sm:px-6 sm:pt-8 lg:max-w-[90rem] lg:px-8">
       <BlogHero />
 
-      <div className="mt-12">
-        <FeaturedSection featured={featured} topReads={topReads} />
-      </div>
+      {featured ? (
+        <div className="mt-12">
+          <FeaturedSection featured={featured} topReads={topReads} />
+        </div>
+      ) : null}
 
       {/* browse: search + categories + grid */}
       <section ref={gridRef} className="mt-14 scroll-mt-[124px]">
         <BlogToolbar
-          categories={FILTER_CATEGORIES}
+          categories={filterCategories}
           active={category}
           onCategoryChange={(slug) => changeFilter({ category: slug })}
           query={query}

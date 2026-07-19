@@ -3,19 +3,19 @@ import { notFound } from "next/navigation";
 import { BlogPostView } from "@/components/blog/blog-post-view";
 import { BRAND_NAME, SITE_URL } from "@/lib/config";
 import { JsonLd } from "@/components/seo/json-ld";
-import { blogPosts, blogPostBySlug } from "@/lib/mock/blog";
+import { getBlogPost, getBlogPosts } from "@/lib/data/blog";
 
 type Props = {
   params: Promise<{ slug: string }>;
 };
 
 export async function generateStaticParams() {
-  return blogPosts.map((post) => ({ slug: post.slug }));
+  return (await getBlogPosts()).map((post) => ({ slug: post.slug }));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const post = blogPostBySlug(slug);
+  const post = await getBlogPost(slug);
 
   if (!post) {
     return { title: "Post not found" };
@@ -39,12 +39,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function Page({ params }: Props) {
   const { slug } = await params;
-  const post = blogPostBySlug(slug);
+  const [post, posts] = await Promise.all([getBlogPost(slug), getBlogPosts()]);
 
   if (!post) {
     notFound();
   }
 
+  const coverUrl = post.coverImage
+    ? (post.coverImage.startsWith("http") ? post.coverImage : `${SITE_URL}${post.coverImage}`)
+    : `${SITE_URL}/og-default.png`;
   const articleLd = {
     "@context": "https://schema.org",
     "@type": "Article",
@@ -57,7 +60,7 @@ export default async function Page({ params }: Props) {
       name: BRAND_NAME,
       logo: { "@type": "ImageObject", url: `${SITE_URL}/og-default.png` },
     },
-    image: [`${SITE_URL}${post.coverImage ?? "/og-default.png"}`],
+    image: [coverUrl],
     mainEntityOfPage: `${SITE_URL}/blog/${post.slug}`,
   };
   const breadcrumbLd = {
@@ -73,7 +76,7 @@ export default async function Page({ params }: Props) {
   return (
     <>
       <JsonLd data={[articleLd, breadcrumbLd]} />
-      <BlogPostView post={post} />
+      <BlogPostView post={post} posts={posts} />
     </>
   );
 }

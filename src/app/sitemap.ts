@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/config";
 import { products } from "@/lib/mock/products";
 import { giftKits, giftCards } from "@/lib/mock/gifts";
-import { blogPosts } from "@/lib/mock/blog";
 import { getAgeTiers, getCategories } from "@/lib/data/taxonomy";
+import { getBlogPosts } from "@/lib/data/blog";
 
 /**
  * XML sitemap covering every indexable route: content pages, all collection /
@@ -14,9 +14,10 @@ import { getAgeTiers, getCategories } from "@/lib/data/taxonomy";
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
   const at = (path: string) => `${SITE_URL}${path}`;
-  const [ageTiers, categories] = await Promise.all([
+  const [ageTiers, categories, posts] = await Promise.all([
     getAgeTiers(),
     getCategories(),
+    getBlogPosts(),
   ]);
 
   const staticPages: MetadataRoute.Sitemap = [
@@ -57,7 +58,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }),
   );
 
-  const blogPages: MetadataRoute.Sitemap = blogPosts.map((post) => ({
+  const blogPages: MetadataRoute.Sitemap = posts.map((post) => ({
     url: at(`/blog/${post.slug}`),
     lastModified: new Date(post.dateISO),
     changeFrequency: "monthly",
