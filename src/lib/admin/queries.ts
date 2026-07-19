@@ -62,6 +62,9 @@ type AdminOrderRow = {
   total: number;
   status: string;
   payment_method: string;
+  payment_status: string;
+  tracking_number: string | null;
+  carrier: string | null;
 };
 
 type AdminOrderDetailRow = {
@@ -78,6 +81,17 @@ type AdminOrderDetailRow = {
   landmark: string | null;
   status: string;
   payment_method: string;
+  payment_status: string;
+  paid_at: string | null;
+  carrier: string | null;
+  tracking_number: string | null;
+  tracking_url: string | null;
+  confirmed_at: string | null;
+  shipped_at: string | null;
+  delivered_at: string | null;
+  cancelled_at: string | null;
+  cancel_reason: string | null;
+  updated_at: string;
   subtotal: number;
   delivery_fee: number;
   total: number;
@@ -158,6 +172,9 @@ export type AdminOrderListItem = {
   total: number;
   status: string;
   paymentMethod: string;
+  paymentStatus: string;
+  trackingNumber: string | null;
+  carrier: string | null;
 };
 
 export type AdminOrderDetail = {
@@ -174,6 +191,17 @@ export type AdminOrderDetail = {
   landmark: string | null;
   status: string;
   paymentMethod: string;
+  paymentStatus: string;
+  paidAt: string | null;
+  carrier: string | null;
+  trackingNumber: string | null;
+  trackingUrl: string | null;
+  confirmedAt: string | null;
+  shippedAt: string | null;
+  deliveredAt: string | null;
+  cancelledAt: string | null;
+  cancelReason: string | null;
+  updatedAt: string;
   subtotal: number;
   deliveryFee: number;
   total: number;
@@ -289,7 +317,7 @@ export async function getAdminOrders(): Promise<AdminOrderListItem[]> {
   const db = createAdminSupabase();
   const { data, error } = await db
     .from("orders")
-    .select("id, order_number, created_at, customer_name, customer_phone, total, status, payment_method")
+    .select("id, order_number, created_at, customer_name, customer_phone, total, status, payment_method, payment_status, tracking_number, carrier")
     .order("created_at", { ascending: false })
     .overrideTypes<AdminOrderRow[], { merge: false }>();
   if (error) throw new Error(`getAdminOrders failed: ${error.message}`);
@@ -303,6 +331,9 @@ export async function getAdminOrders(): Promise<AdminOrderListItem[]> {
     total: o.total,
     status: o.status,
     paymentMethod: o.payment_method,
+    paymentStatus: o.payment_status,
+    trackingNumber: o.tracking_number,
+    carrier: o.carrier,
   }));
 }
 
@@ -319,7 +350,7 @@ export async function getAdminOrderById(id: string): Promise<AdminOrderDetail | 
   const { data, error } = await db
     .from("orders")
     .select(
-      "id, order_number, created_at, customer_name, customer_phone, customer_email, division, district, area, address_line, landmark, status, payment_method, subtotal, delivery_fee, total, advance_total, notes, order_items(id, product_id, title, unit_price, qty, line_total, fulfillment_type, preorder_ship_date, preorder_advance_pct)",
+      "id, order_number, created_at, customer_name, customer_phone, customer_email, division, district, area, address_line, landmark, status, payment_method, payment_status, paid_at, carrier, tracking_number, tracking_url, confirmed_at, shipped_at, delivered_at, cancelled_at, cancel_reason, updated_at, subtotal, delivery_fee, total, advance_total, notes, order_items(id, product_id, title, unit_price, qty, line_total, fulfillment_type, preorder_ship_date, preorder_advance_pct)",
     )
     .eq("id", id)
     .maybeSingle()
@@ -341,6 +372,17 @@ export async function getAdminOrderById(id: string): Promise<AdminOrderDetail | 
     landmark: data.landmark,
     status: data.status,
     paymentMethod: data.payment_method,
+    paymentStatus: data.payment_status,
+    paidAt: data.paid_at,
+    carrier: data.carrier,
+    trackingNumber: data.tracking_number,
+    trackingUrl: data.tracking_url,
+    confirmedAt: data.confirmed_at,
+    shippedAt: data.shipped_at,
+    deliveredAt: data.delivered_at,
+    cancelledAt: data.cancelled_at,
+    cancelReason: data.cancel_reason,
+    updatedAt: data.updated_at,
     subtotal: data.subtotal,
     deliveryFee: data.delivery_fee,
     total: data.total,
@@ -358,6 +400,28 @@ export async function getAdminOrderById(id: string): Promise<AdminOrderDetail | 
       preorderAdvancePct: i.preorder_advance_pct,
     })),
   };
+}
+
+export type OrderHistoryItem = {
+  id: string; status: string; note: string | null; changedBy: string | null; createdAt: string;
+};
+
+/** Status-history timeline for one order, oldest first. Service-role. */
+export async function getOrderStatusHistory(orderId: string): Promise<OrderHistoryItem[]> {
+  const db = createAdminSupabase();
+  const { data, error } = await db
+    .from("order_status_history")
+    .select("id, status, note, changed_by, created_at")
+    .eq("order_id", orderId)
+    .order("created_at", { ascending: true })
+    .overrideTypes<
+      { id: string; status: string; note: string | null; changed_by: string | null; created_at: string }[],
+      { merge: false }
+    >();
+  if (error) throw new Error(`getOrderStatusHistory failed: ${error.message}`);
+  return (data ?? []).map((r) => ({
+    id: r.id, status: r.status, note: r.note, changedBy: r.changed_by, createdAt: r.created_at,
+  }));
 }
 
 export type AdminCustomerOrder = {
