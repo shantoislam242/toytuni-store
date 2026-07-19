@@ -31,12 +31,18 @@ Phase 3 Slices 1/2/3a/3b + Settings + Categories + Inventory + Customers are mer
 - Cover image → the existing public **`product-images`** Supabase Storage bucket (reuse the admin upload path).
 - Blog categories **seeded** from the mock; admin picks from them (no category CRUD yet).
 
-## Schema (migration)
+## Schema (migration) — ADAPTS the existing table
 
-- `create table blog_categories (slug text primary key, name text not null, sort int not null default 0)`.
-- `create table blog_posts (id uuid pk default uuid_generate_v4(), slug text unique not null, title text not null, excerpt text not null default '', body text not null default '', category_slug text references blog_categories(slug), author text not null default '', cover_image text, cover_tone text, cover_label text, status text not null default 'draft' check (status in ('draft','published')), featured boolean not null default false, read_mins int not null default 3, published_at timestamptz, created_at timestamptz not null default now(), updated_at timestamptz not null default now())`.
-- RLS: enable + a public read policy for `status = 'published'` (mirrors the catalog's anon-read model); writes are service-role only.
-- **Seed** (`scripts/seed.ts`): upsert `blog_categories` from mock; upsert `blog_posts` from `blogPosts` with `body = blockToMarkdown(post.body)`, `status = 'published'`, `published_at = dateISO`, `read_mins = post.readMins`, `featured = post.featured ?? false`, cover_tone/label from the mock. Idempotent.
+**IMPORTANT:** `blog_posts` **already exists** (migration `0001`, currently empty) with: `slug text primary key, title text, excerpt text, body jsonb default '[]', author text, cover_image text, category text, read_mins int, date_iso date, featured boolean default false, published boolean default true`. RLS is already enabled with a public policy `read published posts using (published = true)`. So the migration **alters** this table rather than creating it, and uses the existing `published` boolean for draft/published (draft = `published = false`) and the existing `category` text column (slug string) — NOT a status enum or a category FK.
+
+Migration `0008_blog_content.sql`:
+- `alter table blog_posts alter column body drop default;` `alter table blog_posts alter column body type text using '';` `alter table blog_posts alter column body set default '';` `alter table blog_posts alter column body set not null;` — repurpose the (empty) jsonb body to **markdown text**.
+- `alter table blog_posts add column if not exists cover_tone text;` `add column if not exists cover_label text;` — for the illustrated cover fallback.
+- `create table if not exists blog_categories (slug text primary key, name text not null, sort int not null default 0);` — names for the picker/chips (the existing `blog_posts.category` stays a plain text slug; no FK).
+- The existing RLS + published-read policy are kept as-is (no RLS work needed).
+- **Seed** (`scripts/seed.ts`): upsert `blog_categories` from mock `blogCategories`; upsert `blog_posts` from `blogPosts` with `body = blockToMarkdown(post.body)`, `published = true`, `date_iso = post.dateISO`, `read_mins = post.readMins`, `featured = post.featured ?? false`, `category = post.category`, `cover_tone`/`cover_label` from the mock. Idempotent (`onConflict: "slug"`).
+
+**Draft/published:** the app uses the `published` boolean (the admin toggle writes it). "status draft/published" in this doc = `published = false | true`.
 
 ## Architecture
 
