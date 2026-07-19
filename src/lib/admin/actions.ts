@@ -865,7 +865,22 @@ export type BlogPostInput = {
   coverLabel?: string;
   featured: boolean;
   published: boolean;
+  /** Blog 3b (migration 0009): per-post SEO overrides. `focusKeyword` drives
+   *  the editor's live SEO score; the other three override the storefront's
+   *  auto-derived metadata (title/excerpt/coverImage) when set. */
+  focusKeyword?: string | null;
+  seoTitle?: string | null;
+  metaDescription?: string | null;
+  ogImage?: string | null;
 };
+
+/** Trim an admin-supplied SEO string; blank/absent → null (matches the
+ *  column's nullable "unset" state, not an empty string). */
+function cleanSeoField(v: string | null | undefined): string | null {
+  if (v == null) return null;
+  const t = v.trim();
+  return t === "" ? null : t;
+}
 
 /** Refresh the public blog (list + this post) and the admin list after a write. */
 function revalidateBlog(slug: string): void {
@@ -897,6 +912,8 @@ export async function createBlogPost(input: { slug: string } & BlogPostInput): P
     cover_tone: input.coverTone ?? "cream", cover_label: input.coverLabel ?? input.title.trim(),
     featured: input.featured, published: input.published,
     date_iso: new Date().toISOString().slice(0, 10),
+    focus_keyword: cleanSeoField(input.focusKeyword), seo_title: cleanSeoField(input.seoTitle),
+    meta_description: cleanSeoField(input.metaDescription), og_image: cleanSeoField(input.ogImage),
   } as never);
   if (error) return { ok: false, error: error.message };
   revalidateBlog(slug);
@@ -919,6 +936,10 @@ export async function updateBlogPost(slug: string, patch: Partial<BlogPostInput>
   if (patch.coverImage !== undefined) update.cover_image = patch.coverImage;
   if (patch.featured !== undefined) update.featured = patch.featured;
   if (patch.published !== undefined) update.published = patch.published;
+  if (patch.focusKeyword !== undefined) update.focus_keyword = cleanSeoField(patch.focusKeyword);
+  if (patch.seoTitle !== undefined) update.seo_title = cleanSeoField(patch.seoTitle);
+  if (patch.metaDescription !== undefined) update.meta_description = cleanSeoField(patch.metaDescription);
+  if (patch.ogImage !== undefined) update.og_image = cleanSeoField(patch.ogImage);
   if (Object.keys(update).length === 0) return { ok: true };
   const db = createAdminSupabase();
   const { data, error } = await db.from("blog_posts").update(update as never).eq("slug", slug).select("slug").maybeSingle();
