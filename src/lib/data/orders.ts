@@ -5,6 +5,10 @@ import { computeOrderTotals } from "@/lib/data/order-totals";
 import { computeAdvance } from "@/lib/data/advance";
 import { getSettings } from "@/lib/data/settings";
 import { priceDelivery } from "@/lib/shipping";
+import { sendOrderEmail } from "@/lib/email/send-order-email";
+import { buildInvoiceData } from "@/lib/invoice/build-invoice-data";
+import { generateInvoicePdf } from "@/lib/invoice/generate-invoice-pdf";
+import { BRAND_NAME } from "@/lib/config";
 
 export type CreateOrderInput = {
   customer: { name: string; phone: string; email?: string };
@@ -129,6 +133,36 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
       return { ok: false, error: "Sorry, an item just went out of stock. Please try again." };
     }
     return { ok: false, error: "Could not place order." };
+  }
+
+  // Fail-soft placed-confirmation email (with invoice PDF attached). Wrapped
+  // in its own try/catch — on top of `sendOrderEmail`'s internal fail-soft —
+  // so a broken invoice render or email send can never fail the order itself,
+  // which has already been placed by this point.
+  if (input.customer.email) {
+    const emailData = {
+      orderNumber, customerName: input.customer.name, customerEmail: input.customer.email,
+      status: "pending",
+      items: p_items.map((i) => ({ title: i.title, qty: i.qty, lineTotal: i.line_total })),
+      subtotal, deliveryFee, advanceTotal, total,
+    };
+    try {
+      const invoiceData = buildInvoiceData(
+        {
+          orderNumber, createdAt: new Date().toISOString(), status: "pending", paymentStatus: "pending",
+          customerName: input.customer.name, customerPhone: input.customer.phone, customerEmail: input.customer.email,
+          division: input.address.division, district: input.address.district, area: input.address.area,
+          addressLine: input.address.addressLine, landmark: input.address.landmark ?? null,
+          items: p_items.map((i) => ({ title: i.title, qty: i.qty, unitPrice: i.unit_price, lineTotal: i.line_total })),
+          subtotal, deliveryFee, advanceTotal, total,
+        },
+        settings, BRAND_NAME,
+      );
+      const pdf = await generateInvoicePdf(invoiceData);
+      await sendOrderEmail("placed", emailData, { filename: `invoice-${orderNumber}.pdf`, content: pdf });
+    } catch (err) {
+      console.error("placed-email failed:", err);
+    }
   }
 
   return { ok: true, orderNumber: orderNumberResult as string, total };
