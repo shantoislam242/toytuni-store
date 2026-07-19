@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Upload } from "lucide-react";
+import { ImagePlus, Upload } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -17,11 +17,13 @@ import {
 import { Markdown } from "@/components/blog/markdown";
 import { SeoPanel } from "@/components/admin/seo-panel";
 import { SnippetPreview } from "@/components/admin/snippet-preview";
+import { StringListEditor } from "@/components/admin/string-list-editor";
 import { createBlogPost, updateBlogPost, uploadBlogCover } from "@/lib/admin/actions";
 import type { AdminBlogPost } from "@/lib/admin/queries";
 import type { BlogCategory } from "@/lib/types";
 import { analyzeSeo } from "@/lib/blog/seo-analysis";
 import { analyzeReadability } from "@/lib/blog/readability-analysis";
+import { postStatus } from "@/lib/blog/post-live";
 import { cn } from "@/lib/utils";
 
 /** Derive a url-safe slug from a free-text title (mirrors `ProductCreateForm`'s
@@ -102,6 +104,11 @@ export function BlogPostForm({
   const [published, setPublished] = useState(post?.published ?? false);
   const [coverImage, setCoverImage] = useState<string | null>(post?.coverImage ?? null);
   const [tab, setTab] = useState<"write" | "preview">("write");
+  const [tags, setTags] = useState<string[]>(post?.tags ?? []);
+  const [scheduledAt, setScheduledAt] = useState(post?.scheduledAt ?? "");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const insertImageInputRef = useRef<HTMLInputElement>(null);
+  const [isInsertingImage, startInsertingImage] = useTransition();
 
   const [focusKeyword, setFocusKeyword] = useState(post?.focusKeyword ?? "");
   const [seoTitle, setSeoTitle] = useState(post?.seoTitle ?? "");
@@ -157,6 +164,26 @@ export function BlogPostForm({
     });
   };
 
+  const handleInsertImage = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (slug.trim() === "") return toast.error("Enter a slug first.");
+    const formData = new FormData();
+    formData.set("file", file);
+    startInsertingImage(async () => {
+      const result = await uploadBlogCover(slug, formData);
+      if (result.ok) {
+        const caret = textareaRef.current?.selectionStart ?? body.length;
+        const markdown = `![](${result.url})`;
+        setBody(body.slice(0, caret) + markdown + body.slice(caret));
+        toast.success("Image inserted.");
+      } else {
+        toast.error(result.error);
+      }
+    });
+  };
+
   const handleSubmit = () => {
     const cleanTitle = title.trim();
     if (cleanTitle === "") return toast.error("Title is required.");
@@ -179,6 +206,8 @@ export function BlogPostForm({
           seoTitle: seoTitle.trim() || null,
           metaDescription: metaDescription.trim() || null,
           ogImage,
+          tags,
+          scheduledAt: scheduledAt.trim() === "" ? null : new Date(scheduledAt).toISOString(),
         });
         if (result.ok) {
           toast.success("Post saved.");
@@ -203,6 +232,8 @@ export function BlogPostForm({
           seoTitle: seoTitle.trim() || null,
           metaDescription: metaDescription.trim() || null,
           ogImage,
+          tags,
+          scheduledAt: scheduledAt.trim() === "" ? null : new Date(scheduledAt).toISOString(),
         });
         if (result.ok) {
           toast.success("Post created.");
@@ -277,6 +308,9 @@ export function BlogPostForm({
                 className="mt-1 w-full rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
               />
             </label>
+            <div className="sm:col-span-2">
+              <StringListEditor label="Tags" value={tags} onChange={setTags} addLabel="Add tag" />
+            </div>
           </CardContent>
         </Card>
 
@@ -285,30 +319,51 @@ export function BlogPostForm({
             <CardTitle>Body</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="flex gap-1 rounded-lg border border-cream-300 bg-cream-100 p-1 text-sm">
-              <button
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex gap-1 rounded-lg border border-cream-300 bg-cream-100 p-1 text-sm">
+                <button
+                  type="button"
+                  onClick={() => setTab("write")}
+                  className={cn(
+                    "flex-1 rounded-md px-3 py-1.5 font-medium transition-colors",
+                    tab === "write" ? "bg-white text-ink shadow-sm" : "text-ink-muted hover:text-ink",
+                  )}
+                >
+                  Write
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTab("preview")}
+                  className={cn(
+                    "flex-1 rounded-md px-3 py-1.5 font-medium transition-colors",
+                    tab === "preview" ? "bg-white text-ink shadow-sm" : "text-ink-muted hover:text-ink",
+                  )}
+                >
+                  Preview
+                </button>
+              </div>
+              <input
+                ref={insertImageInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleInsertImage}
+                disabled={isInsertingImage}
+                className="hidden"
+              />
+              <Button
                 type="button"
-                onClick={() => setTab("write")}
-                className={cn(
-                  "flex-1 rounded-md px-3 py-1.5 font-medium transition-colors",
-                  tab === "write" ? "bg-white text-ink shadow-sm" : "text-ink-muted hover:text-ink",
-                )}
+                variant="outline"
+                size="sm"
+                onClick={() => insertImageInputRef.current?.click()}
+                disabled={isInsertingImage}
               >
-                Write
-              </button>
-              <button
-                type="button"
-                onClick={() => setTab("preview")}
-                className={cn(
-                  "flex-1 rounded-md px-3 py-1.5 font-medium transition-colors",
-                  tab === "preview" ? "bg-white text-ink shadow-sm" : "text-ink-muted hover:text-ink",
-                )}
-              >
-                Preview
-              </button>
+                <ImagePlus className="size-4" />
+                {isInsertingImage ? "Uploading…" : "Insert image"}
+              </Button>
             </div>
             {tab === "write" ? (
               <textarea
+                ref={textareaRef}
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
                 rows={20}
@@ -377,6 +432,24 @@ export function BlogPostForm({
             <ToggleField label={published ? "Published" : "Draft"} checked={published} onChange={setPublished} />
             <p className="text-xs text-ink-soft">
               Drafts are hidden from the storefront blog and 404 if visited directly.
+            </p>
+            <label className="block">
+              <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">Schedule</span>
+              <Input
+                type="datetime-local"
+                value={scheduledAt}
+                onChange={(e) => setScheduledAt(e.target.value)}
+                className="mt-1"
+              />
+              <span className="mt-1 block text-xs text-ink-soft">
+                Set a future time to schedule; the post goes live then.
+              </span>
+            </label>
+            <p className="text-xs font-medium text-ink-muted">
+              Status:{" "}
+              <span className="text-ink">
+                {postStatus({ published, scheduledAt: scheduledAt || null, now: new Date() })}
+              </span>
             </p>
           </CardContent>
         </Card>

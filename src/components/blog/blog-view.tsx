@@ -26,12 +26,18 @@ export function BlogView({
 }) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("all");
+  const [tag, setTag] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const gridRef = useRef<HTMLElement>(null);
 
   const filterCategories: BlogCategory[] = useMemo(
     () => [{ slug: "all", name: "All" }, ...categories],
     [categories],
+  );
+
+  const allTags = useMemo(
+    () => [...new Set(posts.flatMap((p) => p.tags))],
+    [posts],
   );
 
   // Spotlight: the pinned featured post + the next three most-recent stories.
@@ -49,12 +55,13 @@ export function BlogView({
     const q = query.trim().toLowerCase();
     return rest.filter((p) => {
       if (category !== "all" && p.category !== category) return false;
+      if (tag !== null && !p.tags.includes(tag)) return false;
       if (!q) return true;
       return (
         p.title.toLowerCase().includes(q) || p.excerpt.toLowerCase().includes(q)
       );
     });
-  }, [rest, query, category]);
+  }, [rest, query, category, tag]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
@@ -63,9 +70,10 @@ export function BlogView({
     currentPage * PAGE_SIZE,
   );
 
-  const changeFilter = (next: { query?: string; category?: string }) => {
+  const changeFilter = (next: { query?: string; category?: string; tag?: string | null }) => {
     if (next.query !== undefined) setQuery(next.query);
     if (next.category !== undefined) setCategory(next.category);
+    if (next.tag !== undefined) setTag(next.tag);
     setPage(1);
   };
 
@@ -92,6 +100,9 @@ export function BlogView({
           onCategoryChange={(slug) => changeFilter({ category: slug })}
           query={query}
           onQueryChange={(value) => changeFilter({ query: value })}
+          tags={allTags}
+          activeTag={tag}
+          onTagChange={(next) => changeFilter({ tag: tag === next ? null : next })}
         />
 
         {visible.length > 0 ? (
