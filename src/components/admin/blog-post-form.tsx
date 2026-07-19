@@ -36,6 +36,20 @@ function slugify(value: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
+/** Convert a stored UTC ISO timestamp (`AdminBlogPost.scheduledAt`) into the
+ *  local `YYYY-MM-DDTHH:mm` value a native `datetime-local` input expects.
+ *  Round-trips with `new Date(localValue).toISOString()` on submit, since the
+ *  browser interprets that local string in the same timezone this shift
+ *  undoes. */
+function isoToLocalInput(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  // shift by the local tz offset so toISOString slice yields LOCAL wall-clock
+  const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 16); // YYYY-MM-DDTHH:mm
+}
+
 function ToggleField({
   label, checked, onChange,
 }: {
@@ -105,7 +119,7 @@ export function BlogPostForm({
   const [coverImage, setCoverImage] = useState<string | null>(post?.coverImage ?? null);
   const [tab, setTab] = useState<"write" | "preview">("write");
   const [tags, setTags] = useState<string[]>(post?.tags ?? []);
-  const [scheduledAt, setScheduledAt] = useState(post?.scheduledAt ?? "");
+  const [scheduledAt, setScheduledAt] = useState(isoToLocalInput(post?.scheduledAt ?? null));
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const insertImageInputRef = useRef<HTMLInputElement>(null);
   const [isInsertingImage, startInsertingImage] = useTransition();
