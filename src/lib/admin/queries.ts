@@ -396,13 +396,17 @@ export async function getAdminCustomerById(id: string): Promise<AdminCustomerDet
     .order("created_at", { ascending: false })
     .overrideTypes<{ id: string; order_number: string; created_at: string; total: number; status: string }[], { merge: false }>();
   if (oErr) throw new Error(`getAdminCustomerById orders failed: ${oErr.message}`);
-  const orders = ords ?? [];
 
-  const totalSpent = orders.filter((o) => o.status !== "cancelled").reduce((s, o) => s + o.total, 0);
+  const orders = ords ?? [];
+  const [metrics] = aggregateCustomers(
+    [c],
+    orders.map((o) => ({ customer_id: c.id, total: o.total, status: o.status, created_at: o.created_at })),
+  );
   return {
-    id: c.id, name: c.name, phone: c.phone, email: c.email, createdAt: c.created_at,
-    orderCount: orders.length, totalSpent, lastOrderAt: orders[0]?.created_at ?? null,
-    orders: orders.map((o) => ({ id: o.id, orderNumber: o.order_number, createdAt: o.created_at, total: o.total, status: o.status })),
+    ...metrics, // id, name, phone, email, createdAt, orderCount, totalSpent, lastOrderAt
+    orders: orders.map((o) => ({
+      id: o.id, orderNumber: o.order_number, createdAt: o.created_at, total: o.total, status: o.status,
+    })),
   };
 }
 

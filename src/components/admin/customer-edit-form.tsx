@@ -29,7 +29,7 @@ export function CustomerEditForm({ id, name, email, phone }: { id: string; name:
       </label>
       <label className="block">
         <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">Email</span>
-        <Input value={emailV} onChange={(e) => setEmailV(e.target.value)} placeholder="—" className="mt-1" />
+        <Input type="email" value={emailV} onChange={(e) => setEmailV(e.target.value)} placeholder="name@example.com" className="mt-1" />
       </label>
       <div>
         <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">Phone</span>

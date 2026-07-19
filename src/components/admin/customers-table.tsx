@@ -20,6 +20,7 @@ export function CustomersTable({ items }: { items: CustomerListItem[] }) {
       <div className="relative max-w-sm">
         <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-ink-soft" />
         <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search name, phone or email…"
+          aria-label="Search customers"
           className="h-9 w-full rounded-lg border border-cream-300 bg-cream-50/60 pl-8 pr-3 text-sm text-ink outline-none placeholder:text-ink-soft" />
       </div>
       <div className="mt-4 overflow-x-auto rounded-xl border border-cream-300">
