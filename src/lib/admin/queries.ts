@@ -513,3 +513,32 @@ export async function getAdminBlogPostBySlug(slug: string): Promise<AdminBlogPos
     focusKeyword: data.focus_keyword, tags: data.tags ?? [], scheduledAt: data.scheduled_at,
   };
 }
+
+export type AdminBlogCategory = { slug: string; name: string; sort: number; postCount: number };
+
+type BlogCategoryRow = { slug: string; name: string; sort: number };
+
+/** All blog categories ordered by sort, each with its referencing-post count
+ *  (drives the delete-block UX). Service-role. `blog_categories` predates
+ *  the generated types — same `as never` table-name cast used elsewhere in
+ *  this file's blog code. */
+export async function getAdminBlogCategories(): Promise<AdminBlogCategory[]> {
+  const db = createAdminSupabase();
+  const { data, error } = await db
+    .from("blog_categories" as never)
+    .select("slug, name, sort")
+    .order("sort", { ascending: true })
+    .overrideTypes<BlogCategoryRow[], { merge: false }>();
+  if (error) throw new Error(`getAdminBlogCategories failed: ${error.message}`);
+  const rows = data ?? [];
+  // Per-row referencing-post count. N+1 but tiny (≤ a dozen rows) — mirrors getAdminTaxonomy.
+  const counts = await Promise.all(
+    rows.map(async (r) => {
+      const { count } = await db
+        .from("blog_posts" as never).select("slug", { count: "exact", head: true }).eq("category", r.slug);
+      return [r.slug, count ?? 0] as const;
+    }),
+  );
+  const bySlug = new Map(counts);
+  return rows.map((r) => ({ ...r, postCount: bySlug.get(r.slug) ?? 0 }));
+}

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Newspaper, Plus } from "lucide-react";
+import { Newspaper, Plus, Tags } from "lucide-react";
 import { getAdminBlogPosts } from "@/lib/admin/queries";
 import { BlogPostsTable } from "@/components/admin/blog-posts-table";
 import { Button } from "@/components/ui/button";
@@ -23,10 +23,28 @@ export default async function Page() {
 
   return (
     <div>
-      <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-neem-deep">
-        Journal
-      </p>
-      <h1 className="mt-1 font-display text-2xl font-bold text-ink">Blog</h1>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-neem-deep">
+            Journal
+          </p>
+          <h1 className="mt-1 font-display text-2xl font-bold text-ink">Blog</h1>
+        </div>
+        <div className="flex gap-2">
+          <Button asChild size="sm" variant="outline">
+            <Link href="/admin/blog/categories">
+              <Tags className="size-4" />
+              Manage categories
+            </Link>
+          </Button>
+          <Button asChild size="sm">
+            <Link href="/admin/blog/new">
+              <Plus className="size-4" />
+              New post
+            </Link>
+          </Button>
+        </div>
+      </div>
 
       {posts.length === 0 ? (
         <div className="mt-6 flex flex-col items-center rounded-2xl border border-dashed border-cream-300 px-6 py-14 text-center">
@@ -37,12 +55,6 @@ export default async function Page() {
           <p className="mt-1 text-sm text-ink-muted">
             Posts you write will show up here.
           </p>
-          <Button asChild size="sm" className="mt-5">
-            <Link href="/admin/blog/new">
-              <Plus className="size-4" />
-              New post
-            </Link>
-          </Button>
         </div>
       ) : (
         <div className="mt-6">

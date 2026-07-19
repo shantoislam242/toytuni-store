@@ -7,6 +7,7 @@ import type { Database } from "@/lib/supabase/database.types";
 import type { DetailContent } from "@/lib/types";
 import type { Settings } from "@/lib/data/settings-shape";
 import { TAXONOMY_TABLES, validateTaxonomyInput, isPermutation, type TaxonomyKind } from "@/lib/admin/taxonomy";
+import { validateBlogCategory } from "@/lib/admin/blog-taxonomy";
 import { clampAdjust } from "@/lib/admin/inventory-status";
 import { cleanTags } from "@/lib/blog/tags";
 
@@ -995,4 +996,99 @@ export async function uploadBlogCover(
   if (!(file instanceof File)) return { ok: false, error: "No image file provided." };
   const db = createAdminSupabase();
   return uploadImageToBucket(db, cleanSlug, file);
+}
+
+/** Refresh the public blog (list) and the admin categories screen after a
+ *  `blog_categories` write. */
+function revalidateBlogTaxonomy(): void {
+  revalidateTag("blog", "max");
+  revalidatePath("/blog");
+  revalidatePath("/admin/blog/categories");
+}
+
+/**
+ * Create a blog category row. Server Action — re-checks admin, then
+ * validates the input (slug required + url-safe on create) and rejects a
+ * duplicate slug with a clean error before the DB's unique index would.
+ * `blog_categories` predates the generated `database.types.ts`, so the table
+ * name + insert payload use the same `as never` escape hatch as the rest of
+ * this file's blog code.
+ */
+export async function createBlogCategory(input: { slug: string; name: string; sort: number }): Promise<ActionResult> {
+  if (!(await getIsAdmin())) throw new Error("unauthorized");
+  const slug = input.slug.trim().toLowerCase();
+  const v = validateBlogCategory({ slug, name: input.name, sort: input.sort }, { requireSlug: true });
+  if (!v.ok) return v;
+  const db = createAdminSupabase();
+  const { data: existing } = await db.from("blog_categories" as never).select("slug").eq("slug", slug).maybeSingle();
+  if (existing) return { ok: false, error: `"${slug}" already exists.` };
+  const { error } = await db.from("blog_categories" as never).insert({ slug, name: input.name.trim(), sort: input.sort } as never);
+  if (error) return { ok: false, error: error.message };
+  revalidateBlogTaxonomy();
+  return { ok: true };
+}
+
+/**
+ * Update a blog category's name/sort. Server Action — re-checks admin; never
+ * writes `slug` (it's immutable once created, and is used here only to
+ * locate the row).
+ */
+export async function updateBlogCategory(
+  slug: string, patch: { name: string; sort: number },
+): Promise<ActionResult> {
+  if (!(await getIsAdmin())) throw new Error("unauthorized");
+  const v = validateBlogCategory({ name: patch.name, sort: patch.sort }, { requireSlug: false });
+  if (!v.ok) return v;
+  const db = createAdminSupabase();
+  const { data, error } = await db.from("blog_categories" as never)
+    .update({ name: patch.name.trim(), sort: patch.sort } as never)
+    .eq("slug", slug).select("slug").maybeSingle();
+  if (error) return { ok: false, error: error.message };
+  if (!data) return { ok: false, error: "This category no longer exists." };
+  revalidateBlogTaxonomy();
+  return { ok: true };
+}
+
+/**
+ * Delete a blog category. Server Action — re-checks admin, then blocks the
+ * delete if any blog post still references this slug (surfacing a clean
+ * "reassign first" error rather than a raw FK violation from the DB) —
+ * mirrors `deleteTaxonomy`'s referenced-count guard, but queries
+ * `blog_posts.category` instead of `products`.
+ */
+export async function deleteBlogCategory(slug: string): Promise<ActionResult> {
+  if (!(await getIsAdmin())) throw new Error("unauthorized");
+  const db = createAdminSupabase();
+  const { count, error: cErr } = await db
+    .from("blog_posts" as never).select("slug", { count: "exact", head: true }).eq("category", slug);
+  if (cErr) return { ok: false, error: cErr.message };
+  if ((count ?? 0) > 0) {
+    return { ok: false, error: `${count} post(s) use this — reassign first.` };
+  }
+  const { error } = await db.from("blog_categories" as never).delete().eq("slug", slug);
+  if (error) return { ok: false, error: error.message };
+  revalidateBlogTaxonomy();
+  return { ok: true };
+}
+
+/**
+ * Persist a new display order for blog categories. Server Action —
+ * re-checks admin; guards that `slugs` is exactly a permutation of the
+ * current row set (never trusts client-supplied order blindly) before
+ * writing `sort = index` for each row.
+ */
+export async function reorderBlogCategories(slugs: string[]): Promise<ActionResult> {
+  if (!(await getIsAdmin())) throw new Error("unauthorized");
+  const db = createAdminSupabase();
+  const { data, error: rErr } = await db.from("blog_categories" as never).select("slug")
+    .overrideTypes<{ slug: string }[], { merge: false }>();
+  if (rErr) return { ok: false, error: rErr.message };
+  const current = (data ?? []).map((r) => r.slug);
+  if (!isPermutation(slugs, current)) return { ok: false, error: "Order does not match the current set." };
+  for (let i = 0; i < slugs.length; i += 1) {
+    const { error } = await db.from("blog_categories" as never).update({ sort: i } as never).eq("slug", slugs[i]);
+    if (error) return { ok: false, error: error.message };
+  }
+  revalidateBlogTaxonomy();
+  return { ok: true };
 }
