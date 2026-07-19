@@ -34,9 +34,9 @@ type NavItem = {
   disabled?: boolean;
 };
 
-// Live sections: Dashboard, Products, Categories, Orders, Inventory. Everything
-// else is on the roadmap and shown disabled with a "Soon" tag so the eventual
-// nav shape is visible without shipping half-built pages.
+// All sections are live (Task 5 shipped Blog, the last one gated with
+// `disabled: true` + a "Soon" tag). The disabled-item rendering below stays in
+// place for any future roadmap section added ahead of its page shipping.
 const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
   { label: "Products", href: "/admin/products", icon: Package },
@@ -44,7 +44,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Orders", href: "/admin/orders", icon: ShoppingCart },
   { label: "Customers", href: "/admin/customers", icon: Users },
   { label: "Inventory", href: "/admin/inventory", icon: Warehouse },
-  { label: "Blog", href: "/admin/blog", icon: Newspaper, disabled: true },
+  { label: "Blog", href: "/admin/blog", icon: Newspaper },
   { label: "Settings", href: "/admin/settings", icon: Settings },
 ];
 
