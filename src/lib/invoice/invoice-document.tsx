@@ -2,7 +2,9 @@ import { Document, Page, View, Text, StyleSheet } from "@react-pdf/renderer";
 import { formatDate } from "@/lib/format";
 import type { InvoiceData } from "./build-invoice-data";
 
-const tk = (n: number) => `৳${n.toLocaleString("en-US")}`;
+// The built-in Helvetica font has no Bengali Taka glyph (৳ U+09F3) — it renders as
+// tofu in the PDF — so invoices use the ASCII "Tk" prefix instead.
+const tk = (n: number) => `Tk ${n.toLocaleString("en-US")}`;
 
 const styles = StyleSheet.create({
   page: {
