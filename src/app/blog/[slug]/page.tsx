@@ -13,6 +13,13 @@ export async function generateStaticParams() {
   return (await getBlogPosts()).map((post) => ({ slug: post.slug }));
 }
 
+/** Resolve a possibly-relative image path to an absolute URL — Storage/CDN
+ *  URLs (og_image/coverImage) are already absolute; the bundled default
+ *  isn't. Shared by generateMetadata and the Article JSON-LD below. */
+function absoluteImageUrl(path: string): string {
+  return path.startsWith("http") ? path : `${SITE_URL}${path}`;
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const post = await getBlogPost(slug);
@@ -21,18 +28,30 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return { title: "Post not found" };
   }
 
+  // Blog 3b: per-post SEO overrides (migration 0009) win over the
+  // auto-derived title/excerpt/coverImage when set.
+  const seoTitle = post.seoTitle || post.title;
+  const seoDescription = post.metaDescription || post.excerpt;
+  const ogImageUrl = absoluteImageUrl(post.ogImage || post.coverImage || "/og-default.png");
+
   return {
-    title: post.title,
-    description: post.excerpt,
+    title: seoTitle,
+    description: seoDescription,
     alternates: { canonical: `/blog/${slug}` },
     openGraph: {
       type: "article",
       siteName: BRAND_NAME,
       url: `/blog/${slug}`,
-      title: post.title,
-      description: post.excerpt,
+      title: seoTitle,
+      description: seoDescription,
       publishedTime: post.dateISO,
-      images: [{ url: post.coverImage ?? "/og-default.png", alt: post.title }],
+      images: [{ url: ogImageUrl, alt: post.title }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: seoTitle,
+      description: seoDescription,
+      images: [ogImageUrl],
     },
   };
 }
@@ -45,14 +64,12 @@ export default async function Page({ params }: Props) {
     notFound();
   }
 
-  const coverUrl = post.coverImage
-    ? (post.coverImage.startsWith("http") ? post.coverImage : `${SITE_URL}${post.coverImage}`)
-    : `${SITE_URL}/og-default.png`;
+  const coverUrl = absoluteImageUrl(post.ogImage || post.coverImage || "/og-default.png");
   const articleLd = {
     "@context": "https://schema.org",
     "@type": "Article",
     headline: post.title,
-    description: post.excerpt,
+    description: post.metaDescription || post.excerpt,
     datePublished: post.dateISO,
     author: { "@type": "Person", name: post.author },
     publisher: {

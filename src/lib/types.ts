@@ -288,4 +288,8 @@ export type BlogPostData = {
   slug: string; title: string; excerpt: string; category: string; dateISO: string;
   readMins: number; author: string; coverTone: Tone; coverLabel: string;
   coverImage?: string; featured: boolean; bodyMarkdown: string;
+  /** Blog 3b: per-post SEO overrides (migration 0009). Null when unset —
+   *  storefront metadata falls back to title/excerpt/coverImage. */
+  seoTitle: string | null; metaDescription: string | null; ogImage: string | null;
+  focusKeyword: string | null;
 };

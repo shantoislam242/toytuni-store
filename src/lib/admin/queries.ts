@@ -478,6 +478,8 @@ export type AdminBlogListItem = {
 export type AdminBlogPost = AdminBlogListItem & {
   excerpt: string; bodyMarkdown: string; coverImage: string | null;
   coverTone: string | null; coverLabel: string | null;
+  seoTitle: string | null; metaDescription: string | null; ogImage: string | null;
+  focusKeyword: string | null;
 };
 
 /** All blog posts (every status, incl. drafts/unpublished), newest first.
@@ -498,14 +500,16 @@ export async function getAdminBlogPosts(): Promise<AdminBlogListItem[]> {
 export async function getAdminBlogPostBySlug(slug: string): Promise<AdminBlogPost | null> {
   const db = createAdminSupabase();
   const { data, error } = await db.from("blog_posts" as never)
-    .select("slug, title, excerpt, body, author, cover_image, category, date_iso, featured, published, cover_tone, cover_label")
+    .select("slug, title, excerpt, body, author, cover_image, category, date_iso, featured, published, cover_tone, cover_label, focus_keyword, seo_title, meta_description, og_image")
     .eq("slug", slug).maybeSingle()
-    .overrideTypes<{ slug: string; title: string; excerpt: string | null; body: string; author: string | null; cover_image: string | null; category: string | null; date_iso: string | null; featured: boolean; published: boolean; cover_tone: string | null; cover_label: string | null }, { merge: false }>();
+    .overrideTypes<{ slug: string; title: string; excerpt: string | null; body: string; author: string | null; cover_image: string | null; category: string | null; date_iso: string | null; featured: boolean; published: boolean; cover_tone: string | null; cover_label: string | null; focus_keyword: string | null; seo_title: string | null; meta_description: string | null; og_image: string | null }, { merge: false }>();
   if (error) throw new Error(`getAdminBlogPostBySlug failed: ${error.message}`);
   if (!data) return null;
   return {
     slug: data.slug, title: data.title, excerpt: data.excerpt ?? "", bodyMarkdown: data.body ?? "",
     author: data.author, category: data.category, dateISO: data.date_iso, featured: data.featured,
     published: data.published, coverImage: data.cover_image, coverTone: data.cover_tone, coverLabel: data.cover_label,
+    seoTitle: data.seo_title, metaDescription: data.meta_description, ogImage: data.og_image,
+    focusKeyword: data.focus_keyword,
   };
 }

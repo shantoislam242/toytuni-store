@@ -15,6 +15,7 @@ type BlogRow = {
   slug: string; title: string; excerpt: string | null; body: string; author: string | null;
   cover_image: string | null; category: string | null; read_mins: number | null;
   date_iso: string | null; featured: boolean; cover_tone: string | null; cover_label: string | null;
+  focus_keyword: string | null; seo_title: string | null; meta_description: string | null; og_image: string | null;
 };
 
 function rowToPost(r: BlogRow): BlogPostData {
@@ -23,15 +24,19 @@ function rowToPost(r: BlogRow): BlogPostData {
     dateISO: r.date_iso ?? "", readMins: r.read_mins ?? 3, author: r.author ?? "",
     coverTone: (r.cover_tone as Tone) ?? "cream", coverLabel: r.cover_label ?? r.title,
     coverImage: r.cover_image ?? undefined, featured: r.featured, bodyMarkdown: r.body ?? "",
+    seoTitle: r.seo_title ?? null, metaDescription: r.meta_description ?? null,
+    ogImage: r.og_image ?? null, focusKeyword: r.focus_keyword ?? null,
   };
 }
 
-/** Mock → BlogPostData (fail-soft). Body blocks become markdown. */
+/** Mock → BlogPostData (fail-soft). Body blocks become markdown. Mock posts
+ *  carry no SEO overrides — always null (storefront falls back to title/excerpt/coverImage). */
 function mockToData(): BlogPostData[] {
   return mockPosts.map((p) => ({
     slug: p.slug, title: p.title, excerpt: p.excerpt, category: p.category, dateISO: p.dateISO,
     readMins: p.readMins, author: p.author, coverTone: p.coverTone, coverLabel: p.coverLabel,
     coverImage: p.coverImage, featured: p.featured ?? false, bodyMarkdown: blockToMarkdown(p.body),
+    seoTitle: null, metaDescription: null, ogImage: null, focusKeyword: null,
   }));
 }
 
@@ -40,7 +45,7 @@ async function readPublishedPosts(): Promise<BlogPostData[]> {
     const supabase = createPublicSupabase();
     const { data, error } = await supabase
       .from("blog_posts" as never)
-      .select("slug, title, excerpt, body, author, cover_image, category, read_mins, date_iso, featured, cover_tone, cover_label")
+      .select("slug, title, excerpt, body, author, cover_image, category, read_mins, date_iso, featured, cover_tone, cover_label, focus_keyword, seo_title, meta_description, og_image")
       .eq("published", true)
       .order("date_iso", { ascending: false })
       .overrideTypes<BlogRow[], { merge: false }>();
