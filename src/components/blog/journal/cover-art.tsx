@@ -1,7 +1,12 @@
 import Image from "next/image";
 import { NeemSprig } from "@/components/blog/journal/neem-sprig";
 import { cn } from "@/lib/utils";
-import type { BlogPost, Tone } from "@/lib/types";
+import type { Tone } from "@/lib/types";
+
+/** Cover-relevant fields only — satisfied by both the legacy `BlogPost` (mock,
+ *  typed body) and the DB-backed `BlogPostData` (markdown body) shapes, so
+ *  this stays usable from either. */
+type CoverPost = { coverImage?: string; coverTone: Tone; coverLabel: string };
 
 // Muted, journal-palette tints per cover tone (bg wash + sprig/label accent).
 const coverStyle: Record<Tone, { bg: string; accent: string }> = {
@@ -73,7 +78,7 @@ export function PostCover({
   className,
   priority = false,
 }: {
-  post: BlogPost;
+  post: CoverPost;
   sizes?: string;
   className?: string;
   priority?: boolean;

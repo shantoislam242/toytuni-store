@@ -3,7 +3,7 @@ import { ArrowRight } from "lucide-react";
 import { PostCover } from "@/components/blog/journal/cover-art";
 import { categoryName } from "@/lib/mock/blog";
 import { formatDate } from "@/lib/format";
-import type { BlogPost } from "@/lib/types";
+import type { BlogPostData } from "@/lib/types";
 
 /**
  * Top-of-blog spotlight: one large featured article on the left and a compact
@@ -14,8 +14,8 @@ export function FeaturedSection({
   featured,
   topReads,
 }: {
-  featured: BlogPost;
-  topReads: BlogPost[];
+  featured: BlogPostData;
+  topReads: BlogPostData[];
 }) {
   const href = `/blog/${featured.slug}`;
 

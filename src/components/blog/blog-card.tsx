@@ -3,14 +3,14 @@ import { ArrowRight } from "lucide-react";
 import { PostCover } from "@/components/blog/journal/cover-art";
 import { categoryName } from "@/lib/mock/blog";
 import { formatDate } from "@/lib/format";
-import type { BlogPost } from "@/lib/types";
+import type { BlogPostData } from "@/lib/types";
 
 /**
  * Post card for the blog grid and related-posts sections: 16:9 cover (real
  * photo when the post has one), category badge, clamped title + excerpt,
  * author / date / read-time meta and a "Read more" link. Lifts subtly on hover.
  */
-export function BlogCard({ post }: { post: BlogPost }) {
+export function BlogCard({ post }: { post: BlogPostData }) {
   const href = `/blog/${post.slug}`;
 
   return (

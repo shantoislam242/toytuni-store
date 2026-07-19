@@ -3,24 +3,66 @@ import Link from "next/link";
 import { ArrowLeft, ArrowRight, CalendarDays, Clock, ListTree, UserRound } from "lucide-react";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { PlaceholderImage } from "@/components/placeholder-image";
-import { BlogBody, headingId } from "@/components/blog/blog-body";
+import { headingId } from "@/components/blog/blog-body";
+import { Markdown } from "@/components/blog/markdown";
 import { BlogCard } from "@/components/blog/blog-card";
 import { BlogNewsletter } from "@/components/blog/blog-newsletter";
 import { ShareRail } from "@/components/blog/share-rail";
-import { adjacentPosts, categoryName, relatedPosts } from "@/lib/mock/blog";
+import { categoryName } from "@/lib/mock/blog";
+import { markdownHeadings } from "@/lib/blog/markdown-headings";
 import { formatDate } from "@/lib/format";
-import type { BlogPost } from "@/lib/types";
+import type { BlogPostData } from "@/lib/types";
+
+/**
+ * Previous / next article relative to `post`, in `posts` order (matching
+ * `getBlogPosts`' date_iso desc ordering, newest first). "Previous" = the
+ * newer post, "next" = the older one.
+ */
+function adjacentPosts(
+  posts: BlogPostData[],
+  post: BlogPostData,
+): { prev?: BlogPostData; next?: BlogPostData } {
+  const i = posts.findIndex((p) => p.slug === post.slug);
+  if (i === -1) return {};
+  return { prev: posts[i - 1], next: posts[i + 1] };
+}
+
+/**
+ * Related posts: same category first, then fill with the most recent others,
+ * always excluding the current post. Guarantees a non-empty result (up to limit).
+ */
+function relatedPosts(
+  posts: BlogPostData[],
+  post: BlogPostData,
+  limit = 3,
+): BlogPostData[] {
+  return posts
+    .filter((p) => p.slug !== post.slug && p.category === post.category)
+    .concat(
+      posts
+        .filter((p) => p.slug !== post.slug && p.category !== post.category)
+        .sort((a, b) => b.dateISO.localeCompare(a.dateISO)),
+    )
+    .slice(0, limit);
+}
 
 /**
  * Full article page: breadcrumb, centered header (category badge, title,
  * author/date/read-time meta), cover, a sticky table-of-contents + share rail
  * beside the body on desktop, previous/next navigation, related posts and a
- * newsletter band.
+ * newsletter band. `posts` is the full published list (for adjacent/related
+ * lookups — the caller already fetched it for `generateStaticParams`).
  */
-export function BlogPostView({ post }: { post: BlogPost }) {
-  const related = relatedPosts(post);
-  const { prev, next } = adjacentPosts(post);
-  const headings = post.body.flatMap((b) => (b.type === "h2" ? [b.text] : []));
+export function BlogPostView({
+  post,
+  posts,
+}: {
+  post: BlogPostData;
+  posts: BlogPostData[];
+}) {
+  const related = relatedPosts(posts, post);
+  const { prev, next } = adjacentPosts(posts, post);
+  const headings = markdownHeadings(post.bodyMarkdown);
 
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 sm:py-10 lg:max-w-[90rem] lg:px-8">
@@ -117,7 +159,7 @@ export function BlogPostView({ post }: { post: BlogPost }) {
           </div>
 
           <article className="mx-auto max-w-2xl lg:mx-0 lg:max-w-none">
-            <BlogBody blocks={post.body} />
+            <Markdown source={post.bodyMarkdown} />
           </article>
         </div>
       </div>
