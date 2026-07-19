@@ -8,6 +8,7 @@ import type { DetailContent } from "@/lib/types";
 import type { Settings } from "@/lib/data/settings-shape";
 import { TAXONOMY_TABLES, validateTaxonomyInput, isPermutation, type TaxonomyKind } from "@/lib/admin/taxonomy";
 import { clampAdjust } from "@/lib/admin/inventory-status";
+import { cleanTags } from "@/lib/blog/tags";
 
 /** Mirrors the `orders.status` check constraint (`supabase/migrations/0001_init.sql`). */
 const ORDER_STATUSES = ["pending", "confirmed", "shipped", "delivered", "cancelled"] as const;
@@ -872,6 +873,11 @@ export type BlogPostInput = {
   seoTitle?: string | null;
   metaDescription?: string | null;
   ogImage?: string | null;
+  /** Blog 3c (migration 0010): free-form tags + a future publish schedule.
+   *  `scheduledAt` empty/absent → null (no schedule); a non-null value in the
+   *  past is treated as already live by `isPostLive`/the storefront query. */
+  tags?: string[];
+  scheduledAt?: string | null;
 };
 
 /** Trim an admin-supplied SEO string; blank/absent → null (matches the
@@ -914,6 +920,7 @@ export async function createBlogPost(input: { slug: string } & BlogPostInput): P
     date_iso: new Date().toISOString().slice(0, 10),
     focus_keyword: cleanSeoField(input.focusKeyword), seo_title: cleanSeoField(input.seoTitle),
     meta_description: cleanSeoField(input.metaDescription), og_image: cleanSeoField(input.ogImage),
+    tags: cleanTags(input.tags), scheduled_at: input.scheduledAt?.trim() ? input.scheduledAt : null,
   } as never);
   if (error) return { ok: false, error: error.message };
   revalidateBlog(slug);
@@ -940,6 +947,8 @@ export async function updateBlogPost(slug: string, patch: Partial<BlogPostInput>
   if (patch.seoTitle !== undefined) update.seo_title = cleanSeoField(patch.seoTitle);
   if (patch.metaDescription !== undefined) update.meta_description = cleanSeoField(patch.metaDescription);
   if (patch.ogImage !== undefined) update.og_image = cleanSeoField(patch.ogImage);
+  if (patch.tags !== undefined) update.tags = cleanTags(patch.tags);
+  if (patch.scheduledAt !== undefined) update.scheduled_at = patch.scheduledAt?.trim() ? patch.scheduledAt : null;
   if (Object.keys(update).length === 0) return { ok: true };
   const db = createAdminSupabase();
   const { data, error } = await db.from("blog_posts").update(update as never).eq("slug", slug).select("slug").maybeSingle();
