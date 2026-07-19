@@ -316,6 +316,9 @@ export async function updateInventory(
   const { data: prod, error: lookupErr } = await db.from("products").select("id").eq("slug", slug).maybeSingle();
   if (lookupErr) return { ok: false, error: lookupErr.message };
   if (!prod) return { ok: false, error: `Product not found: ${slug}` };
+  // This writes an admin-supplied absolute value rather than reading-then-
+  // adjusting, so it can still clobber a concurrent order's atomic decrement
+  // (see adjustStock's race note below) — accepted at single-admin scale.
   const { error } = await db.from("inventory").update(update).eq("product_id", prod.id);
   if (error) return { ok: false, error: error.message };
   revalidateStorefront(slug);
@@ -338,6 +341,9 @@ export async function adjustStock(
   if (lookupErr) return { ok: false, error: lookupErr.message };
   if (!prod) return { ok: false, error: `Product not found: ${slug}` };
   const inv = Array.isArray(prod.inventory) ? prod.inventory[0] : prod.inventory;
+  // Read-modify-write: at single-admin scale a lost update vs. a concurrent
+  // customer-order decrement is accepted (clampAdjust still guarantees ≥ 0;
+  // the order path keeps its own atomic guarded decrement in place_order).
   const next = clampAdjust(inv?.stock_qty ?? 0, delta);
   const { error } = await db.from("inventory").update({ stock_qty: next }).eq("product_id", prod.id);
   if (error) return { ok: false, error: error.message };

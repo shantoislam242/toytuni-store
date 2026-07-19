@@ -89,6 +89,7 @@ function InventoryRow({ item, onPatch }: { item: AdminInventoryItem; onPatch: (n
   const meta = STATUS_META[status];
 
   const commitStock = () => {
+    if (stock.trim() === "") { setStock(String(item.stockQty)); return; }
     const n = Number(stock);
     if (!Number.isInteger(n) || n < 0) { setStock(String(item.stockQty)); return toast.error("Stock must be a whole number ≥ 0."); }
     if (n === item.stockQty) return;
@@ -104,6 +105,7 @@ function InventoryRow({ item, onPatch }: { item: AdminInventoryItem; onPatch: (n
     else toast.error(r.error);
   });
   const commitThreshold = () => {
+    if (thr.trim() === "") { setThr(String(item.lowStockThreshold)); return; }
     const n = Number(thr);
     if (!Number.isInteger(n) || n < 0) { setThr(String(item.lowStockThreshold)); return toast.error("Threshold must be a whole number ≥ 0."); }
     if (n === item.lowStockThreshold) return;
