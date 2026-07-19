@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Upload } from "lucide-react";
@@ -15,9 +15,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Markdown } from "@/components/blog/markdown";
+import { SeoPanel } from "@/components/admin/seo-panel";
+import { SnippetPreview } from "@/components/admin/snippet-preview";
 import { createBlogPost, updateBlogPost, uploadBlogCover } from "@/lib/admin/actions";
 import type { AdminBlogPost } from "@/lib/admin/queries";
 import type { BlogCategory } from "@/lib/types";
+import { analyzeSeo } from "@/lib/blog/seo-analysis";
+import { analyzeReadability } from "@/lib/blog/readability-analysis";
 import { cn } from "@/lib/utils";
 
 /** Derive a url-safe slug from a free-text title (mirrors `ProductCreateForm`'s
@@ -99,6 +103,18 @@ export function BlogPostForm({
   const [coverImage, setCoverImage] = useState<string | null>(post?.coverImage ?? null);
   const [tab, setTab] = useState<"write" | "preview">("write");
 
+  const [focusKeyword, setFocusKeyword] = useState(post?.focusKeyword ?? "");
+  const [seoTitle, setSeoTitle] = useState(post?.seoTitle ?? "");
+  const [metaDescription, setMetaDescription] = useState(post?.metaDescription ?? "");
+  const [ogImage, setOgImage] = useState<string | null>(post?.ogImage ?? null);
+  const [isUploadingOgImage, startUploadingOgImage] = useTransition();
+
+  const seoResult = useMemo(
+    () => analyzeSeo({ title, seoTitle, metaDescription, slug, focusKeyword, bodyMarkdown: body, excerpt }),
+    [title, seoTitle, metaDescription, slug, focusKeyword, body, excerpt],
+  );
+  const readResult = useMemo(() => analyzeReadability(body), [body]);
+
   // Keep slug in sync with the title until the admin hand-edits it (create only).
   const handleTitleChange = (value: string) => {
     setTitle(value);
@@ -123,6 +139,24 @@ export function BlogPostForm({
     });
   };
 
+  const handleOgImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (slug.trim() === "") return toast.error("Enter a slug first.");
+    const formData = new FormData();
+    formData.set("file", file);
+    startUploadingOgImage(async () => {
+      const result = await uploadBlogCover(slug, formData);
+      if (result.ok) {
+        setOgImage(result.url);
+        toast.success("OG image uploaded.");
+      } else {
+        toast.error(result.error);
+      }
+    });
+  };
+
   const handleSubmit = () => {
     const cleanTitle = title.trim();
     if (cleanTitle === "") return toast.error("Title is required.");
@@ -141,6 +175,10 @@ export function BlogPostForm({
           coverImage,
           featured,
           published,
+          focusKeyword: focusKeyword.trim() || null,
+          seoTitle: seoTitle.trim() || null,
+          metaDescription: metaDescription.trim() || null,
+          ogImage,
         });
         if (result.ok) {
           toast.success("Post saved.");
@@ -161,6 +199,10 @@ export function BlogPostForm({
           coverImage,
           featured,
           published,
+          focusKeyword: focusKeyword.trim() || null,
+          seoTitle: seoTitle.trim() || null,
+          metaDescription: metaDescription.trim() || null,
+          ogImage,
         });
         if (result.ok) {
           toast.success("Post created.");
@@ -339,6 +381,88 @@ export function BlogPostForm({
           </CardContent>
         </Card>
       </div>
+
+      <Card className="border-cream-300 lg:col-span-3">
+        <CardHeader>
+          <CardTitle>SEO</CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="space-y-4">
+            <label className="block">
+              <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">Focus keyword</span>
+              <Input
+                value={focusKeyword}
+                onChange={(e) => setFocusKeyword(e.target.value)}
+                placeholder="wooden toy safety"
+                className="mt-1"
+              />
+            </label>
+            <label className="block">
+              <span className="flex items-center justify-between text-xs font-medium uppercase tracking-wide text-ink-muted">
+                <span>SEO title</span>
+                <span className="tabular-nums normal-case text-ink-soft">{seoTitle.length}/60</span>
+              </span>
+              <Input
+                value={seoTitle}
+                onChange={(e) => setSeoTitle(e.target.value)}
+                placeholder={title || "Defaults to the post title"}
+                className="mt-1"
+              />
+            </label>
+            <label className="block">
+              <span className="flex items-center justify-between text-xs font-medium uppercase tracking-wide text-ink-muted">
+                <span>Meta description</span>
+                <span className="tabular-nums normal-case text-ink-soft">{metaDescription.length}/156</span>
+              </span>
+              <textarea
+                value={metaDescription}
+                onChange={(e) => setMetaDescription(e.target.value)}
+                rows={3}
+                placeholder={excerpt || "Defaults to the post excerpt"}
+                className="mt-1 w-full rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+              />
+            </label>
+
+            <div>
+              <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">OG image</span>
+              <div className="mt-1 space-y-3">
+                {ogImage ? (
+                  <div className="relative aspect-video overflow-hidden rounded-lg border border-cream-300 bg-cream-50">
+                    {/* Plain <img>, matching the cover-image control's approach for
+                        admin-uploaded Storage URLs. */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={ogImage} alt="" className="size-full object-cover" />
+                  </div>
+                ) : (
+                  <div className="flex aspect-video items-center justify-center rounded-lg border border-dashed border-cream-300 bg-cream-50 text-xs text-ink-soft">
+                    No OG image — falls back to the cover image
+                  </div>
+                )}
+
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleOgImageUpload}
+                  disabled={isUploadingOgImage}
+                  className="block w-full text-sm text-ink file:mr-3 file:rounded-lg file:border file:border-cream-300 file:bg-cream-100 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-ink hover:file:bg-cream-200"
+                />
+
+                <p className="text-xs text-ink-soft">
+                  <Upload className="mr-1 inline size-3.5 align-[-2px]" />
+                  {isUploadingOgImage ? "Uploading…" : "JPG, PNG, WebP or GIF, up to 5 MB. Needs a slug first."}
+                </p>
+              </div>
+            </div>
+
+            <SnippetPreview title={seoTitle || title} slug={slug} description={metaDescription || excerpt} />
+          </div>
+
+          <div className="space-y-4">
+            <SeoPanel title="SEO analysis" result={seoResult} />
+            <SeoPanel title="Readability" result={readResult} />
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
