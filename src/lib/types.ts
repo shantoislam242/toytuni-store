@@ -281,3 +281,11 @@ export type BlogPost = {
    *  instead of the illustrated SVG fallback. Swappable per post from a CMS. */
   coverImage?: string;
 };
+
+/** DB-sourced blog post for the storefront (body is markdown, not typed blocks).
+ *  The mock fail-soft path maps a `BlogPost` into this via `blockToMarkdown`. */
+export type BlogPostData = {
+  slug: string; title: string; excerpt: string; category: string; dateISO: string;
+  readMins: number; author: string; coverTone: Tone; coverLabel: string;
+  coverImage?: string; featured: boolean; bodyMarkdown: string;
+};
