@@ -3,6 +3,8 @@ import { products, productDetailBySlug, basicProductDetail } from "../src/lib/mo
 import { categories } from "../src/lib/mock/categories";
 import { ageTiers } from "../src/lib/mock/age-tiers";
 import { giftKits, giftCards } from "../src/lib/mock/gifts";
+import { blogPosts, blogCategories } from "../src/lib/mock/blog";
+import { blockToMarkdown } from "../src/lib/blog/block-to-markdown";
 import { DEFAULT_SETTINGS } from "../src/lib/data/settings-shape";
 import type { Product } from "../src/lib/types";
 import type { Database, Json } from "../src/lib/supabase/database.types";
@@ -120,6 +122,27 @@ async function main() {
   );
   if (settingsRes.error) throw settingsRes.error;
   console.log("site_settings: general row seeded");
+
+  // Blog: `blog_categories` (migration 0008) predates the generated types —
+  // cast the table name at the call site, same escape hatch as the
+  // `detail_content`/`gallery_urls` cast above.
+  const bcatRes = await db.from("blog_categories" as never).upsert(
+    blogCategories.map((c, i) => ({ slug: c.slug, name: c.name, sort: i })) as never,
+    { onConflict: "slug" },
+  );
+  if (bcatRes.error) throw bcatRes.error;
+
+  const bpostRes = await db.from("blog_posts").upsert(
+    blogPosts.map((p) => ({
+      slug: p.slug, title: p.title, excerpt: p.excerpt, body: blockToMarkdown(p.body),
+      author: p.author, cover_image: p.coverImage ?? null, category: p.category,
+      read_mins: p.readMins, date_iso: p.dateISO, featured: p.featured ?? false,
+      published: true, cover_tone: p.coverTone, cover_label: p.coverLabel,
+    })) as never,
+    { onConflict: "slug" },
+  );
+  if (bpostRes.error) throw bpostRes.error;
+  console.log(`blog: ${blogCategories.length} categories, ${blogPosts.length} posts seeded`);
 
   // Report counts.
   for (const t of ["categories", "age_tiers", "products", "inventory", "product_variants"]) {
