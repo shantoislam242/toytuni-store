@@ -35,11 +35,6 @@ export function BlogView({
     [categories],
   );
 
-  const allTags = useMemo(
-    () => [...new Set(posts.flatMap((p) => p.tags))],
-    [posts],
-  );
-
   // Spotlight: the pinned featured post + the next three most-recent stories.
   const featured = useMemo(
     () => posts.find((p) => p.featured) ?? posts[0],
@@ -50,6 +45,14 @@ export function BlogView({
     [posts, featured],
   );
   const topReads = useMemo(() => rest.slice(0, 3), [rest]);
+
+  // Tag chips reflect the grid, which filters `rest` (the featured post is
+  // shown in the spotlight, not the grid) — so a tag only on the featured
+  // post never yields an empty grid.
+  const allTags = useMemo(
+    () => [...new Set(rest.flatMap((p) => p.tags))],
+    [rest],
+  );
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
