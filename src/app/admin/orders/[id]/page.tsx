@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Truck } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { formatDate, formatTk } from "@/lib/format";
-import { getAdminOrderById } from "@/lib/admin/queries";
-import { OrderStatusSelect } from "@/components/admin/order-status-select";
+import { getAdminOrderById, getOrderStatusHistory } from "@/lib/admin/queries";
+import { OrderActions } from "@/components/admin/order-actions";
+import { OrderTimeline } from "@/components/admin/order-timeline";
+import type { OrderStatus } from "@/lib/orders/status-workflow";
 
 export function generateMetadata(): Metadata {
   return {
@@ -18,6 +21,21 @@ function fulfillmentLabel(type: string): string {
   return type === "preorder" ? "Pre-order" : "In stock";
 }
 
+/** Paid=green / Pending=amber / Refunded=slate — anything else falls back to
+ *  the neutral outline style rather than guessing a color. */
+function paymentBadgeClass(status: string): string {
+  switch (status) {
+    case "paid":
+      return "border-transparent bg-emerald-100 text-emerald-800";
+    case "pending":
+      return "border-transparent bg-amber-100 text-amber-800";
+    case "refunded":
+      return "border-transparent bg-slate-200 text-slate-700";
+    default:
+      return "border-cream-300 text-ink-muted";
+  }
+}
+
 /** Order detail (Task 6). `getAdminOrderById()` is service-role — server-only. */
 export default async function Page({
   params,
@@ -27,6 +45,7 @@ export default async function Page({
   const { id } = await params;
   const order = await getAdminOrderById(id);
   if (!order) notFound();
+  const history = await getOrderStatusHistory(order.id);
 
   return (
     <div>
@@ -49,8 +68,40 @@ export default async function Page({
           <p className="mt-0.5 text-sm text-ink-muted">
             Placed {formatDate(order.createdAt.slice(0, 10))} · {order.paymentMethod.toUpperCase()}
           </p>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <Badge className={paymentBadgeClass(order.paymentStatus)}>
+              {order.paymentStatus[0].toUpperCase() + order.paymentStatus.slice(1)}
+            </Badge>
+            {order.trackingNumber ? (
+              <span className="inline-flex items-center gap-1.5 text-sm text-ink-muted">
+                <Truck className="size-3.5" />
+                {order.trackingUrl ? (
+                  <a
+                    href={order.trackingUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline decoration-cream-400 underline-offset-2 hover:text-ink"
+                  >
+                    {order.carrier} · {order.trackingNumber}
+                  </a>
+                ) : (
+                  <span>
+                    {order.carrier} · {order.trackingNumber}
+                  </span>
+                )}
+              </span>
+            ) : null}
+          </div>
+          {order.status === "cancelled" && order.cancelReason ? (
+            <p className="mt-2 text-sm text-danger">Cancelled: {order.cancelReason}</p>
+          ) : null}
         </div>
-        <OrderStatusSelect orderId={order.id} current={order.status} />
+        <OrderActions
+          orderId={order.id}
+          orderNumber={order.orderNumber}
+          status={order.status as OrderStatus}
+          paymentStatus={order.paymentStatus}
+        />
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -143,16 +194,27 @@ export default async function Page({
           ) : null}
         </div>
 
-        <Card className="border-cream-300 lg:col-span-1">
-          <CardHeader>
-            <CardTitle>Customer</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-1 text-sm">
-            <p className="font-medium text-ink">{order.customerName}</p>
-            <p className="text-ink-muted">{order.customerPhone}</p>
-            {order.customerEmail ? <p className="text-ink-muted">{order.customerEmail}</p> : null}
-          </CardContent>
-        </Card>
+        <div className="space-y-4 lg:col-span-1">
+          <Card className="border-cream-300">
+            <CardHeader>
+              <CardTitle>Customer</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-1 text-sm">
+              <p className="font-medium text-ink">{order.customerName}</p>
+              <p className="text-ink-muted">{order.customerPhone}</p>
+              {order.customerEmail ? <p className="text-ink-muted">{order.customerEmail}</p> : null}
+            </CardContent>
+          </Card>
+
+          <Card className="border-cream-300">
+            <CardHeader>
+              <CardTitle>Activity</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <OrderTimeline items={history} />
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
