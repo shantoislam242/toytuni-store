@@ -190,3 +190,53 @@ async function getLowStockCount(): Promise<number> {
   }
   return (data ?? []).filter((i) => i.stock_qty <= i.low_stock_threshold).length;
 }
+
+export type LowStockItem = { productId: string; title: string; stock: number; threshold: number };
+
+type LowStockRow = {
+  product_id: string;
+  stock_qty: number;
+  low_stock_threshold: number;
+  products: { title: string } | { title: string }[] | null;
+};
+
+/** `products` is a 1:1 relation embedded from `inventory` (FK
+ *  `inventory.product_id -> products.id`), but PostgREST may return it as an
+ *  object or a single-element array depending on join shape — handle both
+ *  defensively (mirrors `oneInventory` in `src/lib/admin/queries.ts`). */
+function oneProductTitle(products: LowStockRow["products"]): string {
+  if (!products) return "—";
+  const row = Array.isArray(products) ? products[0] : products;
+  return row?.title ?? "—";
+}
+
+/** Products at or below their low-stock threshold, lowest stock first,
+ *  capped at `limit`. Supabase's query builder can't express a `<=`
+ *  column-vs-column filter, so we fetch all inventory rows (ordered by
+ *  `stock_qty`) and filter/slice in JS. Fail-soft: `[]` on error or throw. */
+export async function getLowStockProducts(limit: number): Promise<LowStockItem[]> {
+  try {
+    const db = createAdminSupabase();
+    const { data, error } = await db
+      .from("inventory")
+      .select("product_id, stock_qty, low_stock_threshold, products(title)")
+      .order("stock_qty", { ascending: true })
+      .overrideTypes<LowStockRow[], { merge: false }>();
+    if (error) {
+      console.error("analytics getLowStockProducts failed:", error.message);
+      return [];
+    }
+    return (data ?? [])
+      .filter((r) => r.stock_qty <= r.low_stock_threshold)
+      .slice(0, limit)
+      .map((r) => ({
+        productId: r.product_id,
+        title: oneProductTitle(r.products),
+        stock: r.stock_qty,
+        threshold: r.low_stock_threshold,
+      }));
+  } catch (err) {
+    console.error("analytics getLowStockProducts threw:", err);
+    return [];
+  }
+}
