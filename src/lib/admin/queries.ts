@@ -347,7 +347,12 @@ export async function getRecentOrders(limit: number): Promise<AdminOrderListItem
     .order("created_at", { ascending: false })
     .limit(limit)
     .overrideTypes<AdminOrderRow[], { merge: false }>();
-  if (error) throw new Error(`getRecentOrders failed: ${error.message}`);
+  // Fail-soft: this only feeds the dashboard's Recent Orders card — a transient
+  // read error should render an empty card, never 500 the overview.
+  if (error) {
+    console.error("getRecentOrders failed:", error.message);
+    return [];
+  }
 
   return (data ?? []).map((o) => ({
     id: o.id,

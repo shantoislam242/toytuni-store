@@ -143,7 +143,11 @@ export async function getOverviewStats(now: Date): Promise<OverviewStats> {
         getRevenueTimeseries(prevMonthStart, thisMonthStart, "month"),
         getCustomerStats(thisMonthStart, nextMonthStart),
         getCustomerStats(prevMonthStart, thisMonthStart),
-        getStatusBreakdown(thisMonthStart, nextMonthStart),
+        // Pending/Delivered/Cancelled are operational counts (a fulfillment
+        // queue + lifetime totals), not month metrics — count ALL-TIME so a
+        // stale pending order from a prior month never silently drops out.
+        // `[epoch, nextMonthStart)` covers every existing order (none are future).
+        getStatusBreakdown(new Date(0), nextMonthStart),
         getLowStockCount(),
       ]);
 
