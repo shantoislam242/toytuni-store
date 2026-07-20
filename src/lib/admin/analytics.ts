@@ -37,13 +37,21 @@ const EMPTY_OVERVIEW: OverviewStats = {
  *  safe empty state even before the migration is applied. New RPCs aren't in
  *  the generated `Database` types yet, hence the `as never` casts. */
 async function rpcRows<T>(fn: string, args: Record<string, unknown>): Promise<T[]> {
-  const db = createAdminSupabase();
-  const { data, error } = await db.rpc(fn as never, args as never).overrideTypes<T[], { merge: false }>();
-  if (error) {
-    console.error(`analytics ${fn} failed:`, error.message);
+  try {
+    const db = createAdminSupabase();
+    const { data, error } = await db.rpc(fn as never, args as never).overrideTypes<T[], { merge: false }>();
+    if (error) {
+      console.error(`analytics ${fn} failed:`, error.message);
+      return [];
+    }
+    return (data ?? []) as T[];
+  } catch (err) {
+    // createAdminSupabase() (e.g. a missing service-role key) or any unexpected
+    // throw must not bubble — every analytics reader stays fail-soft so a direct
+    // caller (the AN-2 page) never 500s.
+    console.error(`analytics ${fn} threw:`, err);
     return [];
   }
-  return (data ?? []) as T[];
 }
 
 /** Revenue/order counts bucketed by day or month over `[from, to)`, 0-filled
