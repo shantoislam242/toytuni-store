@@ -337,6 +337,33 @@ export async function getAdminOrders(): Promise<AdminOrderListItem[]> {
   }));
 }
 
+/** Most recent orders, newest first, capped at `limit`. Used by the admin
+ *  dashboard's recent-activity list. */
+export async function getRecentOrders(limit: number): Promise<AdminOrderListItem[]> {
+  const db = createAdminSupabase();
+  const { data, error } = await db
+    .from("orders")
+    .select("id, order_number, created_at, customer_name, customer_phone, total, status, payment_method, payment_status, tracking_number, carrier")
+    .order("created_at", { ascending: false })
+    .limit(limit)
+    .overrideTypes<AdminOrderRow[], { merge: false }>();
+  if (error) throw new Error(`getRecentOrders failed: ${error.message}`);
+
+  return (data ?? []).map((o) => ({
+    id: o.id,
+    orderNumber: o.order_number,
+    createdAt: o.created_at,
+    customerName: o.customer_name,
+    customerPhone: o.customer_phone,
+    total: o.total,
+    status: o.status,
+    paymentMethod: o.payment_method,
+    paymentStatus: o.payment_status,
+    trackingNumber: o.tracking_number,
+    carrier: o.carrier,
+  }));
+}
+
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** One order by id, with its line items. A malformed (non-UUID) `id` can
