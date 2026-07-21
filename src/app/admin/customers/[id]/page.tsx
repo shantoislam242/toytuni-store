@@ -3,8 +3,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { KpiCard } from "@/components/admin/kpi-card";
 import { formatDate, formatTk } from "@/lib/format";
 import { getAdminCustomerById } from "@/lib/admin/queries";
+import type { CustomerTier } from "@/lib/admin/customer-tier";
 import { CustomerEditForm } from "@/components/admin/customer-edit-form";
 import { cn } from "@/lib/utils";
 
@@ -18,18 +20,70 @@ const STATUS_STYLES: Record<string, string> = {
   cancelled: "bg-danger/15 text-danger",
 };
 
+/** Customer lifecycle status badge — active=green / inactive=slate / blocked=red. */
+const CUSTOMER_STATUS_STYLES: Record<string, string> = {
+  active: "bg-neem/10 text-neem-deep",
+  inactive: "bg-cream-200 text-ink-muted",
+  blocked: "bg-danger/10 text-danger",
+};
+
+/** Spend-tier badge — distinct cream/mustard/gold-ish styles. */
+const TIER_STYLES: Record<CustomerTier, string> = {
+  bronze: "bg-cream-200 text-ink-muted",
+  silver: "bg-dusty-blue/15 text-dusty-blue",
+  gold: "bg-mustard/20 text-mustard",
+};
+
+function badgeClass(...classes: string[]) {
+  return cn("inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide", ...classes);
+}
+
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const customer = await getAdminCustomerById(id);
   if (!customer) notFound();
+
+  const daysAgo = customer.lastOrderAt
+    ? Math.max(0, Math.floor((Date.now() - new Date(customer.lastOrderAt).getTime()) / 86400000))
+    : null;
 
   return (
     <div>
       <Link href="/admin/customers" className="inline-flex items-center gap-1.5 text-sm text-ink-muted hover:text-ink">
         <ArrowLeft className="size-4" /> Back to customers
       </Link>
-      <h1 className="mt-3 font-display text-2xl font-bold text-ink">{customer.name}</h1>
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <h1 className="font-display text-2xl font-bold text-ink">{customer.name}</h1>
+        <span className={badgeClass(CUSTOMER_STATUS_STYLES[customer.status] ?? "bg-cream-200 text-ink-muted")}>
+          {customer.status}
+        </span>
+        <span className={badgeClass(TIER_STYLES[customer.tier])}>{customer.tier}</span>
+      </div>
       <p className="mt-0.5 font-mono text-sm text-ink-muted">{customer.phone}</p>
+      {customer.tags.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {customer.tags.map((tag) => (
+            <span key={tag} className="inline-flex items-center rounded-full bg-cream-200 px-2 py-0.5 text-[11px] font-medium text-ink-muted">
+              {tag}
+            </span>
+          ))}
+        </div>
+      )}
+
+      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <KpiCard label="Orders" value={customer.orderCount.toLocaleString("en-US")} />
+        <KpiCard label="Spent" value={formatTk(customer.totalSpent)} />
+        <KpiCard label="AOV" value={formatTk(customer.aov)} />
+        <KpiCard
+          label="Last order"
+          value={customer.lastOrderAt ? formatDate(customer.lastOrderAt.slice(0, 10)) : "—"}
+        />
+        <KpiCard label="Cancelled" value={customer.cancelledCount.toLocaleString("en-US")} />
+      </div>
+      <p className="mt-2 text-xs text-ink-soft">
+        {daysAgo !== null ? `Last order ${daysAgo === 0 ? "today" : `${daysAgo} day${daysAgo === 1 ? "" : "s"} ago`}. ` : ""}
+        {customer.firstOrderAt ? `First order ${formatDate(customer.firstOrderAt.slice(0, 10))}.` : ""}
+      </p>
 
       <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
@@ -68,12 +122,33 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
               )}
             </CardContent>
           </Card>
+
+          {customer.lastAddress ? (
+            <Card className="border-cream-300">
+              <CardHeader><CardTitle>Last delivery address</CardTitle></CardHeader>
+              <CardContent className="text-sm text-ink">
+                <p>{customer.lastAddress.addressLine}</p>
+                {customer.lastAddress.landmark ? <p className="text-ink-muted">{customer.lastAddress.landmark}</p> : null}
+                <p className="text-ink-muted">
+                  {customer.lastAddress.area}, {customer.lastAddress.district}, {customer.lastAddress.division}
+                </p>
+              </CardContent>
+            </Card>
+          ) : null}
         </div>
 
         <Card className="border-cream-300 lg:col-span-1">
           <CardHeader><CardTitle>Contact</CardTitle></CardHeader>
           <CardContent>
-            <CustomerEditForm id={customer.id} name={customer.name} email={customer.email} phone={customer.phone} />
+            <CustomerEditForm
+              id={customer.id}
+              name={customer.name}
+              email={customer.email}
+              phone={customer.phone}
+              status={customer.status}
+              tags={customer.tags}
+              notes={customer.notes}
+            />
             <p className="mt-3 text-xs text-ink-soft">Joined {formatDate(customer.createdAt.slice(0, 10))}.</p>
           </CardContent>
         </Card>

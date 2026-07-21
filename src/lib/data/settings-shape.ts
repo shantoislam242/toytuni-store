@@ -5,6 +5,7 @@ export type Settings = {
   codFee: number;
   contact: { phone: string; whatsapp: string; email: string; address: string };
   brand: { tagline: string; description: string };
+  customerTiers: { silver: number; gold: number };
 };
 
 /** Current hardcoded values become the defaults + fail-soft fallback. */
@@ -18,6 +19,7 @@ export const DEFAULT_SETTINGS: Settings = {
     address: "Dhaka, Bangladesh",
   },
   brand: { tagline: BRAND_TAGLINE, description: BRAND_DESCRIPTION },
+  customerTiers: { silver: 3000, gold: 10000 },
 };
 
 const nnInt = (v: unknown, fallback: number): number =>
@@ -32,7 +34,11 @@ export function rowToSettings(value: unknown): Settings {
   const sh = (v.shipping && typeof v.shipping === "object" ? v.shipping : {}) as Record<string, unknown>;
   const c = (v.contact && typeof v.contact === "object" ? v.contact : {}) as Record<string, unknown>;
   const b = (v.brand && typeof v.brand === "object" ? v.brand : {}) as Record<string, unknown>;
+  const ct = (v.customerTiers && typeof v.customerTiers === "object" ? v.customerTiers : {}) as Record<string, unknown>;
   const d = DEFAULT_SETTINGS;
+  let silver = nnInt(ct.silver, d.customerTiers.silver);
+  let gold = nnInt(ct.gold, d.customerTiers.gold);
+  if (gold < silver) { silver = d.customerTiers.silver; gold = d.customerTiers.gold; } // inverted → defaults
   return {
     shipping: {
       insideDhakaFee: nnInt(sh.insideDhakaFee, d.shipping.insideDhakaFee),
@@ -50,5 +56,6 @@ export function rowToSettings(value: unknown): Settings {
       tagline: str(b.tagline, d.brand.tagline),
       description: str(b.description, d.brand.description),
     },
+    customerTiers: { silver, gold },
   };
 }

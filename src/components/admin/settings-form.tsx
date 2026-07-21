@@ -36,6 +36,8 @@ export function SettingsForm({ settings }: { settings: Settings }) {
   const [address, setAddress] = useState(settings.contact.address);
   const [tagline, setTagline] = useState(settings.brand.tagline);
   const [description, setDescription] = useState(settings.brand.description);
+  const [silver, setSilver] = useState(String(settings.customerTiers.silver));
+  const [gold, setGold] = useState(String(settings.customerTiers.gold));
 
   const handleSave = () => {
     const nums = {
@@ -43,15 +45,21 @@ export function SettingsForm({ settings }: { settings: Settings }) {
       outside: parseIntOrNull(outsideFee),
       thr: parseIntOrNull(threshold),
       cod: parseIntOrNull(codFee),
+      silver: parseIntOrNull(silver),
+      gold: parseIntOrNull(gold),
     };
     if (Object.values(nums).some((n) => n === null)) {
       return toast.error("Fees and threshold must be whole numbers ≥ 0.");
+    }
+    if (nums.gold! < nums.silver!) {
+      return toast.error("Gold threshold must be ≥ silver threshold.");
     }
     const next: Settings = {
       shipping: { insideDhakaFee: nums.inside!, outsideDhakaFee: nums.outside!, freeShippingThreshold: nums.thr! },
       codFee: nums.cod!,
       contact: { phone, whatsapp, email, address },
       brand: { tagline, description },
+      customerTiers: { silver: nums.silver!, gold: nums.gold! },
     };
     start(async () => {
       const r = await updateSettings(next);
@@ -108,6 +116,41 @@ export function SettingsForm({ settings }: { settings: Settings }) {
               className="mt-1"
             />
           </label>
+        </CardContent>
+      </Card>
+
+      <Card className="border-cream-300">
+        <CardHeader>
+          <CardTitle>Customer tiers</CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <label className="block">
+            <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">Silver at (৳)</span>
+            <Input
+              type="number"
+              min={0}
+              step={1}
+              inputMode="numeric"
+              value={silver}
+              onChange={(e) => setSilver(e.target.value)}
+              className="mt-1"
+            />
+          </label>
+          <label className="block">
+            <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">Gold at (৳)</span>
+            <Input
+              type="number"
+              min={0}
+              step={1}
+              inputMode="numeric"
+              value={gold}
+              onChange={(e) => setGold(e.target.value)}
+              className="mt-1"
+            />
+          </label>
+          <p className="text-xs text-ink-muted sm:col-span-2">
+            Customers reach Silver/Gold when their lifetime spend crosses these amounts.
+          </p>
         </CardContent>
       </Card>
 

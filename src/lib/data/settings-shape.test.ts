@@ -29,3 +29,19 @@ describe("rowToSettings", () => {
     expect(s.codFee).toBe(DEFAULT_SETTINGS.codFee); // "x" invalid → default
   });
 });
+
+describe("customerTiers", () => {
+  it("defaults present", () => {
+    expect(DEFAULT_SETTINGS.customerTiers).toEqual({ silver: 3000, gold: 10000 });
+    expect(rowToSettings({}).customerTiers).toEqual({ silver: 3000, gold: 10000 });
+  });
+  it("reads valid stored thresholds", () => {
+    expect(rowToSettings({ customerTiers: { silver: 5000, gold: 20000 } }).customerTiers).toEqual({ silver: 5000, gold: 20000 });
+  });
+  it("falls back to defaults when gold < silver (inverted)", () => {
+    expect(rowToSettings({ customerTiers: { silver: 9000, gold: 1000 } }).customerTiers).toEqual({ silver: 3000, gold: 10000 });
+  });
+  it("coerces invalid/negative to defaults per field", () => {
+    expect(rowToSettings({ customerTiers: { silver: -5, gold: 20000 } }).customerTiers).toEqual({ silver: 3000, gold: 20000 });
+  });
+});
