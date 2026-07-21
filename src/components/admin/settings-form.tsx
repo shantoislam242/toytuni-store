@@ -52,6 +52,7 @@ export function SettingsForm({ settings }: { settings: Settings }) {
       codFee: nums.cod!,
       contact: { phone, whatsapp, email, address },
       brand: { tagline, description },
+      customerTiers: settings.customerTiers,
     };
     start(async () => {
       const r = await updateSettings(next);
