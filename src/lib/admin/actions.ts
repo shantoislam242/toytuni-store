@@ -201,22 +201,43 @@ export async function addOrderNote(orderId: string, note: string): Promise<Actio
   return { ok: true };
 }
 
-/** Correct a customer's contact (name required; email optional + light-validated).
- *  Phone (the unique identity key) is never editable. Server Action — admin
- *  re-check + service-role. Does not rewrite past orders' name/email snapshots. */
-export async function updateCustomer(id: string, patch: { name: string; email: string | null }): Promise<ActionResult> {
+/** Correct a customer's contact + CRM fields (name required if provided; email
+ *  optional + light-validated; status one of active/inactive/blocked; tags
+ *  trimmed/deduped; notes trimmed + capped at 2000 chars). Phone (the unique
+ *  identity key) is never editable. Server Action — admin re-check +
+ *  service-role. Does not rewrite past orders' name/email snapshots. */
+export async function updateCustomer(
+  id: string,
+  patch: { name?: string; email?: string | null; status?: string; tags?: string[]; notes?: string | null },
+): Promise<ActionResult> {
   if (!(await getIsAdmin())) throw new Error("unauthorized");
   if (!CUSTOMER_UUID_RE.test(id)) return { ok: false, error: "Customer not found." };
-  const name = patch.name.trim();
-  if (name === "") return { ok: false, error: "Name is required." };
-  const email = (patch.email ?? "").trim();
-  if (email !== "" && !/^\S+@\S+\.\S+$/.test(email)) {
-    return { ok: false, error: "Enter a valid email address or leave it blank." };
+  const update: Record<string, unknown> = {};
+  if (patch.name !== undefined) {
+    const name = patch.name.trim();
+    if (name === "") return { ok: false, error: "Name is required." };
+    update.name = name;
   }
+  if (patch.email !== undefined) {
+    const email = (patch.email ?? "").trim();
+    if (email !== "" && !/^\S+@\S+\.\S+$/.test(email)) return { ok: false, error: "Enter a valid email address or leave it blank." };
+    update.email = email === "" ? null : email;
+  }
+  if (patch.status !== undefined) {
+    if (!["active", "inactive", "blocked"].includes(patch.status)) return { ok: false, error: "Invalid status." };
+    update.status = patch.status;
+  }
+  if (patch.tags !== undefined) {
+    update.tags = [...new Set(patch.tags.map((t) => t.trim()).filter(Boolean))];
+  }
+  if (patch.notes !== undefined) {
+    const notes = (patch.notes ?? "").trim();
+    if (notes.length > 2000) return { ok: false, error: "Note too long (max 2000)." };
+    update.notes = notes === "" ? null : notes;
+  }
+  if (Object.keys(update).length === 0) return { ok: true };
   const db = createAdminSupabase();
-  const { data, error } = await db
-    .from("customers").update({ name, email: email === "" ? null : email }).eq("id", id)
-    .select("id").maybeSingle();
+  const { data, error } = await db.from("customers").update(update as never).eq("id", id).select("id").maybeSingle();
   if (error) return { ok: false, error: error.message };
   if (!data) return { ok: false, error: "Customer not found." };
   revalidatePath("/admin/customers");

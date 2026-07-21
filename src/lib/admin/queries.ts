@@ -3,6 +3,8 @@ import { createAdminSupabase } from "@/lib/supabase/admin";
 import { computeDashboardStats, type DashboardStats } from "@/lib/admin/stats";
 import { TAXONOMY_TABLES, type TaxonomyKind } from "@/lib/admin/taxonomy";
 import { aggregateCustomers, type CustomerRow, type OrderAggRow, type CustomerListItem } from "@/lib/admin/customer-metrics";
+import { customerTier, type CustomerTier } from "@/lib/admin/customer-tier";
+import { getSettings } from "@/lib/data/settings";
 import type { DetailContent } from "@/lib/types";
 
 /** Row shapes supplied via `.overrideTypes()` — see the note in
@@ -459,38 +461,62 @@ export async function getOrderStatusHistory(orderId: string): Promise<OrderHisto
 export type AdminCustomerOrder = {
   id: string; orderNumber: string; createdAt: string; total: number; status: string;
 };
+export type AdminCustomerLastAddress = {
+  addressLine: string; landmark: string | null; area: string; district: string; division: string;
+};
 export type AdminCustomerDetail = {
   id: string; name: string; phone: string; email: string | null; createdAt: string;
   orderCount: number; totalSpent: number; lastOrderAt: string | null;
+  aov: number; firstOrderAt: string | null; cancelledCount: number;
+  status: string; tags: string[]; notes: string | null; tier: CustomerTier;
+  lastAddress: AdminCustomerLastAddress | null;
   orders: AdminCustomerOrder[];
 };
 
-/** All customers with per-customer order metrics. Service-role. */
-export async function getAdminCustomers(): Promise<CustomerListItem[]> {
+/** List-item shape (metrics + tier) returned by `getAdminCustomers`. */
+export type AdminCustomerListItem = CustomerListItem & { tier: CustomerTier };
+
+/** All customers with per-customer order metrics + spend tier. Service-role. */
+export async function getAdminCustomers(): Promise<AdminCustomerListItem[]> {
   const db = createAdminSupabase();
   const [custRes, ordRes] = await Promise.all([
-    db.from("customers").select("id, name, phone, email, created_at").overrideTypes<CustomerRow[], { merge: false }>(),
+    db.from("customers").select("id, name, phone, email, created_at, status, tags").overrideTypes<CustomerRow[], { merge: false }>(),
     db.from("orders").select("customer_id, total, status, created_at").overrideTypes<OrderAggRow[], { merge: false }>(),
   ]);
   if (custRes.error) throw new Error(`getAdminCustomers: customers read failed: ${custRes.error.message}`);
   if (ordRes.error) throw new Error(`getAdminCustomers: orders read failed: ${ordRes.error.message}`);
-  return aggregateCustomers(custRes.data ?? [], ordRes.data ?? []);
+  const items = aggregateCustomers(custRes.data ?? [], ordRes.data ?? []);
+  const settings = await getSettings();
+  return items.map((item) => ({ ...item, tier: customerTier(item.totalSpent, settings.customerTiers) }));
 }
+
+/** Row shape for the single-customer read in `getAdminCustomerById` — adds
+ *  `notes` (list read doesn't need it) to the `status`/`tags` already on
+ *  `CustomerRow`. Absent from generated types, same as `status`/`tags`. */
+type CustomerDetailRow = CustomerRow & { notes?: string | null };
+
+/** Per-order fields needed to derive `lastAddress` for the detail view. */
+type CustomerOrderRow = {
+  id: string; order_number: string; created_at: string; total: number; status: string;
+  division: string; district: string; area: string; address_line: string; landmark: string | null;
+};
 
 /** One customer + their order history (newest first). Non-UUID id → null (404). */
 export async function getAdminCustomerById(id: string): Promise<AdminCustomerDetail | null> {
   if (!UUID_RE.test(id)) return null;
   const db = createAdminSupabase();
   const { data: c, error } = await db
-    .from("customers").select("id, name, phone, email, created_at").eq("id", id).maybeSingle()
-    .overrideTypes<CustomerRow, { merge: false }>();
+    .from("customers").select("id, name, phone, email, created_at, status, tags, notes").eq("id", id).maybeSingle()
+    .overrideTypes<CustomerDetailRow, { merge: false }>();
   if (error) throw new Error(`getAdminCustomerById failed: ${error.message}`);
   if (!c) return null;
 
   const { data: ords, error: oErr } = await db
-    .from("orders").select("id, order_number, created_at, total, status").eq("customer_id", id)
+    .from("orders")
+    .select("id, order_number, created_at, total, status, division, district, area, address_line, landmark")
+    .eq("customer_id", id)
     .order("created_at", { ascending: false })
-    .overrideTypes<{ id: string; order_number: string; created_at: string; total: number; status: string }[], { merge: false }>();
+    .overrideTypes<CustomerOrderRow[], { merge: false }>();
   if (oErr) throw new Error(`getAdminCustomerById orders failed: ${oErr.message}`);
 
   const orders = ords ?? [];
@@ -498,8 +524,23 @@ export async function getAdminCustomerById(id: string): Promise<AdminCustomerDet
     [c],
     orders.map((o) => ({ customer_id: c.id, total: o.total, status: o.status, created_at: o.created_at })),
   );
+  const settings = await getSettings();
+  const tier = customerTier(metrics.totalSpent, settings.customerTiers);
+  // Newest order (first in the list, since `orders` is sorted newest-first) —
+  // its shipping address is the customer's most recent known address.
+  const newest = orders[0] ?? null;
+  const lastAddress: AdminCustomerLastAddress | null = newest
+    ? {
+        addressLine: newest.address_line, landmark: newest.landmark,
+        area: newest.area, district: newest.district, division: newest.division,
+      }
+    : null;
+
   return {
-    ...metrics, // id, name, phone, email, createdAt, orderCount, totalSpent, lastOrderAt
+    ...metrics, // id, name, phone, email, createdAt, orderCount, totalSpent, lastOrderAt, aov, firstOrderAt, cancelledCount, status, tags
+    notes: c.notes ?? null,
+    tier,
+    lastAddress,
     orders: orders.map((o) => ({
       id: o.id, orderNumber: o.order_number, createdAt: o.created_at, total: o.total, status: o.status,
     })),
