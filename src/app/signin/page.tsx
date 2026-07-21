@@ -19,6 +19,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
 import { BRAND_NAME } from "@/lib/config";
 import { createBrowserSupabase } from "@/lib/supabase/client";
+import { isValidBdMobile } from "@/lib/auth/bd-phone";
 
 /**
  * Where to send the user after a successful sign-in — the `?next=` search
@@ -93,6 +94,7 @@ export default function SignInPage() {
   // Sign-up modal fields — previously unwired (no value/onChange at all).
   const [signUpFullName, setSignUpFullName] = useState("");
   const [signUpEmail, setSignUpEmail] = useState("");
+  const [signUpPhone, setSignUpPhone] = useState("");
   const [signUpPassword, setSignUpPassword] = useState("");
   const [signUpConfirmPassword, setSignUpConfirmPassword] = useState("");
   const [signUpLoading, setSignUpLoading] = useState(false);
@@ -139,8 +141,16 @@ export default function SignInPage() {
   // human-verification modal. The actual `signUp()` call fires once that
   // completes (see `handleVerify`) — that's the flow's true "finish" point.
   const handleCreateAccount = () => {
-    if (!signUpEmail.trim()) {
-      toast.error("Please enter your email or phone number.");
+    if (!signUpFullName.trim()) {
+      toast.error("Please enter your full name.");
+      return;
+    }
+    if (!/^\S+@\S+\.\S+$/.test(signUpEmail.trim())) {
+      toast.error("Please enter a valid email address.");
+      return;
+    }
+    if (!isValidBdMobile(signUpPhone)) {
+      toast.error("Please enter a valid Bangladeshi phone number (e.g. 01712345678).");
       return;
     }
     if (!signUpPassword) {
@@ -176,13 +186,11 @@ export default function SignInPage() {
     if (!captchaChecked || signUpLoading) return;
     setSignUpLoading(true);
     const { error } = await supabase.auth.signUp({
-      email: signUpEmail,
+      email: signUpEmail.trim(),
       password: signUpPassword,
       options: {
         emailRedirectTo: `${window.location.origin}/auth/callback`,
-        ...(signUpFullName.trim()
-          ? { data: { full_name: signUpFullName.trim() } }
-          : {}),
+        data: { full_name: signUpFullName.trim(), phone: signUpPhone.trim() },
       },
     });
     setSignUpLoading(false);
@@ -204,6 +212,7 @@ export default function SignInPage() {
     setAwaitingConfirmation(false);
     setSignUpFullName("");
     setSignUpEmail("");
+    setSignUpPhone("");
     setSignUpPassword("");
     setSignUpConfirmPassword("");
     setAcceptedSignUpTerms(false);
@@ -593,14 +602,29 @@ export default function SignInPage() {
 
                 <label className="block">
                   <span className="mb-1.5 block text-sm font-medium text-ink">
-                    Email or Phone Number
+                    Email
                   </span>
                   <input
-                    type="text"
-                    autoComplete="username"
+                    type="email"
+                    autoComplete="email"
                     value={signUpEmail}
                     onChange={(e) => setSignUpEmail(e.target.value)}
-                    placeholder="Email or Phone Number"
+                    placeholder="you@example.com"
+                    className="h-11 w-full rounded-lg border border-cream-300 bg-paper px-3 text-sm text-ink outline-none transition-colors placeholder:text-ink-soft focus:border-neem"
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="mb-1.5 block text-sm font-medium text-ink">
+                    Phone number
+                  </span>
+                  <input
+                    type="tel"
+                    autoComplete="tel"
+                    inputMode="numeric"
+                    value={signUpPhone}
+                    onChange={(e) => setSignUpPhone(e.target.value)}
+                    placeholder="01XXXXXXXXX"
                     className="h-11 w-full rounded-lg border border-cream-300 bg-paper px-3 text-sm text-ink outline-none transition-colors placeholder:text-ink-soft focus:border-neem"
                   />
                 </label>
