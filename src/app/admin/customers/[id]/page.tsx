@@ -44,7 +44,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   if (!customer) notFound();
 
   const daysAgo = customer.lastOrderAt
-    ? Math.floor((Date.now() - new Date(customer.lastOrderAt).getTime()) / 86400000)
+    ? Math.max(0, Math.floor((Date.now() - new Date(customer.lastOrderAt).getTime()) / 86400000))
     : null;
 
   return (
