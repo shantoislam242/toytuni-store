@@ -29,3 +29,32 @@ describe("aggregateCustomers", () => {
     expect(result.map((c) => c.id)).toEqual(["c1", "c2"]);
   });
 });
+
+const cust = (id: string, extra = {}) => ({ id, name: "N", phone: "p"+id, email: null, created_at: "2026-01-01", status: "active", tags: [], ...extra });
+const ord = (cid: string, total: number, status: string, date: string) => ({ customer_id: cid, total, status, created_at: date });
+describe("aggregateCustomers extensions", () => {
+  it("aov = spent / non-cancelled count; cancelled excluded from spend but counted", () => {
+    const [c] = aggregateCustomers([cust("a")], [
+      ord("a", 1000, "delivered", "2026-02-01"),
+      ord("a", 500, "delivered", "2026-03-01"),
+      ord("a", 9999, "cancelled", "2026-04-01"),
+    ]);
+    expect(c.totalSpent).toBe(1500);
+    expect(c.aov).toBe(750);           // 1500 / 2 non-cancelled
+    expect(c.cancelledCount).toBe(1);
+    expect(c.orderCount).toBe(3);
+    expect(c.firstOrderAt).toBe("2026-02-01");
+  });
+  it("aov 0 and firstOrderAt null with no orders", () => {
+    const [c] = aggregateCustomers([cust("b")], []);
+    expect(c.aov).toBe(0); expect(c.firstOrderAt).toBeNull(); expect(c.cancelledCount).toBe(0);
+  });
+  it("aov 0 when only cancelled orders", () => {
+    const [c] = aggregateCustomers([cust("c")], [ord("c", 500, "cancelled", "2026-02-01")]);
+    expect(c.aov).toBe(0); expect(c.totalSpent).toBe(0); expect(c.cancelledCount).toBe(1);
+  });
+  it("passes status + tags through", () => {
+    const [c] = aggregateCustomers([cust("d", { status: "blocked", tags: ["vip"] })], []);
+    expect(c.status).toBe("blocked"); expect(c.tags).toEqual(["vip"]);
+  });
+});
