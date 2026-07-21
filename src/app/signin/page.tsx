@@ -239,6 +239,23 @@ export default function SignInPage() {
     }
   };
 
+  // Resend the sign-up confirmation link for the identifier being signed in
+  // with — offered when a sign-in fails because the email isn't confirmed yet.
+  const resendConfirmation = async () => {
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email: email.trim(),
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+    });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Confirmation email sent.", {
+      description: `We re-sent the link to ${email.trim()}.`,
+    });
+  };
+
   // Step 2 → real Supabase email/password sign-in.
   const handlePasswordSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -250,7 +267,20 @@ export default function SignInPage() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) {
-      toast.error(error.message);
+      // Supabase blocks sign-in until the signup email is confirmed. Surface a
+      // clear message + a one-tap "Resend" rather than the raw error text.
+      const unconfirmed =
+        /email not confirmed/i.test(error.message) ||
+        (error as { code?: string }).code === "email_not_confirmed";
+      if (unconfirmed) {
+        toast.error("Please confirm your email first.", {
+          description:
+            "We emailed a confirmation link when you signed up — check your inbox and spam.",
+          action: { label: "Resend", onClick: () => void resendConfirmation() },
+        });
+      } else {
+        toast.error(error.message);
+      }
       return;
     }
     setShowPassword(false);
