@@ -28,8 +28,8 @@ import {
   markOrderPaid,
   cancelOrder,
   addOrderNote,
-  ORDER_CARRIERS,
 } from "@/lib/admin/actions";
+import { ORDER_CARRIERS } from "@/lib/admin/order-constants";
 import { allowedTransitions, type OrderStatus } from "@/lib/orders/status-workflow";
 
 type DialogState = { mode: "ship" } | { mode: "cancel" } | null;

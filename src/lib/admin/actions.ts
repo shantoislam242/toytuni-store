@@ -13,15 +13,13 @@ import { cleanTags } from "@/lib/blog/tags";
 import { canTransition, timestampFieldFor, isOrderStatus, type OrderStatus } from "@/lib/orders/status-workflow";
 import { sendOrderEmail } from "@/lib/email/send-order-email";
 import { getAdminOrderById } from "@/lib/admin/queries";
+import { ORDER_CARRIERS } from "@/lib/admin/order-constants";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
 /** Mirrors `UUID_RE` in `src/lib/admin/queries.ts` — kept local since actions.ts
  *  can't import that file's non-exported regex. */
 const CUSTOMER_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-/** Carriers offered in the ship-order form (Bangladesh courier services). */
-export const ORDER_CARRIERS = ["Pathao", "Steadfast", "RedX", "Sundarban", "Paperfly", "eCourier", "Other"] as const;
 
 /** Look up an order's current status, narrowed to `OrderStatus` (null if the
  *  order doesn't exist or its status is somehow outside the known set). */
