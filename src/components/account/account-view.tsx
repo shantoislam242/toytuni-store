@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { LogOut, Package, ShoppingBag, UserRound } from "lucide-react";
+import { LayoutDashboard, LogOut, Package, ShoppingBag, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/auth-context";
@@ -26,7 +26,7 @@ export function AccountView({
   user?: { name: string; email: string };
   orders?: AccountOrder[];
 }) {
-  const { signOut } = useAuth();
+  const { signOut, isAdmin } = useAuth();
   const router = useRouter();
   const [signingOut, setSigningOut] = useState(false);
 
@@ -66,15 +66,25 @@ export function AccountView({
               <p className="mt-0.5 break-all text-sm text-ink-muted">{user.email}</p>
             </div>
           </div>
-          <Button
-            size="lg"
-            variant="outline"
-            onClick={handleSignOut}
-            disabled={signingOut}
-          >
-            <LogOut className="size-4" />
-            {signingOut ? "Signing out…" : "Sign out"}
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            {isAdmin ? (
+              <Button asChild size="lg">
+                <Link href="/admin">
+                  <LayoutDashboard className="size-4" />
+                  Dashboard
+                </Link>
+              </Button>
+            ) : null}
+            <Button
+              size="lg"
+              variant="outline"
+              onClick={handleSignOut}
+              disabled={signingOut}
+            >
+              <LogOut className="size-4" />
+              {signingOut ? "Signing out…" : "Sign out"}
+            </Button>
+          </div>
         </div>
       </section>
 
