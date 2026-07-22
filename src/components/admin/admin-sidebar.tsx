@@ -12,6 +12,7 @@ import {
   Warehouse,
   Newspaper,
   Settings,
+  Star,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -47,6 +48,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Customers", href: "/admin/customers", icon: Users },
   { label: "Inventory", href: "/admin/inventory", icon: Warehouse },
   { label: "Blog", href: "/admin/blog", icon: Newspaper },
+  { label: "Reviews", href: "/admin/reviews", icon: Star },
   { label: "Settings", href: "/admin/settings", icon: Settings },
 ];
 

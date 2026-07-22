@@ -12,6 +12,7 @@ import { GiftCardDetailsView } from "@/components/gift/gift-card-details-view";
 import { giftKits, giftCards } from "@/lib/mock/gifts";
 import { getCatalogProduct, getRelated } from "@/lib/data/catalog";
 import { getProductDetail } from "@/lib/data/product-detail";
+import { getProductReviews, getProductQuestions } from "@/lib/data/reviews";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -74,9 +75,11 @@ export default async function Page({
   // still renders a real PDP instead of 404-ing.
   const detail = await getProductDetail(slug);
 
-  const [categories, ageTiers] = await Promise.all([
+  const [categories, ageTiers, reviews, questions] = await Promise.all([
     getCategories(),
     getAgeTiers(),
+    getProductReviews(slug),
+    getProductQuestions(slug),
   ]);
   const category = categories.find((c) => c.slug === product.categorySlug);
   const ageTier = ageTiers.find((t) => t.slug === product.ageTierSlug);
@@ -141,6 +144,8 @@ export default async function Page({
         ageTier={ageTier}
         category={category}
         related={await getRelated(product.slug)}
+        reviews={reviews}
+        questions={questions}
       />
       <div className="bg-paper">
         <RecentlyViewed excludeSlug={product.slug} />

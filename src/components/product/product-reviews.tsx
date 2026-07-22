@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { BadgeCheck, Star, ThumbsUp } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { PlaceholderImage } from "@/components/placeholder-image";
+import { BadgeCheck, Star } from "lucide-react";
+import { WriteReviewCta } from "@/components/product/write-review-cta";
+import { formatDate } from "@/lib/format";
+import { ratingDistribution } from "@/lib/reviews/validation";
 import { cn } from "@/lib/utils";
-import type { Review } from "@/lib/types";
+import type { ProductReview } from "@/lib/data/reviews";
 
 // Soft brand-tone backgrounds for the initial avatars. Picked deterministically
 // from the reviewer's name so the same person always gets the same colour.
@@ -54,85 +54,53 @@ function Stars({ rating, className }: { rating: number; className?: string }) {
   );
 }
 
-/** A single review row. */
-function ReviewCard({ review }: { review: Review }) {
-  const [helpful, setHelpful] = useState(false);
-  const count = (review.helpfulCount ?? 0) + (helpful ? 1 : 0);
-
+/** A single review row. Every review here is purchase-verified by construction
+ *  (see `getReviewEligibility` — only delivered-order customers can post), so
+ *  the badge is unconditional. */
+function ReviewCard({ review }: { review: ProductReview }) {
   return (
     <article className="border-b border-cream-200 py-5 last:border-0">
       <div className="flex gap-3">
-        <InitialAvatar name={review.nameBn} />
+        <InitialAvatar name={review.customerName} />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <span className="font-semibold text-ink">{review.nameBn}</span>
-            {review.verifiedPurchase ? (
-              <span className="inline-flex items-center gap-1 text-xs font-medium text-neem-deep">
-                <BadgeCheck className="size-3.5" />
-                Verified purchase
-              </span>
-            ) : null}
-            <span className="text-xs text-ink-soft">{review.dateBn}</span>
+            <span className="font-semibold text-ink">{review.customerName}</span>
+            <span className="inline-flex items-center gap-1 text-xs font-medium text-neem-deep">
+              <BadgeCheck className="size-3.5" />
+              Verified purchase
+            </span>
+            <span className="text-xs text-ink-soft">
+              {formatDate(review.createdAt.slice(0, 10))}
+            </span>
           </div>
 
           <div className="mt-1.5 flex items-center gap-3">
             <Stars rating={review.rating} />
-            {review.titleBn ? (
+            {review.title ? (
               <span className="font-display text-sm font-bold text-ink">
-                {review.titleBn}
+                {review.title}
               </span>
             ) : null}
           </div>
         </div>
       </div>
 
-      <p className="mt-2 max-w-2xl text-sm leading-6 text-ink-muted">{review.bodyBn}</p>
-
-      {review.images?.length ? (
-        <div className="mt-3 flex gap-2">
-          {review.images.map((src, i) => (
-            <div
-              key={`${src}-${i}`}
-              className="size-16 overflow-hidden rounded-md border border-cream-200 bg-cream-50"
-            >
-              <PlaceholderImage tone="cream" className="size-full" label="Photo" />
-            </div>
-          ))}
-        </div>
-      ) : null}
-
-      <div className="mt-3">
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => setHelpful((v) => !v)}
-          aria-pressed={helpful}
-          className={cn(
-            "gap-1.5 text-xs font-medium text-ink-muted",
-            helpful && "text-neem-deep",
-          )}
-        >
-          <ThumbsUp className={cn("size-3.5", helpful && "fill-neem text-neem")} />
-          Helpful{count > 0 ? ` (${count})` : ""}
-        </Button>
-      </div>
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-ink-muted">{review.body}</p>
     </article>
   );
 }
 
 /** Rating breakdown — counts of 5★ down to 1★ as horizontal bars. */
-function RatingBreakdown({ reviews }: { reviews: Review[] }) {
+function RatingBreakdown({ reviews }: { reviews: ProductReview[] }) {
+  const dist = ratingDistribution(reviews.map((r) => r.rating)); // index 0 = 1★ … index 4 = 5★
   const buckets = [5, 4, 3, 2, 1];
-  const counts = buckets.map(
-    (star) => reviews.filter((r) => Math.round(r.rating) === star).length,
-  );
   const total = reviews.length || 1;
 
   return (
     <div className="w-full space-y-2">
-      {buckets.map((star, i) => {
-        const pct = (counts[i] / total) * 100;
+      {buckets.map((star) => {
+        const count = dist[star - 1];
+        const pct = (count / total) * 100;
         return (
           <div key={star} className="flex items-center gap-3 text-sm text-ink-muted">
             <span className="w-3 shrink-0 text-right font-medium tabular-nums">
@@ -142,7 +110,7 @@ function RatingBreakdown({ reviews }: { reviews: Review[] }) {
               <div
                 className="h-full rounded-full bg-neem transition-[width] duration-500 ease-out"
                 // A tiny min keeps a rounded nub visible for small (non-zero) counts.
-                style={{ width: counts[i] === 0 ? 0 : `max(0.75rem, ${pct}%)` }}
+                style={{ width: count === 0 ? 0 : `max(0.75rem, ${pct}%)` }}
               />
             </div>
           </div>
@@ -153,48 +121,56 @@ function RatingBreakdown({ reviews }: { reviews: Review[] }) {
 }
 
 /**
- * Customer reviews: overall rating card, rating breakdown bars, and the
- * review list with stars, verified badges, and helpful toggles.
+ * Customer reviews: write-review CTA, overall rating card, rating breakdown
+ * bars, and the real DB-backed review list with stars and verified badges.
  */
 export function ProductReviews({
+  slug,
   reviews,
-  rating,
+  avgRating,
   reviewCount,
 }: {
-  reviews: Review[];
-  rating: number;
+  slug: string;
+  reviews: ProductReview[];
+  avgRating: number;
   reviewCount: number;
 }) {
-  const list = reviews.length ? reviews : [];
-  const avg = list.length
-    ? list.reduce((sum, r) => sum + r.rating, 0) / list.length
-    : rating;
+  // Prefer the live average of the fetched reviews (matches what's on screen);
+  // fall back to the product's stored aggregate when reviews are empty (e.g.
+  // still warming the cache after a fresh migration).
+  const avg = reviews.length
+    ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
+    : avgRating;
 
   return (
-    <section className="space-y-6">
+    <section id="reviews" className="space-y-6">
       <h2 className="font-display text-2xl font-bold tracking-tight text-ink sm:text-3xl">
         Customer Reviews
       </h2>
 
-      <div className="grid gap-6 rounded-xl border border-cream-200 bg-cream-50 p-5 sm:grid-cols-[auto_1fr] sm:gap-8">
-        <div className="flex flex-col items-center justify-center text-center sm:items-start sm:text-left">
-          <span className="font-display text-5xl font-bold text-ink">{avg.toFixed(1)}</span>
-          <Stars rating={avg} className="mt-2" />
-          <span className="mt-2 text-sm text-ink-muted">
-            Based on {reviewCount.toLocaleString("en-US")} reviews
-          </span>
+      <WriteReviewCta slug={slug} />
+
+      {reviewCount > 0 ? (
+        <div className="grid gap-6 rounded-xl border border-cream-200 bg-cream-50 p-5 sm:grid-cols-[auto_1fr] sm:gap-8">
+          <div className="flex flex-col items-center justify-center text-center sm:items-start sm:text-left">
+            <span className="font-display text-5xl font-bold text-ink">{avg.toFixed(1)}</span>
+            <Stars rating={avg} className="mt-2" />
+            <span className="mt-2 text-sm text-ink-muted">
+              Based on {reviewCount.toLocaleString("en-US")} reviews
+            </span>
+          </div>
+          <div className="flex items-center sm:pl-8 sm:border-l sm:border-cream-200">
+            <RatingBreakdown reviews={reviews} />
+          </div>
         </div>
-        <div className="flex items-center sm:pl-8 sm:border-l sm:border-cream-200">
-          <RatingBreakdown reviews={list} />
-        </div>
-      </div>
+      ) : null}
 
       <div>
-        {list.length ? (
-          list.map((review) => <ReviewCard key={review.id} review={review} />)
+        {reviews.length ? (
+          reviews.map((review) => <ReviewCard key={review.id} review={review} />)
         ) : (
           <p className="py-8 text-center text-sm text-ink-muted">
-            No reviews yet. Be the first to share your experience.
+            No reviews yet — be the first!
           </p>
         )}
       </div>

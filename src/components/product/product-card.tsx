@@ -177,10 +177,12 @@ export function ProductCard({
           {product.titleBn}
         </Link>
 
-        <div className="mt-1.5 flex min-w-0 items-center gap-1.5">
-          <Stars rating={product.rating} />
-          <span className="text-xs text-ink-soft">({product.reviewCount})</span>
-        </div>
+        {product.reviewCount > 0 ? (
+          <div className="mt-1.5 flex min-w-0 items-center gap-1.5">
+            <Stars rating={product.rating} />
+            <span className="text-xs text-ink-soft">({product.reviewCount})</span>
+          </div>
+        ) : null}
 
         {/* gift-kit "what's inside" — only rendered for products that have it */}
         {product.kitContents?.length ? (

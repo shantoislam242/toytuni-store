@@ -651,6 +651,126 @@ export async function getAdminBlogPostBySlug(slug: string): Promise<AdminBlogPos
   };
 }
 
+export type AdminReview = {
+  id: string;
+  productId: string;
+  productTitle: string;
+  customerName: string;
+  customerEmail: string;
+  rating: number;
+  title: string | null;
+  body: string;
+  hidden: boolean;
+  createdAt: string;
+};
+
+type AdminReviewRow = {
+  id: string;
+  product_id: string;
+  customer_name: string;
+  customer_email: string;
+  rating: number;
+  title: string | null;
+  body: string;
+  hidden: boolean;
+  created_at: string;
+  products: { title: string } | { title: string }[] | null;
+};
+
+/** `products` is a 1:1 relation embedded via the `product_id` FK, but
+ *  PostgREST may return it as an object or a single-element array depending
+ *  on join shape — handle both defensively (mirrors `oneProductTitle` in
+ *  `src/lib/admin/analytics.ts`). */
+function oneProductTitle(products: AdminReviewRow["products"] | AdminQuestionRow["products"]): string {
+  if (!products) return "—";
+  const row = Array.isArray(products) ? products[0] : products;
+  return row?.title ?? "—";
+}
+
+/** All reviews (incl. hidden), newest first, with the product's title.
+ *  Service-role — admin moderation needs hidden rows too, which RLS's
+ *  "read visible reviews" policy would otherwise exclude. */
+export async function getAdminReviews(): Promise<AdminReview[]> {
+  const db = createAdminSupabase();
+  const { data, error } = await db
+    .from("product_reviews" as never)
+    .select("id, product_id, customer_name, customer_email, rating, title, body, hidden, created_at, products(title)")
+    .order("created_at", { ascending: false })
+    .overrideTypes<AdminReviewRow[], { merge: false }>();
+  if (error) throw new Error(`getAdminReviews failed: ${error.message}`);
+
+  return (data ?? []).map((r) => ({
+    id: r.id,
+    productId: r.product_id,
+    productTitle: oneProductTitle(r.products),
+    customerName: r.customer_name,
+    customerEmail: r.customer_email,
+    rating: r.rating,
+    title: r.title,
+    body: r.body,
+    hidden: r.hidden,
+    createdAt: r.created_at,
+  }));
+}
+
+export type AdminQuestion = {
+  id: string;
+  productId: string;
+  productTitle: string;
+  customerName: string;
+  customerEmail: string;
+  question: string;
+  answer: string | null;
+  answeredAt: string | null;
+  hidden: boolean;
+  createdAt: string;
+};
+
+type AdminQuestionRow = {
+  id: string;
+  product_id: string;
+  customer_name: string;
+  customer_email: string;
+  question: string;
+  answer: string | null;
+  answered_at: string | null;
+  hidden: boolean;
+  created_at: string;
+  products: { title: string } | { title: string }[] | null;
+};
+
+/** All questions (incl. hidden/unanswered), unanswered first then newest.
+ *  Service-role — admin moderation needs hidden/unanswered rows too, which
+ *  RLS's "read answered questions" policy would otherwise exclude. */
+export async function getAdminQuestions(): Promise<AdminQuestion[]> {
+  const db = createAdminSupabase();
+  const { data, error } = await db
+    .from("product_questions" as never)
+    .select("id, product_id, customer_name, customer_email, question, answer, answered_at, hidden, created_at, products(title)")
+    .order("created_at", { ascending: false })
+    .overrideTypes<AdminQuestionRow[], { merge: false }>();
+  if (error) throw new Error(`getAdminQuestions failed: ${error.message}`);
+
+  const items = (data ?? []).map((q) => ({
+    id: q.id,
+    productId: q.product_id,
+    productTitle: oneProductTitle(q.products),
+    customerName: q.customer_name,
+    customerEmail: q.customer_email,
+    question: q.question,
+    answer: q.answer,
+    answeredAt: q.answered_at,
+    hidden: q.hidden,
+    createdAt: q.created_at,
+  }));
+  return items.sort((a, b) => {
+    const unansweredRank = (x: AdminQuestion) => (x.answer === null ? 0 : 1);
+    const rankDiff = unansweredRank(a) - unansweredRank(b);
+    if (rankDiff !== 0) return rankDiff;
+    return b.createdAt.localeCompare(a.createdAt);
+  });
+}
+
 export type AdminBlogCategory = { slug: string; name: string; sort: number; postCount: number };
 
 type BlogCategoryRow = { slug: string; name: string; sort: number };

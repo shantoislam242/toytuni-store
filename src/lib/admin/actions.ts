@@ -1170,6 +1170,112 @@ export async function uploadBlogCover(
   return uploadImageToBucket(db, cleanSlug, file);
 }
 
+/** Refresh the storefront reviews/Q&A read + the admin moderation screen
+ *  after a `product_reviews`/`product_questions` write. `catalog` is only
+ *  needed for review writes — the `refresh_product_rating` trigger (migration
+ *  0014) moves `products.rating`/`review_count`, which the cached catalog
+ *  read carries. */
+function revalidateReviews(includeCatalog: boolean): void {
+  revalidateTag("reviews", "max");
+  if (includeCatalog) revalidateTag("catalog", "max");
+  revalidatePath("/admin/reviews");
+}
+
+/** Show/hide a review on the storefront. Server Action — admin re-check +
+ *  service-role; hiding/unhiding also shifts `products.rating`/`review_count`
+ *  via the DB trigger, so the catalog cache is busted too. */
+export async function setReviewHidden(id: string, hidden: boolean): Promise<ActionResult> {
+  if (!(await getIsAdmin())) throw new Error("unauthorized");
+  const db = createAdminSupabase();
+  const { data, error } = await db
+    .from("product_reviews" as never)
+    .update({ hidden } as never)
+    .eq("id", id)
+    .select("id")
+    .maybeSingle();
+  if (error) return { ok: false, error: error.message };
+  if (!data) return { ok: false, error: "Not found." };
+  revalidateReviews(true);
+  return { ok: true };
+}
+
+/** Permanently delete a review. Server Action — admin re-check + service-role;
+ *  the DB trigger recomputes `products.rating`/`review_count` on delete too. */
+export async function deleteReview(id: string): Promise<ActionResult> {
+  if (!(await getIsAdmin())) throw new Error("unauthorized");
+  const db = createAdminSupabase();
+  const { data, error } = await db
+    .from("product_reviews" as never)
+    .delete()
+    .eq("id", id)
+    .select("id")
+    .maybeSingle();
+  if (error) return { ok: false, error: error.message };
+  if (!data) return { ok: false, error: "Not found." };
+  revalidateReviews(true);
+  return { ok: true };
+}
+
+/** Answer a customer question. Server Action — admin re-check + service-role;
+ *  validates a non-empty, ≤ 2000-char answer, then stamps `answered_at`/
+ *  `answered_by` (the signed-in admin's email, or "admin" if unresolvable).
+ *  An answered question becomes publicly visible via `product_questions`'s
+ *  "read answered questions" RLS policy. */
+export async function answerQuestion(id: string, answer: string): Promise<ActionResult> {
+  if (!(await getIsAdmin())) throw new Error("unauthorized");
+  const trimmed = answer.trim();
+  if (!trimmed) return { ok: false, error: "Answer is empty." };
+  if (trimmed.length > 2000) return { ok: false, error: "Answer too long (max 2000)." };
+  const db = createAdminSupabase();
+  const { data, error } = await db
+    .from("product_questions" as never)
+    .update({
+      answer: trimmed,
+      answered_at: new Date().toISOString(),
+      answered_by: (await getSessionUser())?.email ?? "admin",
+    } as never)
+    .eq("id", id)
+    .select("id")
+    .maybeSingle();
+  if (error) return { ok: false, error: error.message };
+  if (!data) return { ok: false, error: "Not found." };
+  revalidateReviews(false);
+  return { ok: true };
+}
+
+/** Show/hide a question on the storefront. Server Action — admin re-check +
+ *  service-role. Doesn't affect `products.rating` — no catalog revalidation. */
+export async function setQuestionHidden(id: string, hidden: boolean): Promise<ActionResult> {
+  if (!(await getIsAdmin())) throw new Error("unauthorized");
+  const db = createAdminSupabase();
+  const { data, error } = await db
+    .from("product_questions" as never)
+    .update({ hidden } as never)
+    .eq("id", id)
+    .select("id")
+    .maybeSingle();
+  if (error) return { ok: false, error: error.message };
+  if (!data) return { ok: false, error: "Not found." };
+  revalidateReviews(false);
+  return { ok: true };
+}
+
+/** Permanently delete a question. Server Action — admin re-check + service-role. */
+export async function deleteQuestion(id: string): Promise<ActionResult> {
+  if (!(await getIsAdmin())) throw new Error("unauthorized");
+  const db = createAdminSupabase();
+  const { data, error } = await db
+    .from("product_questions" as never)
+    .delete()
+    .eq("id", id)
+    .select("id")
+    .maybeSingle();
+  if (error) return { ok: false, error: error.message };
+  if (!data) return { ok: false, error: "Not found." };
+  revalidateReviews(false);
+  return { ok: true };
+}
+
 /** Refresh the public blog (list) and the admin categories screen after a
  *  `blog_categories` write. */
 function revalidateBlogTaxonomy(): void {
