@@ -5,6 +5,7 @@ import { TAXONOMY_TABLES, type TaxonomyKind } from "@/lib/admin/taxonomy";
 import { aggregateCustomers, type CustomerRow, type OrderAggRow, type CustomerListItem } from "@/lib/admin/customer-metrics";
 import { customerTier, type CustomerTier } from "@/lib/admin/customer-tier";
 import { getSettings } from "@/lib/data/settings";
+import { adminEnvEmails } from "@/lib/auth/roles";
 import type { DetailContent } from "@/lib/types";
 
 /** Row shapes supplied via `.overrideTypes()` — see the note in
@@ -886,4 +887,46 @@ export async function getInboxUnreadCount(): Promise<number> {
   } catch {
     return 0;
   }
+}
+
+export type AdminTeamMember = {
+  id: string;
+  email: string;
+  role: "super_admin" | "admin";
+  addedBy: string | null;
+  createdAt: string;
+  permanent: boolean;
+};
+
+type AdminTeamRow = {
+  id: string;
+  email: string;
+  role: string;
+  added_by: string | null;
+  created_at: string;
+};
+
+/** All dashboard-managed admins (`admin_users`), oldest first, each flagged
+ *  `permanent` when its email is in the env bootstrap allowlist (those rows
+ *  can't be meaningfully removed/demoted from the UI — the env bootstrap
+ *  would keep admitting them regardless). Service-role — `admin_users` is
+ *  RLS-on with zero policies (migration 0016). */
+export async function getAdminTeam(): Promise<AdminTeamMember[]> {
+  const db = createAdminSupabase();
+  const { data, error } = await db
+    .from("admin_users" as never)
+    .select("id, email, role, added_by, created_at")
+    .order("created_at", { ascending: true })
+    .overrideTypes<AdminTeamRow[], { merge: false }>();
+  if (error) throw new Error(`getAdminTeam failed: ${error.message}`);
+
+  const env = adminEnvEmails();
+  return (data ?? []).map((r) => ({
+    id: r.id,
+    email: r.email,
+    role: r.role as AdminTeamMember["role"],
+    addedBy: r.added_by,
+    createdAt: r.created_at,
+    permanent: env.includes(r.email.toLowerCase()),
+  }));
 }

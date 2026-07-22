@@ -14,6 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
 import { useAuth } from "@/lib/auth/auth-context";
+import type { AdminRole } from "@/lib/auth/resolve-role";
 
 type AdminShellUser = {
   name: string;
@@ -23,15 +24,18 @@ type AdminShellUser = {
 /**
  * The admin panel chrome: collapsible sidebar + top header + content area.
  * Server-authoritative access control already happened in `admin/layout.tsx`
- * (and before that, `src/proxy.ts`) — this component only renders.
+ * (and before that, `src/proxy.ts`) — this component only renders, threading
+ * the resolved `role` down to the sidebar for its own role-gated nav items.
  */
 export function AdminShell({
   user,
   inboxUnread,
+  role,
   children,
 }: {
   user: AdminShellUser;
   inboxUnread?: number;
+  role?: AdminRole;
   children: React.ReactNode;
 }) {
   const { signOut } = useAuth();
@@ -55,7 +59,7 @@ export function AdminShell({
 
   return (
     <SidebarProvider>
-      <AdminSidebar inboxUnread={inboxUnread} />
+      <AdminSidebar inboxUnread={inboxUnread} role={role} />
       <SidebarInset>
         <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border bg-background px-4">
           <SidebarTrigger />

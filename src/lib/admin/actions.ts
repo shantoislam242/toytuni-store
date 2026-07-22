@@ -2,6 +2,7 @@
 
 import { revalidatePath, revalidateTag } from "next/cache";
 import { getIsAdmin, getSessionUser } from "@/lib/auth/session";
+import { getIsSuperAdmin, adminEnvEmails } from "@/lib/auth/roles";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import type { Database } from "@/lib/supabase/database.types";
 import type { DetailContent } from "@/lib/types";
@@ -869,10 +870,11 @@ export async function softDeleteProduct(slug: string): Promise<ActionResult> {
 }
 
 /** Validate + persist store settings to the single `site_settings.general` row.
- *  Server Action — admin re-check + service-role. Money fields are non-negative
- *  integers; strings are trimmed. */
+ *  Server Action — super-admin re-check + service-role (Settings is gated to
+ *  super admins only). Money fields are non-negative integers; strings are
+ *  trimmed. */
 export async function updateSettings(next: Settings): Promise<ActionResult> {
-  if (!(await getIsAdmin())) throw new Error("unauthorized");
+  if (!(await getIsSuperAdmin())) throw new Error("unauthorized");
 
   const ints = [
     next.shipping?.insideDhakaFee, next.shipping?.outsideDhakaFee,
@@ -1433,5 +1435,115 @@ export async function deleteSubscriber(id: string): Promise<ActionResult> {
   if (error) return { ok: false, error: error.message };
   if (!data) return { ok: false, error: "Not found." };
   revalidatePath("/admin/inbox");
+  return { ok: true };
+}
+
+/** The two roles `admin_users.role` accepts (mirrors the DB check constraint
+ *  in migration 0016). */
+const ADMIN_ROLES = ["super_admin", "admin"] as const;
+type AdminRoleValue = (typeof ADMIN_ROLES)[number];
+
+function isAdminRoleValue(value: string): value is AdminRoleValue {
+  return (ADMIN_ROLES as readonly string[]).includes(value);
+}
+
+type AdminUserRow = { id: string; email: string };
+
+/** Look up a team row's id+email by id, for the guard chain shared by
+ *  `setAdminRole`/`removeAdminUser` — null if the row doesn't exist. */
+async function findAdminUser(db: AdminDb, id: string): Promise<AdminUserRow | null> {
+  const { data } = await db
+    .from("admin_users" as never)
+    .select("id, email")
+    .eq("id", id)
+    .maybeSingle()
+    .overrideTypes<AdminUserRow, { merge: false }>();
+  return data ?? null;
+}
+
+/** Refresh the team page after a write. */
+function revalidateTeam(): void {
+  revalidatePath("/admin/team");
+}
+
+/**
+ * Add a new dashboard-managed admin. Server Action — super-gated; validates
+ * the email (regex + trim/lowercase) and role (enum — a Super may create
+ * other Supers, peer management by decision). No target row exists yet, so
+ * this skips the "row exists"/env/self guards that gate `setAdminRole` and
+ * `removeAdminUser`; it instead rejects adding an email that's already in the
+ * env bootstrap allowlist (that email is already a permanent super — adding
+ * it here would just be a misleading duplicate). A 23505 (unique violation on
+ * `email`) from a genuine DB-row duplicate becomes a clean message too.
+ */
+export async function addAdminUser(email: string, role: string): Promise<ActionResult> {
+  if (!(await getIsSuperAdmin())) throw new Error("unauthorized");
+
+  const trimmed = email.trim().toLowerCase();
+  if (!/^\S+@\S+\.\S+$/.test(trimmed)) return { ok: false, error: "Enter a valid email address." };
+  if (!isAdminRoleValue(role)) return { ok: false, error: "Invalid role." };
+  if (adminEnvEmails().includes(trimmed)) return { ok: false, error: "Already a permanent admin." };
+
+  const callerEmail = (await getSessionUser())?.email ?? null;
+  const db = createAdminSupabase();
+  const { error } = await db
+    .from("admin_users" as never)
+    .insert({ email: trimmed, role, added_by: callerEmail } as never);
+  if (error) {
+    if (error.code === "23505") return { ok: false, error: "Already an admin." };
+    return { ok: false, error: error.message };
+  }
+  revalidateTeam();
+  return { ok: true };
+}
+
+/**
+ * Change a dashboard-managed admin's role. Server Action — super-gated, then:
+ * the target row must exist; a row whose email is in the env bootstrap
+ * allowlist is managed via server config, not this table; and a Super can
+ * never change their own role (self-demotion risks an accidental lockout).
+ * Another Super's row IS changeable — peer management, by decision.
+ */
+export async function setAdminRole(id: string, role: string): Promise<ActionResult> {
+  if (!(await getIsSuperAdmin())) throw new Error("unauthorized");
+  if (!isAdminRoleValue(role)) return { ok: false, error: "Invalid role." };
+
+  const db = createAdminSupabase();
+  const target = await findAdminUser(db, id);
+  if (!target) return { ok: false, error: "Member not found." };
+  if (adminEnvEmails().includes(target.email.toLowerCase())) {
+    return { ok: false, error: "This member is managed via server config." };
+  }
+  if (target.email.toLowerCase() === (await getSessionUser())?.email?.toLowerCase()) {
+    return { ok: false, error: "You can't change or remove yourself." };
+  }
+
+  const { error } = await db.from("admin_users" as never).update({ role } as never).eq("id", id);
+  if (error) return { ok: false, error: error.message };
+  revalidateTeam();
+  return { ok: true };
+}
+
+/**
+ * Remove a dashboard-managed admin. Server Action — super-gated, with the
+ * same two blocks as `setAdminRole` (env-managed rows and self). Another
+ * Super's row IS removable — peer management, by decision.
+ */
+export async function removeAdminUser(id: string): Promise<ActionResult> {
+  if (!(await getIsSuperAdmin())) throw new Error("unauthorized");
+
+  const db = createAdminSupabase();
+  const target = await findAdminUser(db, id);
+  if (!target) return { ok: false, error: "Member not found." };
+  if (adminEnvEmails().includes(target.email.toLowerCase())) {
+    return { ok: false, error: "This member is managed via server config." };
+  }
+  if (target.email.toLowerCase() === (await getSessionUser())?.email?.toLowerCase()) {
+    return { ok: false, error: "You can't change or remove yourself." };
+  }
+
+  const { error } = await db.from("admin_users" as never).delete().eq("id", id);
+  if (error) return { ok: false, error: error.message };
+  revalidateTeam();
   return { ok: true };
 }

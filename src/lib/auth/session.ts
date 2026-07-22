@@ -1,7 +1,7 @@
 import "server-only";
 import type { User } from "@supabase/supabase-js";
 import { createServerSupabase } from "@/lib/supabase/server";
-import { isAdmin } from "@/lib/auth/admin";
+import { getAdminRole } from "@/lib/auth/roles";
 
 /** The authenticated user for this request, or null.
  *  Uses `auth.getUser()` (validates the token against Supabase), not
@@ -15,9 +15,9 @@ export async function getSessionUser(): Promise<User | null> {
   return user;
 }
 
-/** True iff the current session's user is an admin (server-authoritative:
- *  checks `ADMIN_EMAILS` against a token-verified user). */
+/** True iff the current session's user is an admin of ANY role
+ *  (server-authoritative: env `ADMIN_EMAILS` bootstrap OR an `admin_users`
+ *  row, via `getAdminRole()` — see `src/lib/auth/roles.ts`). */
 export async function getIsAdmin(): Promise<boolean> {
-  const user = await getSessionUser();
-  return isAdmin(user?.email);
+  return (await getAdminRole()) !== null;
 }
