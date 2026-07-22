@@ -2,6 +2,7 @@
 
 import { revalidatePath, revalidateTag } from "next/cache";
 import { getIsAdmin, getSessionUser } from "@/lib/auth/session";
+import { getIsSuperAdmin } from "@/lib/auth/roles";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import type { Database } from "@/lib/supabase/database.types";
 import type { DetailContent } from "@/lib/types";
@@ -869,10 +870,11 @@ export async function softDeleteProduct(slug: string): Promise<ActionResult> {
 }
 
 /** Validate + persist store settings to the single `site_settings.general` row.
- *  Server Action — admin re-check + service-role. Money fields are non-negative
- *  integers; strings are trimmed. */
+ *  Server Action — super-admin re-check + service-role (Settings is gated to
+ *  super admins only). Money fields are non-negative integers; strings are
+ *  trimmed. */
 export async function updateSettings(next: Settings): Promise<ActionResult> {
-  if (!(await getIsAdmin())) throw new Error("unauthorized");
+  if (!(await getIsSuperAdmin())) throw new Error("unauthorized");
 
   const ints = [
     next.shipping?.insideDhakaFee, next.shipping?.outsideDhakaFee,

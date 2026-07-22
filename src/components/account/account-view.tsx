@@ -18,15 +18,20 @@ import type { AccountOrder } from "@/lib/data/account";
  * get the `AccountGate` prompt.
  *
  * Client component because it owns the sign-out control (`useAuth().signOut()`).
+ * The Dashboard button is server-checked: `showAdminLink` comes from the
+ * account Server Component's `getIsAdmin()` call, not `useAuth().isAdmin`
+ * (a client-side allowlist check that can't see a DB-managed admin).
  */
 export function AccountView({
   user,
   orders = [],
+  showAdminLink = false,
 }: {
   user?: { name: string; email: string };
   orders?: AccountOrder[];
+  showAdminLink?: boolean;
 }) {
-  const { signOut, isAdmin } = useAuth();
+  const { signOut } = useAuth();
   const router = useRouter();
   const [signingOut, setSigningOut] = useState(false);
 
@@ -67,7 +72,7 @@ export function AccountView({
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {isAdmin ? (
+            {showAdminLink ? (
               <Button asChild size="lg">
                 <Link href="/admin">
                   <LayoutDashboard className="size-4" />

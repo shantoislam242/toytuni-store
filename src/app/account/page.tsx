@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getSessionUser } from "@/lib/auth/session";
+import { getSessionUser, getIsAdmin } from "@/lib/auth/session";
 import { getOrdersForEmail } from "@/lib/data/account";
 import { AccountView } from "@/components/account/account-view";
 
@@ -23,10 +23,12 @@ export default async function Page() {
   if (!user) return <AccountView />;
 
   const orders = await getOrdersForEmail(user.email!);
+  const showAdminLink = await getIsAdmin();
   return (
     <AccountView
       user={{ name: user.user_metadata?.full_name ?? user.email!, email: user.email! }}
       orders={orders}
+      showAdminLink={showAdminLink}
     />
   );
 }

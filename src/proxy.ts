@@ -1,6 +1,5 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { isAdmin } from "@/lib/auth/admin";
 
 // NOTE: In this Next.js version (16), the `middleware` file convention is
 // deprecated and renamed to `proxy` — see
@@ -18,8 +17,9 @@ import { isAdmin } from "@/lib/auth/admin";
  * 1. Refreshes the Supabase auth session cookie via the official
  *    `@supabase/ssr` request/response cookie bridge — required so sessions
  *    don't silently expire (see @supabase/ssr's createServerClient docs).
- * 2. Gates `/admin/*`: no signed-in user -> redirect to `/signin?next=<path>`;
- *    signed-in but not an admin -> redirect to `/`.
+ * 2. Gates `/admin/*`: no signed-in user -> redirect to `/signin?next=<path>`.
+ *    Auth-only — see the note below the redirect for why the role check
+ *    itself does not live here.
  */
 export async function proxy(request: NextRequest) {
   // Build the response up front and mutate the SAME instance throughout, so
@@ -73,11 +73,10 @@ export async function proxy(request: NextRequest) {
       return redirect;
     }
 
-    if (!isAdmin(user.email)) {
-      const redirect = NextResponse.redirect(new URL("/", request.url));
-      response.cookies.getAll().forEach((c) => redirect.cookies.set(c));
-      return redirect;
-    }
+    // Auth-only here: whether this user is an admin — and which role — is
+    // DB-aware (a DB-managed admin isn't in `ADMIN_EMAILS`/env at all), so
+    // the proxy can't judge role. The authoritative, DB-aware role gate
+    // lives in the admin layout (`src/app/admin/layout.tsx`).
   }
 
   // IMPORTANT: the response returned here must be the same `response` object

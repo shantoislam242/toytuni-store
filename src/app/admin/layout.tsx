@@ -1,14 +1,16 @@
 import { redirect } from "next/navigation";
-import { getSessionUser, getIsAdmin } from "@/lib/auth/session";
+import { getSessionUser } from "@/lib/auth/session";
+import { getAdminRole } from "@/lib/auth/roles";
 import { getInboxUnreadCount } from "@/lib/admin/queries";
 import { AdminShell } from "@/components/admin/admin-shell";
 
 /**
- * Defense-in-depth admin gate: `src/proxy.ts` already redirects non-admins
- * before this ever renders, but a Server Component re-check here means the
- * gate holds even if the proxy's matcher config ever drifts. Uses
- * `getSessionUser()` / `getIsAdmin()` (token-verified via Supabase
- * `auth.getUser()`), not a trusted cookie read.
+ * The authoritative, DB-aware admin gate: `src/proxy.ts` only checks that a
+ * user is signed in (a DB-managed admin isn't in env, so the proxy can't
+ * judge role) — this Server Component re-check is what actually decides
+ * admin access, and resolves the role that gets threaded down to the
+ * sidebar for role-gated nav items. Uses `getSessionUser()` / `getAdminRole()`
+ * (token-verified via Supabase `auth.getUser()`), not a trusted cookie read.
  */
 export default async function AdminLayout({
   children,
@@ -16,7 +18,8 @@ export default async function AdminLayout({
   children: React.ReactNode;
 }) {
   const user = await getSessionUser();
-  if (!user || !(await getIsAdmin())) {
+  const role = await getAdminRole();
+  if (!user || !role) {
     redirect("/");
   }
 
@@ -29,6 +32,7 @@ export default async function AdminLayout({
         email: user.email ?? "",
       }}
       inboxUnread={inboxUnread}
+      role={role}
     >
       {children}
     </AdminShell>

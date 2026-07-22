@@ -13,6 +13,7 @@ import {
   Warehouse,
   Newspaper,
   Settings,
+  ShieldCheck,
   Star,
   type LucideIcon,
 } from "lucide-react";
@@ -29,6 +30,7 @@ import {
 } from "@/components/ui/sidebar";
 import { BRAND_NAME } from "@/lib/config";
 import { cn } from "@/lib/utils";
+import type { AdminRole } from "@/lib/auth/resolve-role";
 
 type NavItem = {
   label: string;
@@ -51,8 +53,14 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Inventory", href: "/admin/inventory", icon: Warehouse },
   { label: "Blog", href: "/admin/blog", icon: Newspaper },
   { label: "Reviews", href: "/admin/reviews", icon: Star },
+  { label: "Team", href: "/admin/team", icon: ShieldCheck },
   { label: "Settings", href: "/admin/settings", icon: Settings },
 ];
+
+/** Nav items visible only to a `super_admin` — filtered at render (not a
+ *  separate NAV_ITEMS definition) so there's a single source of truth for
+ *  the nav list. */
+const SUPER_ADMIN_ONLY_HREFS = new Set(["/admin/team", "/admin/settings"]);
 
 /** True iff `pathname` is `href` exactly, or a child route of it — except for
  *  `/admin` itself, which must match exactly (every admin route starts with
@@ -62,8 +70,17 @@ function isActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function AdminSidebar({ inboxUnread }: { inboxUnread?: number }) {
+export function AdminSidebar({
+  inboxUnread,
+  role,
+}: {
+  inboxUnread?: number;
+  role?: AdminRole;
+}) {
   const pathname = usePathname();
+  const items = NAV_ITEMS.filter(
+    (item) => !SUPER_ADMIN_ONLY_HREFS.has(item.href) || role === "super_admin",
+  );
 
   return (
     <Sidebar collapsible="icon">
@@ -80,7 +97,7 @@ export function AdminSidebar({ inboxUnread }: { inboxUnread?: number }) {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {NAV_ITEMS.map((item) => {
+              {items.map((item) => {
                 const Icon = item.icon;
 
                 if (item.disabled) {
