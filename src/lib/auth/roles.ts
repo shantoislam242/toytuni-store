@@ -6,7 +6,11 @@ import { resolveAdminRole, type AdminRole } from "@/lib/auth/resolve-role";
 
 export type { AdminRole };
 
-function envAdminEmails(): string[] {
+/** The env-bootstrap admin allowlist (lockout-proof supers), lowercased/trimmed.
+ *  Exported so callers outside this module (team queries/actions) share this
+ *  ONE parse instead of re-deriving it — this file is not "use server", so a
+ *  non-async export is fine here. */
+export function adminEnvEmails(): string[] {
   const raw = process.env.ADMIN_EMAILS ?? process.env.NEXT_PUBLIC_ADMIN_EMAILS ?? "";
   return raw.split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
 }
@@ -19,7 +23,7 @@ export const getAdminRole = cache(async (): Promise<AdminRole | null> => {
   const { data: { user } } = await supabase.auth.getUser();
   const email = user?.email?.trim().toLowerCase();
   if (!email) return null;
-  const env = envAdminEmails();
+  const env = adminEnvEmails();
   if (env.includes(email)) return "super_admin";
   try {
     const db = createAdminSupabase();
