@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSessionUser, getIsAdmin } from "@/lib/auth/session";
+import { getInboxUnreadCount } from "@/lib/admin/queries";
 import { AdminShell } from "@/components/admin/admin-shell";
 
 /**
@@ -19,12 +20,15 @@ export default async function AdminLayout({
     redirect("/");
   }
 
+  const inboxUnread = await getInboxUnreadCount();
+
   return (
     <AdminShell
       user={{
         name: user.user_metadata?.full_name ?? user.email ?? "Admin",
         email: user.email ?? "",
       }}
+      inboxUnread={inboxUnread}
     >
       {children}
     </AdminShell>
