@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BarChart3,
+  Inbox,
   LayoutDashboard,
   Package,
   ShoppingCart,
@@ -45,6 +46,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Products", href: "/admin/products", icon: Package },
   { label: "Categories", href: "/admin/categories", icon: Tags },
   { label: "Orders", href: "/admin/orders", icon: ShoppingCart },
+  { label: "Inbox", href: "/admin/inbox", icon: Inbox },
   { label: "Customers", href: "/admin/customers", icon: Users },
   { label: "Inventory", href: "/admin/inventory", icon: Warehouse },
   { label: "Blog", href: "/admin/blog", icon: Newspaper },
@@ -60,7 +62,7 @@ function isActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function AdminSidebar() {
+export function AdminSidebar({ inboxUnread }: { inboxUnread?: number }) {
   const pathname = usePathname();
 
   return (
@@ -100,6 +102,7 @@ export function AdminSidebar() {
                 }
 
                 const active = isActive(pathname, item.href);
+                const showInboxBadge = item.href === "/admin/inbox" && (inboxUnread ?? 0) > 0;
                 return (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton
@@ -115,6 +118,11 @@ export function AdminSidebar() {
                         <span>{item.label}</span>
                       </Link>
                     </SidebarMenuButton>
+                    {showInboxBadge && (
+                      <SidebarMenuBadge className="rounded-full bg-neem px-1.5 text-[10px] font-semibold text-paper">
+                        {inboxUnread}
+                      </SidebarMenuBadge>
+                    )}
                   </SidebarMenuItem>
                 );
               })}

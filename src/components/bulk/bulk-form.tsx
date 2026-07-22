@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { toast } from "sonner";
 import {
   Boxes,
   Building2,
@@ -14,8 +15,12 @@ import {
   User,
 } from "lucide-react";
 import { bulkTiers } from "@/lib/mock/bulk";
+import { submitBulkInquiry } from "@/lib/forms/actions";
+import { isValidBdMobile } from "@/lib/auth/bd-phone";
 
-type Errors = Partial<Record<"business" | "person" | "email" | "program", string>>;
+type Errors = Partial<
+  Record<"business" | "person" | "email" | "phone" | "program" | "message", string>
+>;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -69,9 +74,9 @@ function Field({
 }
 
 /**
- * UI-only B2B inquiry form for the /bulk page. Validates business name, contact
- * person, email, and program, then shows a success state. No network request —
- * mirrors the Contact page form.
+ * B2B inquiry form for the /bulk page. Validates business name, contact
+ * person, email, and program, then submits to the inbox and shows a success
+ * state. Mirrors the Contact page form.
  */
 export function BulkForm() {
   const [business, setBusiness] = useState("");
@@ -83,6 +88,7 @@ export function BulkForm() {
   const [message, setMessage] = useState("");
   const [errors, setErrors] = useState<Errors>({});
   const [submitted, setSubmitted] = useState(false);
+  const [pending, start] = useTransition();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,10 +97,18 @@ export function BulkForm() {
     if (!person.trim()) next.person = "Please enter a contact person.";
     if (!email.trim()) next.email = "Please enter your email.";
     else if (!EMAIL_RE.test(email.trim())) next.email = "Please enter a valid email.";
+    if (!phone.trim()) next.phone = "Please enter your phone number.";
+    else if (!isValidBdMobile(phone)) next.phone = "Please enter a valid Bangladeshi number (01XXXXXXXXX).";
     if (!program) next.program = "Please select a program.";
+    if (!message.trim()) next.message = "Please tell us briefly about your needs.";
     setErrors(next);
-    // UI-only: no network call. On valid input, show the confirmation.
-    if (Object.keys(next).length === 0) setSubmitted(true);
+    if (Object.keys(next).length === 0) {
+      start(async () => {
+        const r = await submitBulkInquiry({ business, person, email, phone, program, quantity, message });
+        if (r.ok) setSubmitted(true);
+        else toast.error(r.error);
+      });
+    }
   };
 
   const reset = () => {
@@ -181,9 +195,10 @@ export function BulkForm() {
           <Field
             id="phone"
             icon={<Phone className="size-4" />}
-            placeholder="Phone (optional)"
+            placeholder="Phone (01XXXXXXXXX)"
             value={phone}
             onChange={setPhone}
+            error={errors.phone}
             type="tel"
             autoComplete="tel"
           />
@@ -235,21 +250,29 @@ export function BulkForm() {
             <textarea
               id="message"
               rows={4}
-              placeholder="Tell us about your needs (optional)"
+              placeholder="Tell us about your needs"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               aria-label="Message"
+              aria-invalid={!!errors.message}
+              aria-describedby={errors.message ? "message-error" : undefined}
               className="w-full resize-y bg-transparent text-sm text-ink outline-none placeholder:text-ink-soft"
             />
           </div>
+          {errors.message ? (
+            <p id="message-error" className="mt-1 text-xs text-danger">
+              {errors.message}
+            </p>
+          ) : null}
         </div>
 
         <button
           type="submit"
-          className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-md bg-neem px-6 text-sm font-bold text-paper transition-colors hover:bg-neem-deep"
+          disabled={pending}
+          className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-md bg-neem px-6 text-sm font-bold text-paper transition-colors hover:bg-neem-deep disabled:cursor-not-allowed disabled:opacity-70"
         >
           <Send className="size-4" />
-          Send inquiry
+          {pending ? "Sending…" : "Send inquiry"}
         </button>
 
         <p className="flex items-center justify-center gap-1.5 text-xs text-ink-muted">

@@ -1370,3 +1370,68 @@ export async function reorderBlogCategories(slugs: string[]): Promise<ActionResu
   revalidateBlogTaxonomy();
   return { ok: true };
 }
+
+/** Statuses a `form_submissions` row may be set to (migration 0015's check
+ *  constraint). */
+const INBOX_STATUSES = ["new", "read", "archived"] as const;
+
+/** Refresh the admin inbox list + the admin layout (whose sidebar re-reads
+ *  `getInboxUnreadCount` on every admin page) after an inbox write. */
+function revalidateInbox(): void {
+  revalidatePath("/admin/inbox");
+  revalidatePath("/admin", "layout");
+}
+
+/** Move a submission through new → read → archived (or back). Server Action
+ *  — admin re-check + service-role; validates `status` against the DB's own
+ *  check constraint so a bad value is a clean error, not a raw Postgres one. */
+export async function setSubmissionStatus(id: string, status: string): Promise<ActionResult> {
+  if (!(await getIsAdmin())) throw new Error("unauthorized");
+  if (!(INBOX_STATUSES as readonly string[]).includes(status)) return { ok: false, error: "Invalid status." };
+  const db = createAdminSupabase();
+  const { data, error } = await db
+    .from("form_submissions" as never)
+    .update({ status } as never)
+    .eq("id", id)
+    .select("id")
+    .maybeSingle();
+  if (error) return { ok: false, error: error.message };
+  if (!data) return { ok: false, error: "Not found." };
+  revalidateInbox();
+  return { ok: true };
+}
+
+/** Permanently delete a contact/bulk-order submission. Server Action — admin
+ *  re-check + service-role. */
+export async function deleteSubmission(id: string): Promise<ActionResult> {
+  if (!(await getIsAdmin())) throw new Error("unauthorized");
+  const db = createAdminSupabase();
+  const { data, error } = await db
+    .from("form_submissions" as never)
+    .delete()
+    .eq("id", id)
+    .select("id")
+    .maybeSingle();
+  if (error) return { ok: false, error: error.message };
+  if (!data) return { ok: false, error: "Not found." };
+  revalidateInbox();
+  return { ok: true };
+}
+
+/** Permanently delete a newsletter subscriber. Server Action — admin re-check
+ *  + service-role. Doesn't affect the unread-submission badge, so this only
+ *  revalidates the inbox list (not the admin layout). */
+export async function deleteSubscriber(id: string): Promise<ActionResult> {
+  if (!(await getIsAdmin())) throw new Error("unauthorized");
+  const db = createAdminSupabase();
+  const { data, error } = await db
+    .from("newsletter_subscribers" as never)
+    .delete()
+    .eq("id", id)
+    .select("id")
+    .maybeSingle();
+  if (error) return { ok: false, error: error.message };
+  if (!data) return { ok: false, error: "Not found." };
+  revalidatePath("/admin/inbox");
+  return { ok: true };
+}

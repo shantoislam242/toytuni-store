@@ -27,9 +27,11 @@ type AdminShellUser = {
  */
 export function AdminShell({
   user,
+  inboxUnread,
   children,
 }: {
   user: AdminShellUser;
+  inboxUnread?: number;
   children: React.ReactNode;
 }) {
   const { signOut } = useAuth();
@@ -53,7 +55,7 @@ export function AdminShell({
 
   return (
     <SidebarProvider>
-      <AdminSidebar />
+      <AdminSidebar inboxUnread={inboxUnread} />
       <SidebarInset>
         <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border bg-background px-4">
           <SidebarTrigger />

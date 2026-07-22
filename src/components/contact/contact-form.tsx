@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { toast } from "sonner";
 import { Mail, MailCheck, Pencil, Send, ShieldCheck, Tag, User } from "lucide-react";
+import { submitContactForm } from "@/lib/forms/actions";
 
 type Errors = Partial<Record<"name" | "email" | "message", string>>;
 
@@ -60,6 +62,7 @@ export function ContactForm() {
   const [message, setMessage] = useState("");
   const [errors, setErrors] = useState<Errors>({});
   const [submitted, setSubmitted] = useState(false);
+  const [pending, start] = useTransition();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,8 +72,13 @@ export function ContactForm() {
     else if (!EMAIL_RE.test(email.trim())) next.email = "Please enter a valid email.";
     if (!message.trim()) next.message = "Please enter a message.";
     setErrors(next);
-    // UI-only: no network call. On valid input, show the confirmation.
-    if (Object.keys(next).length === 0) setSubmitted(true);
+    if (Object.keys(next).length === 0) {
+      start(async () => {
+        const r = await submitContactForm({ name, email, subject, message });
+        if (r.ok) setSubmitted(true);
+        else toast.error(r.error);
+      });
+    }
   };
 
   const reset = () => {
@@ -173,11 +181,12 @@ export function ContactForm() {
 
         <button
           type="submit"
-          className="group inline-flex h-12 w-full items-center justify-center gap-2 rounded-md bg-neem px-6 text-sm font-bold text-paper transition-colors hover:bg-neem-deep"
+          disabled={pending}
+          className="group inline-flex h-12 w-full items-center justify-center gap-2 rounded-md bg-neem px-6 text-sm font-bold text-paper transition-colors hover:bg-neem-deep disabled:cursor-not-allowed disabled:opacity-70"
         >
           {/* Paper-plane rotates to the right on hover (matches the newsletter). */}
           <Send className="size-4 transition-transform duration-300 ease-out group-hover:rotate-45" />
-          Send Message
+          {pending ? "Sending…" : "Send Message"}
         </button>
 
         <p className="flex items-center justify-center gap-1.5 text-xs text-ink-muted">

@@ -799,3 +799,91 @@ export async function getAdminBlogCategories(): Promise<AdminBlogCategory[]> {
   const bySlug = new Map(counts);
   return rows.map((r) => ({ ...r, postCount: bySlug.get(r.slug) ?? 0 }));
 }
+
+export type InboxSubmission = {
+  id: string;
+  kind: "contact" | "bulk";
+  name: string;
+  email: string;
+  phone: string | null;
+  subject: string | null;
+  message: string;
+  meta: Record<string, string | null> | null;
+  status: string;
+  createdAt: string;
+};
+
+type InboxSubmissionRow = {
+  id: string;
+  kind: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  subject: string | null;
+  message: string;
+  meta: Record<string, string | null> | null;
+  status: string;
+  created_at: string;
+};
+
+/** All contact/bulk-order form submissions, newest first. Service-role —
+ *  `form_submissions` (migration 0015) has RLS on with no policies, so only
+ *  this service-role read can see them. `as never` on `.from()`: the table
+ *  postdates the generated `database.types.ts`, same escape hatch used
+ *  elsewhere in this file. */
+export async function getInboxSubmissions(): Promise<InboxSubmission[]> {
+  const db = createAdminSupabase();
+  const { data, error } = await db
+    .from("form_submissions" as never)
+    .select("id, kind, name, email, phone, subject, message, meta, status, created_at")
+    .order("created_at", { ascending: false })
+    .overrideTypes<InboxSubmissionRow[], { merge: false }>();
+  if (error) throw new Error(`getInboxSubmissions failed: ${error.message}`);
+  return (data ?? []).map((r) => ({
+    id: r.id,
+    kind: r.kind as InboxSubmission["kind"],
+    name: r.name,
+    email: r.email,
+    phone: r.phone,
+    subject: r.subject,
+    message: r.message,
+    meta: r.meta,
+    status: r.status,
+    createdAt: r.created_at,
+  }));
+}
+
+export type NewsletterSubscriber = { id: string; email: string; source: string; createdAt: string };
+
+type NewsletterSubscriberRow = { id: string; email: string; source: string; created_at: string };
+
+/** All newsletter subscribers, newest first. Service-role — same RLS-locked
+ *  post-generation table as `form_submissions` above. */
+export async function getNewsletterSubscribers(): Promise<NewsletterSubscriber[]> {
+  const db = createAdminSupabase();
+  const { data, error } = await db
+    .from("newsletter_subscribers" as never)
+    .select("id, email, source, created_at")
+    .order("created_at", { ascending: false })
+    .overrideTypes<NewsletterSubscriberRow[], { merge: false }>();
+  if (error) throw new Error(`getNewsletterSubscribers failed: ${error.message}`);
+  return (data ?? []).map((r) => ({ id: r.id, email: r.email, source: r.source, createdAt: r.created_at }));
+}
+
+/** Count of `status = 'new'` submissions, for the admin sidebar's unread
+ *  badge. This runs in the admin LAYOUT on every admin page load, so it must
+ *  NEVER throw — including pre-migration, when `form_submissions` doesn't
+ *  exist yet — hence the whole body is wrapped and any failure just yields 0. */
+export async function getInboxUnreadCount(): Promise<number> {
+  try {
+    const db = createAdminSupabase();
+    const { count, error } = await db
+      .from("form_submissions" as never)
+      .select("id", { count: "exact", head: true })
+      .eq("status", "new");
+    if (error) return 0;
+    return count ?? 0;
+  } catch {
+    return 0;
+  }
+}

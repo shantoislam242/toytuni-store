@@ -1,23 +1,30 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { toast } from "sonner";
 import { ArrowRight, Check } from "lucide-react";
+import { subscribeNewsletter } from "@/lib/forms/actions";
 
 /**
- * Newsletter band — a deep-neem panel with an email capture. Frontend only: the
- * submit handler is stubbed (no backend / real subscription) and just shows a
- * local success state.
+ * Newsletter band — a deep-neem panel with an email capture.
  */
 export function NewsletterCTA() {
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
+  const [pending, start] = useTransition();
 
-  // Stub — no backend yet. Swap for a real subscribe call later.
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) return;
-    setSent(true);
-    setEmail("");
+    start(async () => {
+      const r = await subscribeNewsletter(email, "journal");
+      if (r.ok) {
+        setSent(true);
+        setEmail("");
+      } else {
+        toast.error(r.error);
+      }
+    });
   };
 
   return (
@@ -54,9 +61,10 @@ export function NewsletterCTA() {
           />
           <button
             type="submit"
-            className="inline-flex h-11 items-center justify-center gap-1.5 rounded-full bg-[color:var(--honey)] px-5 text-sm font-semibold text-ink transition-transform duration-200 hover:-translate-y-0.5 active:translate-y-0"
+            disabled={pending}
+            className="inline-flex h-11 items-center justify-center gap-1.5 rounded-full bg-[color:var(--honey)] px-5 text-sm font-semibold text-ink transition-transform duration-200 hover:-translate-y-0.5 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70"
           >
-            Subscribe
+            {pending ? "Subscribing…" : "Subscribe"}
             <ArrowRight className="size-4" />
           </button>
         </form>
