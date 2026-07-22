@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { toast } from "sonner";
 import {
   Boxes,
   Building2,
@@ -14,6 +15,7 @@ import {
   User,
 } from "lucide-react";
 import { bulkTiers } from "@/lib/mock/bulk";
+import { submitBulkInquiry } from "@/lib/forms/actions";
 
 type Errors = Partial<Record<"business" | "person" | "email" | "program", string>>;
 
@@ -69,9 +71,9 @@ function Field({
 }
 
 /**
- * UI-only B2B inquiry form for the /bulk page. Validates business name, contact
- * person, email, and program, then shows a success state. No network request —
- * mirrors the Contact page form.
+ * B2B inquiry form for the /bulk page. Validates business name, contact
+ * person, email, and program, then submits to the inbox and shows a success
+ * state. Mirrors the Contact page form.
  */
 export function BulkForm() {
   const [business, setBusiness] = useState("");
@@ -83,6 +85,7 @@ export function BulkForm() {
   const [message, setMessage] = useState("");
   const [errors, setErrors] = useState<Errors>({});
   const [submitted, setSubmitted] = useState(false);
+  const [pending, start] = useTransition();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,8 +96,13 @@ export function BulkForm() {
     else if (!EMAIL_RE.test(email.trim())) next.email = "Please enter a valid email.";
     if (!program) next.program = "Please select a program.";
     setErrors(next);
-    // UI-only: no network call. On valid input, show the confirmation.
-    if (Object.keys(next).length === 0) setSubmitted(true);
+    if (Object.keys(next).length === 0) {
+      start(async () => {
+        const r = await submitBulkInquiry({ business, person, email, phone, program, quantity, message });
+        if (r.ok) setSubmitted(true);
+        else toast.error(r.error);
+      });
+    }
   };
 
   const reset = () => {
@@ -246,10 +254,11 @@ export function BulkForm() {
 
         <button
           type="submit"
-          className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-md bg-neem px-6 text-sm font-bold text-paper transition-colors hover:bg-neem-deep"
+          disabled={pending}
+          className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-md bg-neem px-6 text-sm font-bold text-paper transition-colors hover:bg-neem-deep disabled:cursor-not-allowed disabled:opacity-70"
         >
           <Send className="size-4" />
-          Send inquiry
+          {pending ? "Sending…" : "Send inquiry"}
         </button>
 
         <p className="flex items-center justify-center gap-1.5 text-xs text-ink-muted">

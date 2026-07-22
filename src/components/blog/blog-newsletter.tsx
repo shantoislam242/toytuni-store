@@ -1,24 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { toast } from "sonner";
 import { ArrowRight, Check } from "lucide-react";
 import { NeemSprig } from "@/components/blog/journal/neem-sprig";
+import { subscribeNewsletter } from "@/lib/forms/actions";
 
 /**
  * Newsletter CTA band for the blog — a deep-neem panel with an email capture
- * and a friendly sprig illustration. Frontend only: submit is stubbed and just
- * flips to a local success state.
+ * and a friendly sprig illustration.
  */
 export function BlogNewsletter() {
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
+  const [pending, start] = useTransition();
 
-  // Stub — swap for a real subscribe call later.
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) return;
-    setSent(true);
-    setEmail("");
+    start(async () => {
+      const r = await subscribeNewsletter(email, "blog");
+      if (r.ok) {
+        setSent(true);
+        setEmail("");
+      } else {
+        toast.error(r.error);
+      }
+    });
   };
 
   return (
@@ -72,9 +80,10 @@ export function BlogNewsletter() {
             />
             <button
               type="submit"
-              className="inline-flex h-12 w-full items-center justify-center gap-1.5 rounded-xl bg-mustard px-6 text-sm font-semibold text-ink transition-transform duration-200 hover:-translate-y-0.5 active:translate-y-0 motion-reduce:transition-none motion-reduce:hover:translate-y-0 sm:w-auto sm:rounded-full"
+              disabled={pending}
+              className="inline-flex h-12 w-full items-center justify-center gap-1.5 rounded-xl bg-mustard px-6 text-sm font-semibold text-ink transition-transform duration-200 hover:-translate-y-0.5 active:translate-y-0 motion-reduce:transition-none motion-reduce:hover:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto sm:rounded-full"
             >
-              Subscribe
+              {pending ? "Subscribing…" : "Subscribe"}
               <ArrowRight className="size-4" />
             </button>
           </form>

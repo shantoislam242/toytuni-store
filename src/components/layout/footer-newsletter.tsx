@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
+import { toast } from "sonner";
 import { Check, Send } from "lucide-react";
 import { useHomeReset } from "@/components/layout/home-reset";
+import { subscribeNewsletter } from "@/lib/forms/actions";
 
 /**
- * Footer newsletter capture. Frontend only: submit is stubbed and flips to a
- * local success state (same behaviour as the blog newsletter). Keeps the footer
- * a server component by isolating the interactive form here.
+ * Footer newsletter capture. Keeps the footer a server component by isolating
+ * the interactive form here.
  *
  * The footer lives outside the HomeResetBoundary (it's shared chrome), so it
  * won't remount on a logo "refresh". Instead we subscribe to `resetKey` and
@@ -17,6 +18,7 @@ import { useHomeReset } from "@/components/layout/home-reset";
 export function FooterNewsletter() {
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
+  const [pending, start] = useTransition();
   const { resetKey } = useHomeReset();
 
   // Clear back to the empty form whenever the homepage is "refreshed" via the logo.
@@ -25,12 +27,18 @@ export function FooterNewsletter() {
     setEmail("");
   }, [resetKey]);
 
-  // Stub — swap for a real subscribe call later.
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) return;
-    setSent(true);
-    setEmail("");
+    start(async () => {
+      const r = await subscribeNewsletter(email, "footer");
+      if (r.ok) {
+        setSent(true);
+        setEmail("");
+      } else {
+        toast.error(r.error);
+      }
+    });
   };
 
   if (sent) {
@@ -59,8 +67,9 @@ export function FooterNewsletter() {
       <span className="h-6 w-px shrink-0 bg-cream-300" aria-hidden />
       <button
         type="submit"
+        disabled={pending}
         aria-label="Subscribe"
-        className="group flex size-9 shrink-0 items-center justify-center rounded-full bg-neem text-paper transition-colors hover:bg-neem-deep"
+        className="group flex size-9 shrink-0 items-center justify-center rounded-full bg-neem text-paper transition-colors hover:bg-neem-deep disabled:cursor-not-allowed disabled:opacity-70"
       >
         {/* Paper-plane rotates to the right on hover. */}
         <Send className="size-4 transition-transform duration-300 ease-out group-hover:rotate-45" />
