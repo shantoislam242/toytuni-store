@@ -15,8 +15,9 @@ export async function getSessionUser(): Promise<User | null> {
   return user;
 }
 
-/** True iff the current session's user is an admin (server-authoritative:
- *  checks `ADMIN_EMAILS` against a token-verified user). */
+/** True iff the current session's user is an admin of ANY role
+ *  (server-authoritative: env `ADMIN_EMAILS` bootstrap OR an `admin_users`
+ *  row, via `getAdminRole()` — see `src/lib/auth/roles.ts`). */
 export async function getIsAdmin(): Promise<boolean> {
   return (await getAdminRole()) !== null;
 }
