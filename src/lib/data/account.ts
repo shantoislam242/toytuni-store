@@ -90,7 +90,14 @@ export async function getOrdersForEmail(email: string): Promise<AccountOrder[]> 
  * YYYY-MM-DD-sliced `AccountOrder.createdAt`); `buildInvoiceData` slices it
  * itself where needed.
  */
-export type AccountOrderDetail = AccountOrder & {
+export type AccountOrderDetailItem = AccountOrderItem & {
+  /** Product slug for the "Write a review →" link, `null` if the product
+   *  embed couldn't be resolved (e.g. product later deleted). */
+  slug: string | null;
+};
+
+export type AccountOrderDetail = Omit<AccountOrder, "items"> & {
+  items: AccountOrderDetailItem[];
   customerName: string;
   customerPhone: string;
   customerEmail: string | null;
@@ -133,9 +140,28 @@ type AccountOrderDetailRow = {
   advance_total: number;
   total: number;
   order_items:
-    | { title: string; qty: number; unit_price: number; line_total: number; fulfillment_type: string }[]
+    | {
+        title: string;
+        qty: number;
+        unit_price: number;
+        line_total: number;
+        fulfillment_type: string;
+        product_id: string | null;
+        // `products` is a 1:1 embed (FK `order_items.product_id ->
+        // products.id`), but PostgREST may return it as an object or a
+        // single-element array depending on join shape — handle both
+        // (mirrors `oneProductTitle` in `src/lib/admin/analytics.ts`).
+        products: { slug: string } | { slug: string }[] | null;
+      }[]
     | null;
 };
+
+/** See the note on `AccountOrderDetailRow.order_items.products` above. */
+function oneProductSlug(products: { slug: string } | { slug: string }[] | null): string | null {
+  if (!products) return null;
+  const row = Array.isArray(products) ? products[0] : products;
+  return row?.slug ?? null;
+}
 
 /**
  * One order's full detail for a signed-in customer, scoped to BOTH the
@@ -153,7 +179,7 @@ export async function getOrderForEmail(
   const { data, error } = await db
     .from("orders")
     .select(
-      "id, order_number, created_at, status, payment_status, customer_name, customer_phone, customer_email, division, district, area, address_line, landmark, carrier, tracking_number, tracking_url, subtotal, delivery_fee, advance_total, total, order_items(title, qty, unit_price, line_total, fulfillment_type)",
+      "id, order_number, created_at, status, payment_status, customer_name, customer_phone, customer_email, division, district, area, address_line, landmark, carrier, tracking_number, tracking_url, subtotal, delivery_fee, advance_total, total, order_items(title, qty, unit_price, line_total, fulfillment_type, product_id, products(slug))",
     )
     .eq("customer_email", email)
     .eq("order_number", orderNumber)
@@ -194,6 +220,7 @@ export async function getOrderForEmail(
       unitPrice: it.unit_price,
       lineTotal: it.line_total,
       fulfillmentType: it.fulfillment_type,
+      slug: oneProductSlug(it.products),
     })),
     customerName: data.customer_name,
     customerPhone: data.customer_phone,

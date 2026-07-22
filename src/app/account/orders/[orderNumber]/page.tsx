@@ -99,8 +99,18 @@ export default async function Page({
           {order.items.map((item, i) => (
             <li key={i} className="flex items-baseline justify-between gap-3 py-2 text-sm">
               <span className="min-w-0 flex-1 break-words text-ink">
-                {item.title}
-                <span className="text-ink-soft"> × {item.qty}</span>
+                <span>
+                  {item.title}
+                  <span className="text-ink-soft"> × {item.qty}</span>
+                </span>
+                {order.status === "delivered" && item.slug ? (
+                  <Link
+                    href={`/products/${item.slug}#reviews`}
+                    className="block text-xs text-neem-deep underline-offset-2 hover:underline"
+                  >
+                    Write a review →
+                  </Link>
+                ) : null}
               </span>
               <span className="tabular-nums font-medium text-ink">{formatTk(item.lineTotal)}</span>
             </li>
