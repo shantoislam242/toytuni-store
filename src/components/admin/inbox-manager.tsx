@@ -58,6 +58,12 @@ export function InboxManager({
   const [overrides, setOverrides] = useState<Record<string, string>>({});
   const refresh = () => router.refresh();
   const applyOverride = (id: string, status: string) => setOverrides((o) => ({ ...o, [id]: status }));
+  // Drop a deleted row's optimistic entry so the map doesn't accumulate orphans.
+  const clearOverride = (id: string) =>
+    setOverrides((o) => {
+      const { [id]: _dropped, ...rest } = o;
+      return rest;
+    });
   const statusOf = (s: InboxSubmission) => overrides[s.id] ?? s.status;
 
   const messages = useMemo(() => submissions.filter((s) => s.kind === "contact"), [submissions]);
@@ -85,6 +91,7 @@ export function InboxManager({
           submissions={messages}
           overrides={overrides}
           onOverride={applyOverride}
+          onClearOverride={clearOverride}
           onRefresh={refresh}
         />
       </TabsContent>
@@ -94,6 +101,7 @@ export function InboxManager({
           submissions={bulk}
           overrides={overrides}
           onOverride={applyOverride}
+          onClearOverride={clearOverride}
           onRefresh={refresh}
         />
       </TabsContent>
@@ -109,12 +117,14 @@ function SubmissionsList({
   submissions,
   overrides,
   onOverride,
+  onClearOverride,
   onRefresh,
 }: {
   kind: "contact" | "bulk";
   submissions: InboxSubmission[];
   overrides: Record<string, string>;
   onOverride: (id: string, status: string) => void;
+  onClearOverride: (id: string) => void;
   onRefresh: () => void;
 }) {
   const [showArchived, setShowArchived] = useState(false);
@@ -171,6 +181,7 @@ function SubmissionsList({
       if (r.ok) {
         toast.success("Deleted.");
         if (expandedId === s.id) setExpandedId(null);
+        onClearOverride(s.id);
         onRefresh();
       } else {
         toast.error(r.error);

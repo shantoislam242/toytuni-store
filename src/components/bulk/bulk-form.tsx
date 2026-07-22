@@ -16,8 +16,11 @@ import {
 } from "lucide-react";
 import { bulkTiers } from "@/lib/mock/bulk";
 import { submitBulkInquiry } from "@/lib/forms/actions";
+import { isValidBdMobile } from "@/lib/auth/bd-phone";
 
-type Errors = Partial<Record<"business" | "person" | "email" | "program", string>>;
+type Errors = Partial<
+  Record<"business" | "person" | "email" | "phone" | "program" | "message", string>
+>;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -94,7 +97,10 @@ export function BulkForm() {
     if (!person.trim()) next.person = "Please enter a contact person.";
     if (!email.trim()) next.email = "Please enter your email.";
     else if (!EMAIL_RE.test(email.trim())) next.email = "Please enter a valid email.";
+    if (!phone.trim()) next.phone = "Please enter your phone number.";
+    else if (!isValidBdMobile(phone)) next.phone = "Please enter a valid Bangladeshi number (01XXXXXXXXX).";
     if (!program) next.program = "Please select a program.";
+    if (!message.trim()) next.message = "Please tell us briefly about your needs.";
     setErrors(next);
     if (Object.keys(next).length === 0) {
       start(async () => {
@@ -189,9 +195,10 @@ export function BulkForm() {
           <Field
             id="phone"
             icon={<Phone className="size-4" />}
-            placeholder="Phone (optional)"
+            placeholder="Phone (01XXXXXXXXX)"
             value={phone}
             onChange={setPhone}
+            error={errors.phone}
             type="tel"
             autoComplete="tel"
           />
@@ -243,13 +250,20 @@ export function BulkForm() {
             <textarea
               id="message"
               rows={4}
-              placeholder="Tell us about your needs (optional)"
+              placeholder="Tell us about your needs"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               aria-label="Message"
+              aria-invalid={!!errors.message}
+              aria-describedby={errors.message ? "message-error" : undefined}
               className="w-full resize-y bg-transparent text-sm text-ink outline-none placeholder:text-ink-soft"
             />
           </div>
+          {errors.message ? (
+            <p id="message-error" className="mt-1 text-xs text-danger">
+              {errors.message}
+            </p>
+          ) : null}
         </div>
 
         <button
