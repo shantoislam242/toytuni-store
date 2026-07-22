@@ -108,8 +108,12 @@ export function ProductListItem({ product }: { product: Product }) {
           </Link>
 
           <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
-            <Stars rating={product.rating} />
-            <span className="text-xs text-ink-soft">({product.reviewCount})</span>
+            {product.reviewCount > 0 ? (
+              <>
+                <Stars rating={product.rating} />
+                <span className="text-xs text-ink-soft">({product.reviewCount})</span>
+              </>
+            ) : null}
             {product.badge && !discountPercent ? (
               <Badge className="bg-neem px-2 text-[10px] text-paper">{product.badge}</Badge>
             ) : null}

@@ -15,6 +15,7 @@ import { AgeInsight } from "@/components/product/age-insight";
 import { ProductGallery } from "@/components/product/product-gallery";
 import { ProductTabs } from "@/components/product/product-tabs";
 import { ProductReviews } from "@/components/product/product-reviews";
+import { ProductQa } from "@/components/product/product-qa";
 import { ProductRail } from "@/components/product/product-rail";
 import { WishlistButton } from "@/components/product/wishlist-button";
 import { useCart } from "@/lib/cart/cart-context";
@@ -24,6 +25,7 @@ import { certifications } from "@/lib/mock/trust";
 import { cn } from "@/lib/utils";
 import type { AgeTier, Category, Product, ProductDetail } from "@/lib/types";
 import type { ProductAvailability } from "@/lib/data/product-state";
+import type { ProductReview, ProductQuestion } from "@/lib/data/reviews";
 
 // Shown only after an add-to-cart click — defer its framer-motion + portal code.
 const CartAddedPopup = dynamic(
@@ -97,12 +99,16 @@ export function ProductDetailsView({
   ageTier,
   category,
   related,
+  reviews,
+  questions,
 }: {
   product: Product & { availability?: ProductAvailability };
   detail: ProductDetail;
   ageTier?: AgeTier;
   category?: Category;
   related: Product[];
+  reviews: ProductReview[];
+  questions: ProductQuestion[];
 }) {
   const router = useRouter();
   const { addItem, items } = useCart();
@@ -248,13 +254,18 @@ export function ProductDetailsView({
             </div>
           </div>
 
-          {/* rating */}
-          <div className="mt-3 flex items-center gap-3">
-            <Stars rating={product.rating} />
-            <span className="text-sm font-semibold text-ink-muted">
-              {product.reviewCount} reviews
-            </span>
-          </div>
+          {/* rating — zero-review products show plain text instead of an
+              empty/misleading 0-star row */}
+          {product.reviewCount > 0 ? (
+            <div className="mt-3 flex items-center gap-3">
+              <Stars rating={product.rating} />
+              <span className="text-sm font-semibold text-ink-muted">
+                {product.reviewCount} reviews
+              </span>
+            </div>
+          ) : (
+            <p className="mt-3 text-sm font-semibold text-ink-muted">No reviews yet</p>
+          )}
 
           <div className="mt-2.5 flex items-start justify-between gap-4">
             <h1 className="font-display text-2xl font-bold leading-tight text-ink sm:text-3xl">
@@ -465,10 +476,16 @@ export function ProductDetailsView({
       {/* ===== reviews ===== */}
       <section className="mx-auto w-full max-w-6xl px-4 pb-12 sm:px-6 lg:max-w-[90rem] lg:px-8">
         <ProductReviews
-          reviews={detail.reviews ?? []}
-          rating={product.rating}
+          slug={product.slug}
+          reviews={reviews}
+          avgRating={product.rating}
           reviewCount={product.reviewCount}
         />
+      </section>
+
+      {/* ===== Q&A ===== */}
+      <section className="mx-auto w-full max-w-6xl px-4 pb-12 sm:px-6 lg:max-w-[90rem] lg:px-8">
+        <ProductQa slug={product.slug} questions={questions} />
       </section>
 
       {showAdded ? (
