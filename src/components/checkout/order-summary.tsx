@@ -46,6 +46,9 @@ export function OrderSummary({
     onApply: () => void;
     onRemove: () => void;
     busy: boolean;
+    /** Hint shown under an applied coupon that isn't currently discounting
+     *  (e.g. cart fell below its minimum). */
+    note?: string | null;
   };
 }) {
   return (
@@ -114,19 +117,22 @@ export function OrderSummary({
       {coupon ? (
         <div className="mt-4">
           {coupon.applied ? (
-            <div className="flex items-center justify-between rounded-lg border border-neem/30 bg-neem/5 px-3 py-2 text-sm">
-              <span className="flex items-center gap-2 font-medium text-neem-deep">
-                <Tag className="size-4" /> {coupon.applied} applied
-              </span>
-              <button
-                type="button"
-                onClick={coupon.onRemove}
-                disabled={coupon.busy}
-                className="flex items-center gap-1 text-xs text-ink-muted transition hover:text-danger"
-                aria-label="Remove coupon"
-              >
-                <X className="size-3.5" /> Remove
-              </button>
+            <div className="rounded-lg border border-neem/30 bg-neem/5 px-3 py-2 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-2 font-medium text-neem-deep">
+                  <Tag className="size-4" /> {coupon.applied}{coupon.note ? "" : " applied"}
+                </span>
+                <button
+                  type="button"
+                  onClick={coupon.onRemove}
+                  disabled={coupon.busy}
+                  className="flex items-center gap-1 text-xs text-ink-muted transition hover:text-danger"
+                  aria-label="Remove coupon"
+                >
+                  <X className="size-3.5" /> Remove
+                </button>
+              </div>
+              {coupon.note ? <p className="mt-1 text-xs text-terracotta">{coupon.note}</p> : null}
             </div>
           ) : (
             <div className="flex gap-2">

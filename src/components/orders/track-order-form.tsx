@@ -191,6 +191,12 @@ export function TrackOrderForm() {
                 <span>Delivery</span>
                 <span>{formatTk(order.deliveryFee)}</span>
               </div>
+              {order.discountTotal > 0 ? (
+                <div className="flex justify-between text-neem-deep">
+                  <span>Discount{order.couponCode ? ` (${order.couponCode})` : ""}</span>
+                  <span>−{formatTk(order.discountTotal)}</span>
+                </div>
+              ) : null}
               {order.advanceTotal > 0 ? (
                 <div className="flex justify-between text-ink-muted">
                   <span>Advance (pre-order)</span>

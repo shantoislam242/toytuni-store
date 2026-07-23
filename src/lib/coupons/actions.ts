@@ -35,7 +35,10 @@ const COUPON_SELECT = "discount_pct, active, min_subtotal, expires_at, usage_lim
 export async function applyCoupon(
   code: string,
   subtotal: number,
-): Promise<{ ok: true; code: string; discountPct: number; discountAmount: number } | { ok: false; error: string }> {
+): Promise<
+  | { ok: true; code: string; discountPct: number; discountAmount: number; minSubtotal: number }
+  | { ok: false; error: string }
+> {
   const normalized = normalizeCode(code);
   if (!normalized) return { ok: false, error: "Enter a coupon code." };
 
@@ -54,6 +57,9 @@ export async function applyCoupon(
     code: normalized,
     discountPct: v.discountPct,
     discountAmount: computeCouponDiscount(subtotal, v.discountPct),
+    // Surfaced so the checkout can drop the discount (rather than fail at Place
+    // Order) if the cart later falls below the minimum.
+    minSubtotal: data?.min_subtotal ?? 0,
   };
 }
 
