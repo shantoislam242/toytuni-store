@@ -12,6 +12,7 @@ import { TAXONOMY_TABLES, validateTaxonomyInput, isPermutation, type TaxonomyKin
 import { validateBlogCategory } from "@/lib/admin/blog-taxonomy";
 import { clampAdjust } from "@/lib/admin/inventory-status";
 import { cleanTags } from "@/lib/blog/tags";
+import { sanitizeBlogHtml } from "@/lib/blog/sanitize";
 import { canTransition, timestampFieldFor, isOrderStatus, type OrderStatus } from "@/lib/orders/status-workflow";
 import { sendOrderEmail } from "@/lib/email/send-order-email";
 import { getAdminOrderById } from "@/lib/admin/queries";
@@ -1109,7 +1110,7 @@ export async function createBlogPost(input: { slug: string } & BlogPostInput): P
   const { data: existing } = await db.from("blog_posts").select("slug").eq("slug", slug).maybeSingle();
   if (existing) return { ok: false, error: `A post with slug "${slug}" already exists.` };
   const { error } = await db.from("blog_posts").insert({
-    slug, title: input.title.trim(), excerpt: input.excerpt.trim(), body: input.bodyMarkdown,
+    slug, title: input.title.trim(), excerpt: input.excerpt.trim(), body: sanitizeBlogHtml(input.bodyMarkdown),
     author: input.author.trim(), category: input.category || null, cover_image: input.coverImage ?? null,
     cover_tone: input.coverTone ?? "cream", cover_label: input.coverLabel ?? input.title.trim(),
     featured: input.featured, published: input.published,
@@ -1133,7 +1134,7 @@ export async function updateBlogPost(slug: string, patch: Partial<BlogPostInput>
   const update: Record<string, unknown> = {};
   if (patch.title !== undefined) { if (patch.title.trim() === "") return { ok: false, error: "Title is required." }; update.title = patch.title.trim(); }
   if (patch.excerpt !== undefined) update.excerpt = patch.excerpt.trim();
-  if (patch.bodyMarkdown !== undefined) update.body = patch.bodyMarkdown;
+  if (patch.bodyMarkdown !== undefined) update.body = sanitizeBlogHtml(patch.bodyMarkdown);
   if (patch.author !== undefined) update.author = patch.author.trim();
   if (patch.category !== undefined) update.category = patch.category || null;
   if (patch.coverImage !== undefined) update.cover_image = patch.coverImage;

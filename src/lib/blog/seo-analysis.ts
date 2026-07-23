@@ -1,4 +1,5 @@
 import { markdownHeadings } from "@/lib/blog/markdown-headings";
+import { stripHtml } from "@/lib/blog/process-html";
 import { scoreChecks, type AnalysisResult, type Check } from "@/lib/blog/analysis";
 
 export type SeoInput = {
@@ -16,15 +17,31 @@ function keywordCount(text: string, kw: string): number {
   const m = text.toLowerCase().match(new RegExp(`\\b${esc(kw)}\\b`, "g"));
   return m ? m.length : 0;
 }
-function firstParagraph(md: string): string {
-  return md.split(/\n\s*\n/).map((b) => b.trim()).find((b) => b !== "" && !b.startsWith("#")) ?? "";
+/** First paragraph text — HTML `<p>` if present, else the first non-heading
+ *  markdown block. (Body is HTML now; markdown branch kept for back-compat.) */
+function firstParagraph(body: string): string {
+  const p = body.match(/<p[^>]*>([\s\S]*?)<\/p>/i);
+  if (p) return stripHtml(p[1]);
+  return body.split(/\n\s*\n/).map((b) => b.trim()).find((b) => b !== "" && !b.startsWith("#")) ?? "";
 }
-function hasLink(md: string): boolean {
-  return /(^|[^!])\[[^\]]+\]\([^)]+\)/.test(md);
+/** Heading text (h2/h3) joined — HTML headings if present, else markdown `## `. */
+function headingsText(body: string): string {
+  const html = body.match(/<h[23][^>]*>([\s\S]*?)<\/h[23]>/gi);
+  if (html) return html.map((h) => stripHtml(h)).join(" ");
+  return markdownHeadings(body).join(" ");
 }
-function imagesMissingAlt(md: string): number {
-  const imgs = md.match(/!\[[^\]]*\]\([^)]+\)/g) ?? [];
-  return imgs.filter((i) => (i.match(/!\[([^\]]*)\]/)?.[1] ?? "").trim() === "").length;
+function hasLink(body: string): boolean {
+  return /<a\s[^>]*href=/i.test(body) || /(^|[^!])\[[^\]]+\]\([^)]+\)/.test(body);
+}
+function imagesMissingAlt(body: string): number {
+  const mdImgs = body.match(/!\[[^\]]*\]\([^)]+\)/g) ?? [];
+  const mdNoAlt = mdImgs.filter((i) => (i.match(/!\[([^\]]*)\]/)?.[1] ?? "").trim() === "").length;
+  const htmlImgs = body.match(/<img\b[^>]*>/gi) ?? [];
+  const htmlNoAlt = htmlImgs.filter((i) => {
+    const m = i.match(/\balt=("([^"]*)"|'([^']*)')/i);
+    return (m ? (m[2] ?? m[3] ?? "") : "").trim() === "";
+  }).length;
+  return mdNoAlt + htmlNoAlt;
 }
 const good = (id: string, text: string): Check => ({ id, status: "good", text });
 const ok = (id: string, text: string): Check => ({ id, status: "ok", text });
@@ -34,7 +51,8 @@ const bad = (id: string, text: string): Check => ({ id, status: "bad", text });
 export function analyzeSeo(input: SeoInput): AnalysisResult {
   const kw = input.focusKeyword.trim().toLowerCase();
   const body = input.bodyMarkdown;
-  const words = countWords(body);
+  const text = stripHtml(body); // plain text for word count + keyword density
+  const words = countWords(text);
   const seoTitle = input.seoTitle.trim() || input.title;
   const metaDesc = input.metaDescription.trim() || input.excerpt;
   const checks: Check[] = [];
@@ -55,10 +73,10 @@ export function analyzeSeo(input: SeoInput): AnalysisResult {
     checks.push(firstParagraph(body).toLowerCase().includes(kw)
       ? good("kw-first-para", "Focus keyword appears in the first paragraph.")
       : ok("kw-first-para", "Add the focus keyword to your first paragraph."));
-    checks.push(markdownHeadings(body).join(" ").toLowerCase().includes(kw)
+    checks.push(headingsText(body).toLowerCase().includes(kw)
       ? good("kw-subheading", "Focus keyword appears in a subheading.")
       : ok("kw-subheading", "Add the focus keyword to a subheading."));
-    const density = words > 0 ? (keywordCount(body, kw) / words) * 100 : 0;
+    const density = words > 0 ? (keywordCount(text, kw) / words) * 100 : 0;
     checks.push(density >= 0.5 && density <= 3
       ? good("kw-density", `Keyword density ${density.toFixed(1)}% is in the ideal range.`)
       : (density > 0 ? ok("kw-density", `Keyword density ${density.toFixed(1)}% (aim 0.5–3%).`)

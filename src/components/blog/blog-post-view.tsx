@@ -3,13 +3,27 @@ import Link from "next/link";
 import { ArrowLeft, ArrowRight, CalendarDays, Clock, ListTree, UserRound } from "lucide-react";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { PlaceholderImage } from "@/components/placeholder-image";
-import { headingId } from "@/components/blog/blog-body";
-import { Markdown } from "@/components/blog/markdown";
 import { BlogCard } from "@/components/blog/blog-card";
 import { BlogNewsletter } from "@/components/blog/blog-newsletter";
 import { ShareRail } from "@/components/blog/share-rail";
+import { marked } from "marked";
 import { categoryName } from "@/lib/mock/blog";
-import { markdownHeadings } from "@/lib/blog/markdown-headings";
+import { processBlogHtml } from "@/lib/blog/process-html";
+import { sanitizeBlogHtml } from "@/lib/blog/sanitize";
+import { BLOG_PROSE } from "@/lib/blog/prose-classes";
+
+/** Bodies are HTML now, but a not-yet-converted post may still be markdown —
+ *  render it via `marked` as a fallback so the storefront never shows raw
+ *  markdown (server-only; blog pages are static/ISR). Block-level tags signal
+ *  already-HTML; headings are downgraded to the h2/h3 the allowlist keeps
+ *  (parity with scripts/convert-blog-to-html.mjs). */
+function bodyToHtml(body: string): string {
+  if (/<(p|h2|h3|ul|ol|blockquote|img)\b/i.test(body)) return body;
+  const html = marked.parse(body, { async: false }) as string;
+  return html
+    .replace(/<(\/?)h1(\s[^>]*)?>/gi, "<$1h2$2>")
+    .replace(/<(\/?)h[456](\s[^>]*)?>/gi, "<$1h3$2>");
+}
 import { formatDate } from "@/lib/format";
 import type { BlogPostData } from "@/lib/types";
 
@@ -62,7 +76,9 @@ export function BlogPostView({
 }) {
   const related = relatedPosts(posts, post);
   const { prev, next } = adjacentPosts(posts, post);
-  const headings = markdownHeadings(post.bodyMarkdown);
+  // Body is stored as (sanitized) HTML; re-sanitize on render for defense-in-
+  // depth, then inject heading ids + collect the TOC in one pass.
+  const { html: bodyHtml, toc } = processBlogHtml(sanitizeBlogHtml(bodyToHtml(post.bodyMarkdown)));
 
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 sm:py-10 lg:max-w-[90rem] lg:px-8">
@@ -137,7 +153,7 @@ export function BlogPostView({
       <div className="mx-auto mt-6 max-w-5xl lg:mt-10 lg:grid lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-12">
         <aside className="hidden lg:block">
           <div className="sticky top-[124px] space-y-6">
-            {headings.length > 0 ? (
+            {toc.length > 0 ? (
               <nav
                 aria-label="Table of contents"
                 className="rounded-2xl border border-cream-300 bg-card p-5"
@@ -147,13 +163,13 @@ export function BlogPostView({
                   On this page
                 </p>
                 <ul className="mt-3 space-y-2.5 border-l border-cream-300">
-                  {headings.map((h) => (
-                    <li key={h}>
+                  {toc.map((h) => (
+                    <li key={h.id} className={h.level === 3 ? "ml-3" : undefined}>
                       <a
-                        href={`#${headingId(h)}`}
+                        href={`#${h.id}`}
                         className="-ml-px block border-l-2 border-transparent pl-3.5 text-sm leading-5 text-ink-muted transition-colors hover:border-neem hover:text-neem-deep"
                       >
-                        {h}
+                        {h.text}
                       </a>
                     </li>
                   ))}
@@ -171,7 +187,7 @@ export function BlogPostView({
           </div>
 
           <article className="mx-auto max-w-2xl lg:mx-0 lg:max-w-none">
-            <Markdown source={post.bodyMarkdown} />
+            <div className={BLOG_PROSE} dangerouslySetInnerHTML={{ __html: bodyHtml }} />
           </article>
         </div>
       </div>
