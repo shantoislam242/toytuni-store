@@ -14,11 +14,15 @@ import { BLOG_PROSE } from "@/lib/blog/prose-classes";
 
 /** Bodies are HTML now, but a not-yet-converted post may still be markdown —
  *  render it via `marked` as a fallback so the storefront never shows raw
- *  markdown (server-only; blog pages are static/ISR). */
+ *  markdown (server-only; blog pages are static/ISR). Block-level tags signal
+ *  already-HTML; headings are downgraded to the h2/h3 the allowlist keeps
+ *  (parity with scripts/convert-blog-to-html.mjs). */
 function bodyToHtml(body: string): string {
-  return /<(p|h2|h3|ul|ol|li|blockquote|img|strong|em|a|br)\b/i.test(body)
-    ? body
-    : (marked.parse(body, { async: false }) as string);
+  if (/<(p|h2|h3|ul|ol|blockquote|img)\b/i.test(body)) return body;
+  const html = marked.parse(body, { async: false }) as string;
+  return html
+    .replace(/<(\/?)h1(\s[^>]*)?>/gi, "<$1h2$2>")
+    .replace(/<(\/?)h[456](\s[^>]*)?>/gi, "<$1h3$2>");
 }
 import { formatDate } from "@/lib/format";
 import type { BlogPostData } from "@/lib/types";

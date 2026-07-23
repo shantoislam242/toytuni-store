@@ -208,7 +208,14 @@ export function RichTextEditor({
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
-      StarterKit.configure({ heading: { levels: [2, 3] } }),
+      // Disable nodes the blog allowlist doesn't keep (they'd silently vanish on
+      // save): only h2/h3 headings, no inline code / code block / horizontal rule.
+      StarterKit.configure({
+        heading: { levels: [2, 3] },
+        code: false,
+        codeBlock: false,
+        horizontalRule: false,
+      }),
       TextStyle,
       Color,
       FontSize,
@@ -216,6 +223,9 @@ export function RichTextEditor({
       TextAlign.configure({ types: ["heading", "paragraph"] }),
       Image.configure({ inline: false }),
     ],
+    // Read once on mount. The blog form edits one post per route (a different
+    // post remounts this component), and thereafter `value` only changes via
+    // this editor's own onChange — so no external-value→editor sync is needed.
     content: value || "",
     editorProps: {
       attributes: {

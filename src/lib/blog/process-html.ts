@@ -16,6 +16,27 @@ export function stripHtml(html: string): string {
     .trim();
 }
 
+/** Plain text that PRESERVES block boundaries as blank lines (and `<br>` as
+ *  newlines). Unlike `stripHtml` (which flattens all whitespace), this keeps the
+ *  paragraph structure readability analysis needs to count/spot long paragraphs
+ *  and to stop headings merging into the next sentence. Pure. */
+export function htmlToBlockText(html: string): string {
+  return html
+    .replace(/<\/(p|h2|h3|li|blockquote|ul|ol)>/gi, "\n\n")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<[^>]*>/g, "")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#0?39;|&apos;/gi, "'")
+    .replace(/[ \t]+/g, " ")
+    .replace(/[ \t]*\n[ \t]*/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 /** URL-safe slug from heading text (already tag-free). */
 function slugify(text: string): string {
   const s = text

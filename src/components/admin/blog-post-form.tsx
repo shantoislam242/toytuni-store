@@ -23,7 +23,7 @@ import type { AdminBlogPost } from "@/lib/admin/queries";
 import type { BlogCategory } from "@/lib/types";
 import { analyzeSeo } from "@/lib/blog/seo-analysis";
 import { analyzeReadability } from "@/lib/blog/readability-analysis";
-import { stripHtml } from "@/lib/blog/process-html";
+import { htmlToBlockText } from "@/lib/blog/process-html";
 import { postStatus } from "@/lib/blog/post-live";
 import { cn } from "@/lib/utils";
 
@@ -130,7 +130,9 @@ export function BlogPostForm({
   // Body is now HTML. analyzeSeo takes it directly (it strips tags internally +
   // reads HTML structure for heading/link/image checks); readability wants
   // plain text.
-  const bodyText = useMemo(() => stripHtml(body), [body]);
+  // Readability needs paragraph structure preserved (htmlToBlockText keeps block
+  // breaks); analyzeSeo takes the HTML directly (it strips + reads structure).
+  const bodyText = useMemo(() => htmlToBlockText(body), [body]);
   const seoResult = useMemo(
     () => analyzeSeo({ title, seoTitle, metaDescription, slug, focusKeyword, bodyMarkdown: body, excerpt }),
     [title, seoTitle, metaDescription, slug, focusKeyword, body, excerpt],

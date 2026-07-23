@@ -1,11 +1,21 @@
 import { describe, it, expect } from "vitest";
-import { processBlogHtml, stripHtml } from "./process-html";
+import { processBlogHtml, stripHtml, htmlToBlockText } from "./process-html";
 import { sanitizeBlogHtml } from "./sanitize";
 
 describe("stripHtml", () => {
   it("drops tags, decodes entities, collapses whitespace", () => {
     expect(stripHtml("<p>Hello <strong>world</strong> &amp; more</p>")).toBe("Hello world & more");
     expect(stripHtml("<h2>A   B</h2>\n<p>c</p>")).toBe("A B c");
+  });
+});
+
+describe("htmlToBlockText", () => {
+  it("preserves paragraph boundaries as blank lines", () => {
+    const t = htmlToBlockText("<h2>Title</h2><p>One two.</p><p>Three four.</p>");
+    expect(t.split(/\n\s*\n/)).toEqual(["Title", "One two.", "Three four."]);
+  });
+  it("turns <br> into a single newline and strips tags", () => {
+    expect(htmlToBlockText("<p>a<br>b</p>")).toBe("a\nb");
   });
 });
 

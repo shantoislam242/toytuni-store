@@ -16,7 +16,7 @@ const env = Object.fromEntries(
     .filter((l) => l && !l.startsWith("#") && l.includes("="))
     .map((l) => {
       const i = l.indexOf("=");
-      return [l.slice(0, i).trim(), l.slice(i + 1).trim()];
+      return [l.slice(0, i).trim(), l.slice(i + 1).trim().replace(/^["']|["']$/g, "")];
     }),
 );
 const URL_ = env.NEXT_PUBLIC_SUPABASE_URL;
@@ -53,7 +53,7 @@ function normalizeHeadings(html) {
     .replace(/<(\/?)h[456](\s[^>]*)?>/gi, "<$1h3$2>");
 }
 
-const looksLikeHtml = (s) => /<(p|h2|h3|ul|ol|li|blockquote|img|strong|em|a|br)\b/i.test(s);
+const looksLikeHtml = (s) => /<(p|h2|h3|ul|ol|blockquote|img)\b/i.test(s);
 
 const rows = await fetch(`${REST}?select=id,slug,body`, { headers }).then((r) => r.json());
 console.log(`Found ${rows.length} posts.`);
