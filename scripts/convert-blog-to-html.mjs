@@ -55,7 +55,7 @@ function normalizeHeadings(html) {
 
 const looksLikeHtml = (s) => /<(p|h2|h3|ul|ol|blockquote|img)\b/i.test(s);
 
-const rows = await fetch(`${REST}?select=id,slug,body`, { headers }).then((r) => r.json());
+const rows = await fetch(`${REST}?select=slug,body`, { headers }).then((r) => r.json());
 console.log(`Found ${rows.length} posts.`);
 let converted = 0;
 for (const row of rows) {
@@ -65,7 +65,7 @@ for (const row of rows) {
     continue;
   }
   const html = sanitizeBlogHtml(normalizeHeadings(marked.parse(body)));
-  const res = await fetch(`${REST}?id=eq.${row.id}`, {
+  const res = await fetch(`${REST}?slug=eq.${encodeURIComponent(row.slug)}`, {
     method: "PATCH",
     headers: { ...headers, Prefer: "return=minimal" },
     body: JSON.stringify({ body: html }),
