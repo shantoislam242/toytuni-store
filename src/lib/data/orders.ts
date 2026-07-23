@@ -72,23 +72,38 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
     if (!p) return { ok: false, error: `Product unavailable: ${line.slug}` };
     const inv = p.inventory as { stock_qty: number }[] | { stock_qty: number } | null;
     const stockQty = Array.isArray(inv) ? (inv[0]?.stock_qty ?? 0) : (inv?.stock_qty ?? 0);
-    const state = getProductState({ stockQty, preorderShipDate: p.preorder_ship_date });
+    // Same store-wide pre-order policy the storefront showed the shopper, so a
+    // low-stock line is recorded as `preorder` (bypassing place_order's stock
+    // guard) and snapshots the RESOLVED ship date / advance (per-product value
+    // or the global default), not the raw columns.
+    const state = getProductState({
+      stockQty,
+      preorderShipDate: p.preorder_ship_date,
+      preorderAdvancePct: p.preorder_advance_pct,
+      price: p.price,
+      preorderEnabled: settings.preorder.enabled,
+      preorderThreshold: settings.preorder.thresholdQty,
+      preorderLeadDays: settings.preorder.leadDays,
+      preorderDefaultAdvancePct: settings.preorder.advancePct,
+    });
 
     let fulfillment: "in_stock" | "preorder";
+    let preorderShipDate: string | null = null;
+    let advancePct: number | null = null;
     if (state.state === "in_stock") {
       fulfillment = "in_stock";
     } else if (state.state === "preorder") {
       fulfillment = "preorder";
+      preorderShipDate = state.shipDate;
+      advancePct = state.advancePct;
     } else {
       return { ok: false, error: `Sold out: ${p.title}` };
     }
 
-    const advancePct = fulfillment === "preorder" ? (p.preorder_advance_pct ?? null) : null;
-
     items.push({
       product_id: p.id, title: p.title, unit_price: p.price, qty: line.qty,
       line_total: p.price * line.qty, fulfillment_type: fulfillment,
-      preorder_ship_date: fulfillment === "preorder" ? p.preorder_ship_date : null,
+      preorder_ship_date: preorderShipDate,
       preorder_advance_pct: advancePct,
     });
   }
