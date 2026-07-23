@@ -118,4 +118,11 @@ describe("getProductState — store-wide pre-order policy (v2)", () => {
     expect(getProductState({ stockQty: 0, preorderShipDate: null, now, preorderThreshold: 3, preorderEnabled: true }))
       .toEqual({ state: "sold_out" });
   });
+
+  it("an explicit future per-product date pre-orders even when the policy is disabled", () => {
+    // The global switch governs the auto low-stock flip, not a deliberate
+    // per-product pre-order setup.
+    expect(getProductState({ stockQty: 0, preorderShipDate: "2026-12-01", now, preorderEnabled: false }))
+      .toMatchObject({ state: "preorder", shipDate: "2026-12-01" });
+  });
 });

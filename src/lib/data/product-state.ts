@@ -63,28 +63,30 @@ export function getProductState(input: {
 
   if (stockQty > preorderThreshold) return { state: "in_stock", stockQty };
 
-  if (preorderEnabled) {
-    // A future per-product date wins; otherwise fall back to now + lead days.
-    let shipDate: string | null = null;
-    if (preorderShipDate) {
-      const ship = new Date(`${preorderShipDate}T00:00:00Z`);
-      if (ship.getTime() > now.getTime()) shipDate = preorderShipDate;
-    }
-    if (!shipDate && preorderLeadDays != null) {
-      shipDate = isoDateAfter(now, preorderLeadDays);
-    }
-    if (shipDate) {
-      const advancePct = preorderAdvancePct ?? preorderDefaultAdvancePct ?? null;
-      return {
-        state: "preorder",
-        shipDate,
-        deliveryDate: preorderDeliveryDate,
-        advancePct,
-        advanceAmount: computeAdvance(price, advancePct),
-      };
-    }
+  // Resolve a ship date. An explicit *future* per-product date ALWAYS makes the
+  // product a pre-order (a deliberate manual setup shouldn't read "Sold out"
+  // just because the global auto-flip is off). The global lead-time fallback
+  // only applies when pre-order is enabled — that switch governs the automatic
+  // low-stock flip, not an explicit per-product date.
+  let shipDate: string | null = null;
+  if (preorderShipDate) {
+    const ship = new Date(`${preorderShipDate}T00:00:00Z`);
+    if (ship.getTime() > now.getTime()) shipDate = preorderShipDate;
+  }
+  if (!shipDate && preorderEnabled && preorderLeadDays != null) {
+    shipDate = isoDateAfter(now, preorderLeadDays);
+  }
+  if (shipDate) {
+    const advancePct = preorderAdvancePct ?? preorderDefaultAdvancePct ?? null;
+    return {
+      state: "preorder",
+      shipDate,
+      deliveryDate: preorderDeliveryDate,
+      advancePct,
+      advanceAmount: computeAdvance(price, advancePct),
+    };
   }
 
-  // Pre-order off or no ship date: low stock still sells; zero stock is sold out.
+  // No ship date resolvable: low stock still sells; zero stock is sold out.
   return stockQty > 0 ? { state: "in_stock", stockQty } : { state: "sold_out" };
 }
