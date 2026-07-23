@@ -3,7 +3,7 @@
 import { useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ImagePlus, Upload } from "lucide-react";
+import { Upload } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Markdown } from "@/components/blog/markdown";
+import { RichTextEditor } from "@/components/admin/rich-text-editor";
 import { SeoPanel } from "@/components/admin/seo-panel";
 import { SnippetPreview } from "@/components/admin/snippet-preview";
 import { StringListEditor } from "@/components/admin/string-list-editor";
@@ -23,6 +23,7 @@ import type { AdminBlogPost } from "@/lib/admin/queries";
 import type { BlogCategory } from "@/lib/types";
 import { analyzeSeo } from "@/lib/blog/seo-analysis";
 import { analyzeReadability } from "@/lib/blog/readability-analysis";
+import { stripHtml } from "@/lib/blog/process-html";
 import { postStatus } from "@/lib/blog/post-live";
 import { cn } from "@/lib/utils";
 
@@ -117,12 +118,8 @@ export function BlogPostForm({
   const [featured, setFeatured] = useState(post?.featured ?? false);
   const [published, setPublished] = useState(post?.published ?? false);
   const [coverImage, setCoverImage] = useState<string | null>(post?.coverImage ?? null);
-  const [tab, setTab] = useState<"write" | "preview">("write");
   const [tags, setTags] = useState<string[]>(post?.tags ?? []);
   const [scheduledAt, setScheduledAt] = useState(isoToLocalInput(post?.scheduledAt ?? null));
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const insertImageInputRef = useRef<HTMLInputElement>(null);
-  const [isInsertingImage, startInsertingImage] = useTransition();
 
   const [focusKeyword, setFocusKeyword] = useState(post?.focusKeyword ?? "");
   const [seoTitle, setSeoTitle] = useState(post?.seoTitle ?? "");
@@ -130,11 +127,15 @@ export function BlogPostForm({
   const [ogImage, setOgImage] = useState<string | null>(post?.ogImage ?? null);
   const [isUploadingOgImage, startUploadingOgImage] = useTransition();
 
+  // Body is now HTML. analyzeSeo takes it directly (it strips tags internally +
+  // reads HTML structure for heading/link/image checks); readability wants
+  // plain text.
+  const bodyText = useMemo(() => stripHtml(body), [body]);
   const seoResult = useMemo(
     () => analyzeSeo({ title, seoTitle, metaDescription, slug, focusKeyword, bodyMarkdown: body, excerpt }),
     [title, seoTitle, metaDescription, slug, focusKeyword, body, excerpt],
   );
-  const readResult = useMemo(() => analyzeReadability(body), [body]);
+  const readResult = useMemo(() => analyzeReadability(bodyText), [bodyText]);
 
   // Keep slug in sync with the title until the admin hand-edits it (create only).
   const handleTitleChange = (value: string) => {
@@ -178,24 +179,23 @@ export function BlogPostForm({
     });
   };
 
-  const handleInsertImage = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-    if (slug.trim() === "") return toast.error("Enter a slug first.");
+  /** Upload an image for the rich-text editor's toolbar (returns the URL, or
+   *  null on error). Reuses the same `uploadBlogCover` action as the cover/OG
+   *  uploads (public `product-images` bucket, namespaced by slug). */
+  const handleEditorImageUpload = async (file: File): Promise<string | null> => {
+    if (slug.trim() === "") {
+      toast.error("Enter a slug first.");
+      return null;
+    }
     const formData = new FormData();
     formData.set("file", file);
-    startInsertingImage(async () => {
-      const result = await uploadBlogCover(slug, formData);
-      if (result.ok) {
-        const caret = textareaRef.current?.selectionStart ?? body.length;
-        const markdown = `![](${result.url})`;
-        setBody(body.slice(0, caret) + markdown + body.slice(caret));
-        toast.success("Image inserted.");
-      } else {
-        toast.error(result.error);
-      }
-    });
+    const result = await uploadBlogCover(slug, formData);
+    if (result.ok) {
+      toast.success("Image inserted.");
+      return result.url;
+    }
+    toast.error(result.error);
+    return null;
   };
 
   const handleSubmit = () => {
@@ -332,67 +332,12 @@ export function BlogPostForm({
           <CardHeader>
             <CardTitle>Body</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex gap-1 rounded-lg border border-cream-300 bg-cream-100 p-1 text-sm">
-                <button
-                  type="button"
-                  onClick={() => setTab("write")}
-                  className={cn(
-                    "flex-1 rounded-md px-3 py-1.5 font-medium transition-colors",
-                    tab === "write" ? "bg-white text-ink shadow-sm" : "text-ink-muted hover:text-ink",
-                  )}
-                >
-                  Write
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTab("preview")}
-                  className={cn(
-                    "flex-1 rounded-md px-3 py-1.5 font-medium transition-colors",
-                    tab === "preview" ? "bg-white text-ink shadow-sm" : "text-ink-muted hover:text-ink",
-                  )}
-                >
-                  Preview
-                </button>
-              </div>
-              <input
-                ref={insertImageInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleInsertImage}
-                disabled={isInsertingImage}
-                className="hidden"
-              />
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => insertImageInputRef.current?.click()}
-                disabled={isInsertingImage}
-              >
-                <ImagePlus className="size-4" />
-                {isInsertingImage ? "Uploading…" : "Insert image"}
-              </Button>
-            </div>
-            {tab === "write" ? (
-              <textarea
-                ref={textareaRef}
-                value={body}
-                onChange={(e) => setBody(e.target.value)}
-                rows={20}
-                placeholder={"## A heading\n\nBody copy in **Markdown**. Supports lists, links, and GitHub-flavored tables."}
-                className="w-full rounded-lg border border-input bg-transparent px-2.5 py-2 font-mono text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-              />
-            ) : (
-              <div className="max-h-[32rem] overflow-y-auto rounded-lg border border-cream-300 bg-cream-50 px-4">
-                {body.trim() === "" ? (
-                  <p className="py-8 text-center text-sm text-ink-soft">Nothing to preview yet.</p>
-                ) : (
-                  <Markdown source={body} />
-                )}
-              </div>
-            )}
+          <CardContent>
+            <RichTextEditor value={body} onChange={setBody} onImageUpload={handleEditorImageUpload} />
+            <p className="mt-2 text-xs text-ink-soft">
+              Format freely — headings, colours, highlight, size, alignment, lists, links and images. Use “Upload image”
+              in the toolbar to add photos (needs a slug first).
+            </p>
           </CardContent>
         </Card>
 
