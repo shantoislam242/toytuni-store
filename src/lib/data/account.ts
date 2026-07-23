@@ -109,6 +109,8 @@ export type AccountOrderDetail = Omit<AccountOrder, "items"> & {
   subtotal: number;
   deliveryFee: number;
   advanceTotal: number;
+  discountTotal: number;
+  couponCode: string | null;
   trackingUrl: string | null;
   /** Status timeline from `order_status_history`, oldest first. */
   historyStatuses: string[];
@@ -138,6 +140,8 @@ type AccountOrderDetailRow = {
   subtotal: number;
   delivery_fee: number;
   advance_total: number;
+  discount_total: number;
+  coupon_code: string | null;
   total: number;
   order_items:
     | {
@@ -179,7 +183,7 @@ export async function getOrderForEmail(
   const { data, error } = await db
     .from("orders")
     .select(
-      "id, order_number, created_at, status, payment_status, customer_name, customer_phone, customer_email, division, district, area, address_line, landmark, carrier, tracking_number, tracking_url, subtotal, delivery_fee, advance_total, total, order_items(title, qty, unit_price, line_total, fulfillment_type, product_id, products(slug))",
+      "id, order_number, created_at, status, payment_status, customer_name, customer_phone, customer_email, division, district, area, address_line, landmark, carrier, tracking_number, tracking_url, subtotal, delivery_fee, advance_total, discount_total, coupon_code, total, order_items(title, qty, unit_price, line_total, fulfillment_type, product_id, products(slug))",
     )
     .eq("customer_email", email)
     .eq("order_number", orderNumber)
@@ -233,6 +237,8 @@ export async function getOrderForEmail(
     subtotal: data.subtotal,
     deliveryFee: data.delivery_fee,
     advanceTotal: data.advance_total,
+    discountTotal: data.discount_total,
+    couponCode: data.coupon_code,
     trackingUrl: data.tracking_url,
     historyStatuses: (hist ?? []).map((h) => h.status),
   };

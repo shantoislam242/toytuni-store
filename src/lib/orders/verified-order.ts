@@ -31,6 +31,8 @@ export type VerifiedOrderRow = {
   subtotal: number;
   delivery_fee: number;
   advance_total: number;
+  discount_total: number;
+  coupon_code: string | null;
   total: number;
   order_items:
     | {
@@ -44,7 +46,7 @@ export type VerifiedOrderRow = {
 };
 
 const ORDER_SELECT =
-  "id, order_number, created_at, status, payment_status, customer_name, customer_phone, customer_email, division, district, area, address_line, landmark, carrier, tracking_number, tracking_url, subtotal, delivery_fee, advance_total, total, order_items(title, qty, unit_price, line_total, fulfillment_type)";
+  "id, order_number, created_at, status, payment_status, customer_name, customer_phone, customer_email, division, district, area, address_line, landmark, carrier, tracking_number, tracking_url, subtotal, delivery_fee, advance_total, discount_total, coupon_code, total, order_items(title, qty, unit_price, line_total, fulfillment_type)";
 
 /**
  * The single authorization gate for the public tracking surface. Fetches an

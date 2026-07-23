@@ -33,6 +33,8 @@ export type PublicOrderView = {
   subtotal: number;
   deliveryFee: number;
   advanceTotal: number;
+  discountTotal: number;
+  couponCode: string | null;
   total: number;
 };
 
@@ -94,6 +96,8 @@ export async function trackOrder({
     subtotal: row.subtotal,
     deliveryFee: row.delivery_fee,
     advanceTotal: row.advance_total,
+    discountTotal: row.discount_total,
+    couponCode: row.coupon_code,
     total: row.total,
   };
   return { ok: true, order };
