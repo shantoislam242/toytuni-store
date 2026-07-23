@@ -231,6 +231,7 @@ export function ProductCard({
               slug={product.slug}
               title={product.titleBn}
               soldOut={availability?.state === "sold_out"}
+              preorder={availability?.state === "preorder"}
               className="w-full min-w-0 px-2 text-[0.76rem] min-[420px]:min-w-[108px] sm:min-w-[118px] sm:px-3 sm:text-[0.8rem]"
             />
           </div>

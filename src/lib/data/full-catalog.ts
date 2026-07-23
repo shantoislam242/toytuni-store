@@ -5,6 +5,7 @@ import type { Product, Tone } from "@/lib/types";
 import { products as mockProducts } from "@/lib/mock/products";
 import { giftKits, giftCards } from "@/lib/mock/gifts";
 import { getProductState } from "@/lib/data/product-state";
+import { getSettings } from "@/lib/data/settings";
 import type { OverlaidProduct } from "@/lib/data/product-overlay";
 
 /** Row shape for the full-catalog `products` select below (see 0005_catalog_fields.sql
@@ -102,6 +103,10 @@ export function rowToFullProduct(row: FullProductRow): Product {
 async function readFullCatalog(): Promise<OverlaidProduct[]> {
   try {
     const supabase = createPublicSupabase();
+    // Store-wide pre-order policy — same cookieless read family, so this stays
+    // prerender-safe. `updateSettings` busts BOTH "settings" and "catalog", so a
+    // policy change refreshes availability here.
+    const { preorder } = await getSettings();
     const { data, error } = await supabase
       .from("products")
       .select(
@@ -119,6 +124,10 @@ async function readFullCatalog(): Promise<OverlaidProduct[]> {
         preorderDeliveryDate: row.preorder_delivery_date,
         preorderAdvancePct: row.preorder_advance_pct,
         price: row.price,
+        preorderEnabled: preorder.enabled,
+        preorderThreshold: preorder.thresholdQty,
+        preorderLeadDays: preorder.leadDays,
+        preorderDefaultAdvancePct: preorder.advancePct,
       }),
     }));
   } catch (err) {

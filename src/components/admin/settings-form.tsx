@@ -38,6 +38,10 @@ export function SettingsForm({ settings }: { settings: Settings }) {
   const [description, setDescription] = useState(settings.brand.description);
   const [silver, setSilver] = useState(String(settings.customerTiers.silver));
   const [gold, setGold] = useState(String(settings.customerTiers.gold));
+  const [preorderEnabled, setPreorderEnabled] = useState(settings.preorder.enabled);
+  const [preorderThreshold, setPreorderThreshold] = useState(String(settings.preorder.thresholdQty));
+  const [preorderLead, setPreorderLead] = useState(String(settings.preorder.leadDays));
+  const [preorderAdvance, setPreorderAdvance] = useState(String(settings.preorder.advancePct));
 
   const handleSave = () => {
     const nums = {
@@ -47,6 +51,9 @@ export function SettingsForm({ settings }: { settings: Settings }) {
       cod: parseIntOrNull(codFee),
       silver: parseIntOrNull(silver),
       gold: parseIntOrNull(gold),
+      poThreshold: parseIntOrNull(preorderThreshold),
+      poLead: parseIntOrNull(preorderLead),
+      poAdvance: parseIntOrNull(preorderAdvance),
     };
     if (Object.values(nums).some((n) => n === null)) {
       return toast.error("Fees and threshold must be whole numbers ≥ 0.");
@@ -54,12 +61,21 @@ export function SettingsForm({ settings }: { settings: Settings }) {
     if (nums.gold! < nums.silver!) {
       return toast.error("Gold threshold must be ≥ silver threshold.");
     }
+    if (nums.poAdvance! > 100) {
+      return toast.error("Pre-order advance must be between 0 and 100.");
+    }
     const next: Settings = {
       shipping: { insideDhakaFee: nums.inside!, outsideDhakaFee: nums.outside!, freeShippingThreshold: nums.thr! },
       codFee: nums.cod!,
       contact: { phone, whatsapp, email, address },
       brand: { tagline, description },
       customerTiers: { silver: nums.silver!, gold: nums.gold! },
+      preorder: {
+        enabled: preorderEnabled,
+        thresholdQty: nums.poThreshold!,
+        leadDays: nums.poLead!,
+        advancePct: nums.poAdvance!,
+      },
     };
     start(async () => {
       const r = await updateSettings(next);
@@ -171,6 +187,77 @@ export function SettingsForm({ settings }: { settings: Settings }) {
               className="mt-1"
             />
           </label>
+        </CardContent>
+      </Card>
+
+      <Card className="border-cream-300">
+        <CardHeader>
+          <CardTitle>Pre-order</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <label className="flex items-center gap-2.5">
+            <input
+              type="checkbox"
+              checked={preorderEnabled}
+              onChange={(e) => setPreorderEnabled(e.target.checked)}
+              className="size-4 accent-neem"
+            />
+            <span className="text-sm font-medium text-ink">
+              Enable pre-order for low / out-of-stock products
+            </span>
+          </label>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <label className="block">
+              <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">
+                Pre-order when stock ≤
+              </span>
+              <Input
+                type="number"
+                min={0}
+                step={1}
+                inputMode="numeric"
+                value={preorderThreshold}
+                onChange={(e) => setPreorderThreshold(e.target.value)}
+                disabled={!preorderEnabled}
+                className="mt-1"
+              />
+            </label>
+            <label className="block">
+              <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">
+                Ships in (days)
+              </span>
+              <Input
+                type="number"
+                min={0}
+                step={1}
+                inputMode="numeric"
+                value={preorderLead}
+                onChange={(e) => setPreorderLead(e.target.value)}
+                disabled={!preorderEnabled}
+                className="mt-1"
+              />
+            </label>
+            <label className="block">
+              <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">
+                Advance (%)
+              </span>
+              <Input
+                type="number"
+                min={0}
+                max={100}
+                step={1}
+                inputMode="numeric"
+                value={preorderAdvance}
+                onChange={(e) => setPreorderAdvance(e.target.value)}
+                disabled={!preorderEnabled}
+                className="mt-1"
+              />
+            </label>
+          </div>
+          <p className="text-xs text-ink-muted">
+            When stock hits the threshold (low or zero), the product’s button becomes “Pre-order”, shipping in the set
+            days with the advance shown. A product’s own ship date / advance, if set, override these defaults.
+          </p>
         </CardContent>
       </Card>
 

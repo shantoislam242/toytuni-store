@@ -6,6 +6,11 @@ export type Settings = {
   contact: { phone: string; whatsapp: string; email: string; address: string };
   brand: { tagline: string; description: string };
   customerTiers: { silver: number; gold: number };
+  /** Store-wide pre-order policy. When `enabled`, any product whose stock is at
+   *  or below `thresholdQty` (low OR zero) is sold as a pre-order shipping in
+   *  `leadDays` days, taking `advancePct` as the default advance. See
+   *  `getProductState` in `src/lib/data/product-state.ts`. */
+  preorder: { enabled: boolean; thresholdQty: number; leadDays: number; advancePct: number };
 };
 
 /** Current hardcoded values become the defaults + fail-soft fallback. */
@@ -20,10 +25,16 @@ export const DEFAULT_SETTINGS: Settings = {
   },
   brand: { tagline: BRAND_TAGLINE, description: BRAND_DESCRIPTION },
   customerTiers: { silver: 3000, gold: 10000 },
+  preorder: { enabled: true, thresholdQty: 3, leadDays: 7, advancePct: 20 },
 };
 
 const nnInt = (v: unknown, fallback: number): number =>
   typeof v === "number" && Number.isInteger(v) && v >= 0 ? v : fallback;
+/** Non-negative int capped at `max` (used for the 0–100 advance percentage). */
+const nnIntMax = (v: unknown, fallback: number, max: number): number =>
+  Math.min(nnInt(v, fallback), max);
+const bool = (v: unknown, fallback: boolean): boolean =>
+  typeof v === "boolean" ? v : fallback;
 const str = (v: unknown, fallback: string): string =>
   typeof v === "string" && v.trim() !== "" ? v.trim() : fallback;
 
@@ -35,6 +46,7 @@ export function rowToSettings(value: unknown): Settings {
   const c = (v.contact && typeof v.contact === "object" ? v.contact : {}) as Record<string, unknown>;
   const b = (v.brand && typeof v.brand === "object" ? v.brand : {}) as Record<string, unknown>;
   const ct = (v.customerTiers && typeof v.customerTiers === "object" ? v.customerTiers : {}) as Record<string, unknown>;
+  const po = (v.preorder && typeof v.preorder === "object" ? v.preorder : {}) as Record<string, unknown>;
   const d = DEFAULT_SETTINGS;
   let silver = nnInt(ct.silver, d.customerTiers.silver);
   let gold = nnInt(ct.gold, d.customerTiers.gold);
@@ -57,5 +69,11 @@ export function rowToSettings(value: unknown): Settings {
       description: str(b.description, d.brand.description),
     },
     customerTiers: { silver, gold },
+    preorder: {
+      enabled: bool(po.enabled, d.preorder.enabled),
+      thresholdQty: nnInt(po.thresholdQty, d.preorder.thresholdQty),
+      leadDays: nnInt(po.leadDays, d.preorder.leadDays),
+      advancePct: nnIntMax(po.advancePct, d.preorder.advancePct, 100),
+    },
   };
 }

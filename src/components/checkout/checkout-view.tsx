@@ -134,7 +134,10 @@ export function CheckoutView({
     // computed `availability` is present on the actual object at runtime.
     const cat = bySlug(it.product.slug) as OverlaidProduct | undefined;
     if (cat?.availability?.state !== "preorder") return sum;
-    return sum + computeAdvance(it.lineTotal, cat.preorderAdvancePct ?? null);
+    // Use the RESOLVED advance % (per-product value or the global default),
+    // matching the PDP + what createOrder records — not the raw per-product
+    // column, which is null for policy-driven (low-stock) pre-orders.
+    return sum + computeAdvance(it.lineTotal, cat.availability.advancePct);
   }, 0);
 
   const ctaLabel = placing ? "Placing…" : isLoggedIn ? "Place Order" : "Continue to Payment";

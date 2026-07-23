@@ -880,9 +880,17 @@ export async function updateSettings(next: Settings): Promise<ActionResult> {
   const ints = [
     next.shipping?.insideDhakaFee, next.shipping?.outsideDhakaFee,
     next.shipping?.freeShippingThreshold, next.codFee,
+    next.customerTiers?.silver, next.customerTiers?.gold,
+    next.preorder?.thresholdQty, next.preorder?.leadDays, next.preorder?.advancePct,
   ];
   if (ints.some((n) => !isNonNegativeInt(n))) {
     return { ok: false, error: "Fees and threshold must be non-negative whole numbers." };
+  }
+  if (next.customerTiers.gold < next.customerTiers.silver) {
+    return { ok: false, error: "Gold tier threshold must be at least the Silver threshold." };
+  }
+  if (next.preorder.advancePct > 100) {
+    return { ok: false, error: "Pre-order advance must be between 0 and 100." };
   }
   const email = (next.contact?.email ?? "").trim();
   if (email !== "" && !/^\S+@\S+\.\S+$/.test(email)) {
@@ -905,6 +913,15 @@ export async function updateSettings(next: Settings): Promise<ActionResult> {
       tagline: (next.brand?.tagline ?? "").trim(),
       description: (next.brand?.description ?? "").trim(),
     },
+    // customerTiers was previously dropped here — a Save silently reset tiers to
+    // defaults. Persist it (and the pre-order policy) so nothing is lost.
+    customerTiers: { silver: next.customerTiers.silver, gold: next.customerTiers.gold },
+    preorder: {
+      enabled: next.preorder.enabled,
+      thresholdQty: next.preorder.thresholdQty,
+      leadDays: next.preorder.leadDays,
+      advancePct: next.preorder.advancePct,
+    },
   };
 
   const db = createAdminSupabase();
@@ -915,6 +932,9 @@ export async function updateSettings(next: Settings): Promise<ActionResult> {
   if (error) return { ok: false, error: error.message };
 
   revalidateTag("settings", "max");
+  // The pre-order policy feeds product availability baked into the cached
+  // catalog, so a Settings change must refresh it too.
+  revalidateTag("catalog", "max");
   revalidatePath("/");
   revalidatePath("/checkout");
   revalidatePath("/contact");
