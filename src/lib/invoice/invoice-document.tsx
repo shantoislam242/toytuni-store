@@ -204,6 +204,12 @@ export function InvoiceDocument({ data }: { data: InvoiceData }) {
             <Text style={styles.totalsLabel}>Delivery</Text>
             <Text style={styles.totalsValue}>{tk(data.deliveryFee)}</Text>
           </View>
+          {data.discountTotal > 0 ? (
+            <View style={styles.totalsRow}>
+              <Text style={styles.totalsLabel}>Discount</Text>
+              <Text style={styles.totalsValue}>-{tk(data.discountTotal)}</Text>
+            </View>
+          ) : null}
           {data.advanceTotal > 0 ? (
             <View style={styles.totalsRow}>
               <Text style={styles.totalsLabel}>Advance paid</Text>

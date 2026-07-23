@@ -5,6 +5,8 @@ export type OrderEmailData = {
   orderNumber: string; customerName: string; customerEmail: string; status: string;
   items: { title: string; qty: number; lineTotal: number }[];
   subtotal: number; deliveryFee: number; advanceTotal: number; total: number;
+  /** Coupon discount (BDT); omitted/0 when no coupon. */
+  discountTotal?: number;
   carrier?: string | null; trackingNumber?: string | null; trackingUrl?: string | null;
 };
 
@@ -55,6 +57,7 @@ export function renderOrderEmail(
     <table width="100%" style="border-collapse:collapse">
       <tr><td>Subtotal</td><td align="right">${formatTk(o.subtotal)}</td></tr>
       <tr><td>Delivery</td><td align="right">${formatTk(o.deliveryFee)}</td></tr>
+      ${o.discountTotal && o.discountTotal > 0 ? `<tr><td>Discount</td><td align="right">-${formatTk(o.discountTotal)}</td></tr>` : ""}
       ${o.advanceTotal > 0 ? `<tr><td>Advance paid</td><td align="right">${formatTk(o.advanceTotal)}</td></tr>` : ""}
       <tr><td><strong>Total</strong></td><td align="right"><strong>${formatTk(o.total)}</strong></td></tr>
     </table>`;

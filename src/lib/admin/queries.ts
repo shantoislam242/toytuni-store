@@ -100,6 +100,8 @@ type AdminOrderDetailRow = {
   total: number;
   notes: string | null;
   advance_total: number;
+  discount_total: number;
+  coupon_code: string | null;
   order_items: {
     id: string;
     product_id: string | null;
@@ -209,6 +211,8 @@ export type AdminOrderDetail = {
   deliveryFee: number;
   total: number;
   advanceTotal: number;
+  discountTotal: number;
+  couponCode: string | null;
   notes: string | null;
   items: {
     id: string;
@@ -385,7 +389,7 @@ export async function getAdminOrderById(id: string): Promise<AdminOrderDetail | 
   const { data, error } = await db
     .from("orders")
     .select(
-      "id, order_number, created_at, customer_name, customer_phone, customer_email, division, district, area, address_line, landmark, status, payment_method, payment_status, paid_at, carrier, tracking_number, tracking_url, confirmed_at, shipped_at, delivered_at, cancelled_at, cancel_reason, updated_at, subtotal, delivery_fee, total, advance_total, notes, order_items(id, product_id, title, unit_price, qty, line_total, fulfillment_type, preorder_ship_date, preorder_advance_pct)",
+      "id, order_number, created_at, customer_name, customer_phone, customer_email, division, district, area, address_line, landmark, status, payment_method, payment_status, paid_at, carrier, tracking_number, tracking_url, confirmed_at, shipped_at, delivered_at, cancelled_at, cancel_reason, updated_at, subtotal, delivery_fee, total, advance_total, discount_total, coupon_code, notes, order_items(id, product_id, title, unit_price, qty, line_total, fulfillment_type, preorder_ship_date, preorder_advance_pct)",
     )
     .eq("id", id)
     .maybeSingle()
@@ -422,6 +426,8 @@ export async function getAdminOrderById(id: string): Promise<AdminOrderDetail | 
     deliveryFee: data.delivery_fee,
     total: data.total,
     advanceTotal: data.advance_total,
+    discountTotal: data.discount_total,
+    couponCode: data.coupon_code,
     notes: data.notes,
     items: (data.order_items ?? []).map((i) => ({
       id: i.id,
@@ -928,5 +934,54 @@ export async function getAdminTeam(): Promise<AdminTeamMember[]> {
     addedBy: r.added_by,
     createdAt: r.created_at,
     permanent: env.includes(r.email.toLowerCase()),
+  }));
+}
+
+export type AdminCoupon = {
+  id: string;
+  code: string;
+  discountPct: number;
+  active: boolean;
+  minSubtotal: number;
+  /** `YYYY-MM-DD` (the chosen day), or null for no expiry. */
+  expiresAt: string | null;
+  usageLimit: number | null;
+  usedCount: number;
+  createdAt: string;
+};
+
+type CouponRow = {
+  id: string;
+  code: string;
+  discount_pct: number;
+  active: boolean;
+  min_subtotal: number;
+  expires_at: string | null;
+  usage_limit: number | null;
+  used_count: number;
+  created_at: string;
+};
+
+/** All coupons (`coupons`), newest first. Service-role — `coupons` is RLS-on
+ *  with zero policies (migration 0017). `expiresAt` is returned as the plain
+ *  day (`YYYY-MM-DD`) the admin picked, ready for the edit form. */
+export async function getAdminCoupons(): Promise<AdminCoupon[]> {
+  const db = createAdminSupabase();
+  const { data, error } = await db
+    .from("coupons" as never)
+    .select("id, code, discount_pct, active, min_subtotal, expires_at, usage_limit, used_count, created_at")
+    .order("created_at", { ascending: false })
+    .overrideTypes<CouponRow[], { merge: false }>();
+  if (error) throw new Error(`getAdminCoupons failed: ${error.message}`);
+  return (data ?? []).map((r) => ({
+    id: r.id,
+    code: r.code,
+    discountPct: r.discount_pct,
+    active: r.active,
+    minSubtotal: r.min_subtotal,
+    expiresAt: r.expires_at ? r.expires_at.slice(0, 10) : null,
+    usageLimit: r.usage_limit,
+    usedCount: r.used_count,
+    createdAt: r.created_at,
   }));
 }

@@ -1,5 +1,6 @@
-import { Lock } from "lucide-react";
+import { Lock, Tag, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { ProductImage } from "@/components/product/product-image";
 import { GiftCardThumb } from "@/components/cart/gift-card-thumb";
@@ -22,6 +23,7 @@ export function OrderSummary({
   ctaLabel,
   onCta,
   advanceDueNow,
+  coupon,
 }: {
   items: CartItem[];
   subtotal: number;
@@ -36,6 +38,15 @@ export function OrderSummary({
   onCta: () => void;
   /** Pre-order advance total (BDT) due now, if any cart line is a pre-order. */
   advanceDueNow?: number;
+  /** Coupon apply/remove controls. Omit to hide the coupon field entirely. */
+  coupon?: {
+    applied: string | null;
+    input: string;
+    onInput: (v: string) => void;
+    onApply: () => void;
+    onRemove: () => void;
+    busy: boolean;
+  };
 }) {
   return (
     <div className="rounded-2xl border border-cream-300 bg-card p-5 shadow-sm sm:p-6">
@@ -92,11 +103,54 @@ export function OrderSummary({
         ) : null}
         {discount > 0 ? (
           <div className="flex justify-between">
-            <dt className="text-neem-deep">Discount</dt>
+            <dt className="text-neem-deep">
+              Discount{coupon?.applied ? ` (${coupon.applied})` : ""}
+            </dt>
             <dd className="font-medium text-neem-deep">−{formatTk(discount)}</dd>
           </div>
         ) : null}
       </dl>
+
+      {coupon ? (
+        <div className="mt-4">
+          {coupon.applied ? (
+            <div className="flex items-center justify-between rounded-lg border border-neem/30 bg-neem/5 px-3 py-2 text-sm">
+              <span className="flex items-center gap-2 font-medium text-neem-deep">
+                <Tag className="size-4" /> {coupon.applied} applied
+              </span>
+              <button
+                type="button"
+                onClick={coupon.onRemove}
+                disabled={coupon.busy}
+                className="flex items-center gap-1 text-xs text-ink-muted transition hover:text-danger"
+                aria-label="Remove coupon"
+              >
+                <X className="size-3.5" /> Remove
+              </button>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <Input
+                value={coupon.input}
+                onChange={(e) => coupon.onInput(e.target.value.toUpperCase())}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); coupon.onApply(); } }}
+                placeholder="Coupon code"
+                className="h-10 font-mono uppercase"
+                aria-label="Coupon code"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                className="h-10 flex-none"
+                onClick={coupon.onApply}
+                disabled={coupon.busy || coupon.input.trim() === ""}
+              >
+                {coupon.busy ? "…" : "Apply"}
+              </Button>
+            </div>
+          )}
+        </div>
+      ) : null}
 
       <Separator className="my-4" />
 

@@ -11,6 +11,8 @@ export type InvoiceData = {
   subtotal: number;
   deliveryFee: number;
   advanceTotal: number;
+  /** Coupon discount (BDT) subtracted from the total; 0 when no coupon. */
+  discountTotal: number;
   total: number;
 };
 
@@ -20,6 +22,8 @@ type OrderLike = {
   division: string; district: string; area: string; addressLine: string; landmark?: string | null;
   items: { title: string; qty: number; unitPrice: number; lineTotal: number }[];
   subtotal: number; deliveryFee: number; advanceTotal: number; total: number;
+  /** Optional — older callers/orders without a coupon omit it (treated as 0). */
+  discountTotal?: number;
 };
 type SettingsLike = { contact: { phone: string; email: string; address: string }; brand: { tagline: string } };
 
@@ -43,6 +47,7 @@ export function buildInvoiceData(order: OrderLike, settings: SettingsLike, store
       email: order.customerEmail ?? undefined, address: toAddress,
     },
     items: order.items.map((i) => ({ title: i.title, qty: i.qty, unitPrice: i.unitPrice, lineTotal: i.lineTotal })),
-    subtotal: order.subtotal, deliveryFee: order.deliveryFee, advanceTotal: order.advanceTotal, total: order.total,
+    subtotal: order.subtotal, deliveryFee: order.deliveryFee, advanceTotal: order.advanceTotal,
+    discountTotal: order.discountTotal ?? 0, total: order.total,
   };
 }

@@ -4,6 +4,9 @@ import { getProductState } from "@/lib/data/product-state";
 import { computeOrderTotals } from "@/lib/data/order-totals";
 import { computeAdvance } from "@/lib/data/advance";
 import { getSettings } from "@/lib/data/settings";
+import { normalizeCode } from "@/lib/coupons/normalize";
+import { computeCouponDiscount } from "@/lib/coupons/discount";
+import { validateCoupon, COUPON_REASON_MESSAGE, type CouponRow } from "@/lib/coupons/validate";
 import { priceDelivery } from "@/lib/shipping";
 import { sendOrderEmail } from "@/lib/email/send-order-email";
 import { buildInvoiceData } from "@/lib/invoice/build-invoice-data";
@@ -17,6 +20,7 @@ export type CreateOrderInput = {
   notes?: string;
   deliveryFee: number;
   shippingMethodId: string;
+  couponCode?: string;
 };
 export type CreateOrderResult =
   | { ok: true; orderNumber: string; total: number }
@@ -113,7 +117,28 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
   // Delivery fee depends on the chosen shipping method (not just the district),
   // so it must be priced AFTER subtotal is known — see `priceDelivery`.
   const deliveryFee = priceDelivery(input.shippingMethodId, subtotal, input.address.district, settings.shipping);
-  const total = subtotal + deliveryFee + codFee;
+
+  // Re-validate the coupon server-side against the authoritative subtotal (never
+  // trust the client's applied discount). A supplied-but-invalid code fails the
+  // order rather than silently overcharging. `place_order` re-checks + consumes
+  // the coupon in-transaction, so the count can't be over-redeemed in a race.
+  let discountTotal = 0;
+  let couponCode: string | null = null;
+  if (input.couponCode && input.couponCode.trim() !== "") {
+    const normalized = normalizeCode(input.couponCode);
+    const { data: coupon } = await db
+      .from("coupons" as never)
+      .select("discount_pct, active, min_subtotal, expires_at, usage_limit, used_count")
+      .eq("code", normalized)
+      .maybeSingle()
+      .overrideTypes<CouponRow, { merge: false }>();
+    const v = validateCoupon(coupon ?? null, subtotal, new Date());
+    if (!v.ok) return { ok: false, error: COUPON_REASON_MESSAGE[v.reason] };
+    discountTotal = computeCouponDiscount(subtotal, v.discountPct);
+    couponCode = normalized;
+  }
+
+  const total = subtotal + deliveryFee + codFee - discountTotal;
 
   const advanceTotal = items.reduce(
     (sum, i) =>
@@ -132,6 +157,7 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
     landmark: input.address.landmark ?? null,
     subtotal, delivery_fee: deliveryFee, total, notes: input.notes ?? null,
     advance_total: advanceTotal,
+    discount_total: discountTotal, coupon_code: couponCode,
   };
   const p_items = items.map((i) => ({
     product_id: i.product_id, title: i.title, unit_price: i.unit_price, qty: i.qty,
@@ -147,6 +173,9 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
     if (error.message?.includes("insufficient_stock")) {
       return { ok: false, error: "Sorry, an item just went out of stock. Please try again." };
     }
+    if (error.message?.includes("coupon_unavailable")) {
+      return { ok: false, error: "This coupon is no longer available. Please remove it and try again." };
+    }
     return { ok: false, error: "Could not place order." };
   }
 
@@ -159,7 +188,7 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
       orderNumber, customerName: input.customer.name, customerEmail: input.customer.email,
       status: "pending",
       items: p_items.map((i) => ({ title: i.title, qty: i.qty, lineTotal: i.line_total })),
-      subtotal, deliveryFee, advanceTotal, total,
+      subtotal, deliveryFee, advanceTotal, discountTotal, total,
     };
     try {
       const invoiceData = buildInvoiceData(
@@ -169,7 +198,7 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
           division: input.address.division, district: input.address.district, area: input.address.area,
           addressLine: input.address.addressLine, landmark: input.address.landmark ?? null,
           items: p_items.map((i) => ({ title: i.title, qty: i.qty, unitPrice: i.unit_price, lineTotal: i.line_total })),
-          subtotal, deliveryFee, advanceTotal, total,
+          subtotal, deliveryFee, advanceTotal, discountTotal, total,
         },
         settings, BRAND_NAME,
       );

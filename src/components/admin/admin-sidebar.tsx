@@ -15,6 +15,7 @@ import {
   Settings,
   ShieldCheck,
   Star,
+  Ticket,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -53,6 +54,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Inventory", href: "/admin/inventory", icon: Warehouse },
   { label: "Blog", href: "/admin/blog", icon: Newspaper },
   { label: "Reviews", href: "/admin/reviews", icon: Star },
+  { label: "Coupons", href: "/admin/coupons", icon: Ticket },
   { label: "Team", href: "/admin/team", icon: ShieldCheck },
   { label: "Settings", href: "/admin/settings", icon: Settings },
 ];

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, ShoppingBag } from "lucide-react";
@@ -19,6 +19,8 @@ import { useCatalog } from "@/lib/catalog/catalog-context";
 import { useCheckout } from "@/lib/checkout/checkout-context";
 import { computeAdvance } from "@/lib/data/advance";
 import { createOrder } from "@/lib/data/orders";
+import { applyCoupon } from "@/lib/coupons/actions";
+import { computeCouponDiscount } from "@/lib/coupons/discount";
 import type { OverlaidProduct } from "@/lib/data/product-overlay";
 import { shippingOptions } from "@/lib/mock/checkout";
 import { priceDelivery, zoneForDistrict } from "@/lib/shipping";
@@ -65,6 +67,12 @@ export function CheckoutView({
   const [payment, setPayment] = useState("cod");
   const [notes, setNotes] = useState("");
   const [placing, setPlacing] = useState(false);
+  const [couponInput, setCouponInput] = useState("");
+  // The applied coupon's normalized code + pct; the discount is recomputed live
+  // from the current subtotal (the % is stable — `createOrder` re-validates
+  // server-side authoritatively, so a stale min/expiry can't slip through).
+  const [applied, setApplied] = useState<{ code: string; discountPct: number } | null>(null);
+  const [applyingCoupon, startApplyCoupon] = useTransition();
 
   // Free shipping unlocks at the threshold. Keep the selection valid: auto-apply
   // free once it unlocks (matches the cart), and never leave "free" selected on
@@ -123,10 +131,28 @@ export function CheckoutView({
       })
     : deliveryOption.price;
   const deliveryZoneLabel = deliveryZone?.label ?? null;
-  // No promo/discount system yet — real orders never apply a phantom discount.
-  const discount = 0;
+  const discount = applied ? computeCouponDiscount(subtotal, applied.discountPct) : 0;
   const codLine = payment === "cod" ? codFee : 0;
-  const total = subtotal + delivery + codLine;
+  const total = subtotal + delivery + codLine - discount;
+
+  const onApplyCoupon = () => {
+    const code = couponInput.trim();
+    if (code === "") return;
+    startApplyCoupon(async () => {
+      const r = await applyCoupon(code, subtotal);
+      if (r.ok) {
+        setApplied({ code: r.code, discountPct: r.discountPct });
+        toast.success(`Coupon ${r.code} applied — ${r.discountPct}% off.`);
+      } else {
+        setApplied(null);
+        toast.error(r.error);
+      }
+    });
+  };
+  const onRemoveCoupon = () => {
+    setApplied(null);
+    setCouponInput("");
+  };
 
   const advanceDueNow = items.reduce((sum, it) => {
     // `bySlug` is typed to the base `Product` shape, but the client catalogue is
@@ -164,6 +190,7 @@ export function CheckoutView({
         notes: notes || undefined,
         deliveryFee: delivery,
         shippingMethodId: effectiveShippingId,
+        couponCode: applied?.code,
       });
 
       if (result.ok) {
@@ -265,6 +292,14 @@ export function CheckoutView({
                 ctaLabel={ctaLabel}
                 onCta={onCta}
                 advanceDueNow={advanceDueNow}
+                coupon={{
+                  applied: applied?.code ?? null,
+                  input: couponInput,
+                  onInput: setCouponInput,
+                  onApply: onApplyCoupon,
+                  onRemove: onRemoveCoupon,
+                  busy: applyingCoupon,
+                }}
               />
             </div>
           </motion.div>

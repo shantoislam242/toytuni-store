@@ -59,6 +59,7 @@ export async function POST(req: Request) {
       subtotal: order.subtotal,
       deliveryFee: order.delivery_fee,
       advanceTotal: order.advance_total,
+      discountTotal: order.discount_total,
       total: order.total,
     },
     settings,
