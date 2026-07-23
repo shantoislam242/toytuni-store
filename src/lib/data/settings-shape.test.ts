@@ -45,3 +45,21 @@ describe("customerTiers", () => {
     expect(rowToSettings({ customerTiers: { silver: -5, gold: 20000 } }).customerTiers).toEqual({ silver: 3000, gold: 20000 });
   });
 });
+
+describe("preorder policy", () => {
+  it("defaults present", () => {
+    expect(DEFAULT_SETTINGS.preorder).toEqual({ enabled: true, thresholdQty: 3, leadDays: 7, advancePct: 20 });
+    expect(rowToSettings({}).preorder).toEqual({ enabled: true, thresholdQty: 3, leadDays: 7, advancePct: 20 });
+  });
+  it("reads valid stored values", () => {
+    expect(rowToSettings({ preorder: { enabled: false, thresholdQty: 5, leadDays: 10, advancePct: 30 } }).preorder)
+      .toEqual({ enabled: false, thresholdQty: 5, leadDays: 10, advancePct: 30 });
+  });
+  it("coerces invalid subfields to defaults", () => {
+    expect(rowToSettings({ preorder: { enabled: "yes", thresholdQty: -1, leadDays: "x", advancePct: 25 } }).preorder)
+      .toEqual({ enabled: true, thresholdQty: 3, leadDays: 7, advancePct: 25 });
+  });
+  it("clamps advance pct to 100", () => {
+    expect(rowToSettings({ preorder: { advancePct: 250 } }).preorder.advancePct).toBe(100);
+  });
+});

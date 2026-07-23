@@ -65,3 +65,57 @@ describe("getProductState — preorder advance fields", () => {
       .toEqual({ state: "in_stock", stockQty: 3 });
   });
 });
+
+describe("getProductState — store-wide pre-order policy (v2)", () => {
+  const now = new Date("2026-07-16T00:00:00Z");
+  const policy = {
+    preorderEnabled: true,
+    preorderThreshold: 3,
+    preorderLeadDays: 7,
+    preorderDefaultAdvancePct: 20,
+  };
+
+  it("LOW stock (at threshold) flips to pre-order with an auto now+leadDays date", () => {
+    expect(getProductState({ stockQty: 3, preorderShipDate: null, price: 1000, now, ...policy }))
+      .toEqual({
+        state: "preorder",
+        shipDate: "2026-07-23", // 2026-07-16 + 7 days
+        deliveryDate: null,
+        advancePct: 20,
+        advanceAmount: 200,
+      });
+  });
+
+  it("stock above the threshold stays in_stock", () => {
+    expect(getProductState({ stockQty: 4, preorderShipDate: null, now, ...policy }))
+      .toEqual({ state: "in_stock", stockQty: 4 });
+  });
+
+  it("zero stock also flips to pre-order under the policy", () => {
+    expect(getProductState({ stockQty: 0, preorderShipDate: null, price: 500, now, ...policy }))
+      .toMatchObject({ state: "preorder", shipDate: "2026-07-23", advancePct: 20, advanceAmount: 100 });
+  });
+
+  it("a future per-product ship date overrides the global lead time", () => {
+    expect(getProductState({ stockQty: 2, preorderShipDate: "2026-12-01", now, ...policy }))
+      .toMatchObject({ state: "preorder", shipDate: "2026-12-01" });
+  });
+
+  it("a per-product advance pct overrides the global default", () => {
+    expect(getProductState({ stockQty: 1, preorderShipDate: null, preorderAdvancePct: 50, price: 1000, now, ...policy }))
+      .toMatchObject({ advancePct: 50, advanceAmount: 500 });
+  });
+
+  it("pre-order DISABLED: low stock still sells (in_stock), zero stock is sold out", () => {
+    const off = { ...policy, preorderEnabled: false };
+    expect(getProductState({ stockQty: 2, preorderShipDate: null, now, ...off }))
+      .toEqual({ state: "in_stock", stockQty: 2 });
+    expect(getProductState({ stockQty: 0, preorderShipDate: null, now, ...off }))
+      .toEqual({ state: "sold_out" });
+  });
+
+  it("no lead time + no per-product date → falls back (zero stock = sold out)", () => {
+    expect(getProductState({ stockQty: 0, preorderShipDate: null, now, preorderThreshold: 3, preorderEnabled: true }))
+      .toEqual({ state: "sold_out" });
+  });
+});
