@@ -17,6 +17,7 @@ import dynamic from "next/dynamic";
 import { GiftWrapDialog } from "@/components/cart/gift-wrap-dialog";
 import { useCart } from "@/lib/cart/cart-context";
 import { useCheckout } from "@/lib/checkout/checkout-context";
+import { computeCouponDiscount } from "@/lib/coupons/discount";
 import { formatTk } from "@/lib/format";
 import type { Address } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -173,7 +174,7 @@ function QtyStepper({
 
 export function CartView() {
   const { items, hydrated, addItem, setQty, removeItem, clear } = useCart();
-  const { setDeliveryAddress } = useCheckout();
+  const { setDeliveryAddress, appliedCoupon } = useCheckout();
   const router = useRouter();
   // Terms agreement lives here so it can gate the Checkout button below.
   const [agreedToTerms, setAgreedToTerms] = useState(false);
@@ -182,8 +183,6 @@ export function CartView() {
   // Track DESELECTED slugs (default: everything selected). This model auto-keeps
   // new items selected and quietly drops removed ones — no syncing needed.
   const [deselected, setDeselected] = useState<Set<string>>(new Set());
-  // Applied coupon discount (in ৳), reported up from the CouponCode block.
-  const [discount, setDiscount] = useState(0);
   // Optional gift-wrapping add-on (a flat charge added to the total), plus the
   // personal gift-card message and the modal's open state.
   const [giftWrap, setGiftWrap] = useState(false);
@@ -317,8 +316,12 @@ export function CartView() {
       : selectedSubtotal >= FREE_SHIPPING_THRESHOLD
         ? 0
         : FLAT_SHIPPING;
-  // Cap the discount at the current subtotal (it may have shrunk since apply).
-  const effectiveDiscount = Math.min(discount, selectedSubtotal);
+  // Discount from the shared applied coupon, recomputed against the current
+  // selected subtotal; withheld if it's now below the coupon's minimum.
+  const effectiveDiscount =
+    appliedCoupon && selectedSubtotal >= appliedCoupon.minSubtotal
+      ? computeCouponDiscount(selectedSubtotal, appliedCoupon.discountPct)
+      : 0;
   // Gift wrapping only charges when there's something to wrap.
   const giftWrapCharge = giftWrap && selectedCount > 0 ? GIFT_WRAP_CHARGE : 0;
   const total =
@@ -592,10 +595,7 @@ export function CartView() {
             )}
 
             <div className="mt-4">
-              <CouponCode
-                subtotal={selectedSubtotal}
-                onDiscountChange={setDiscount}
-              />
+              <CouponCode subtotal={selectedSubtotal} />
             </div>
 
             <Separator className="my-4" />

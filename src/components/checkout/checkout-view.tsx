@@ -57,7 +57,7 @@ export function CheckoutView({
   // Delivery address chosen in the cart's address modal (drives the summary +
   // the delivery zone label). The actual delivery charge is driven by the
   // shipping-method selector below.
-  const { address } = useCheckout();
+  const { address, appliedCoupon, setAppliedCoupon } = useCheckout();
   const router = useRouter();
   const { bySlug } = useCatalog();
 
@@ -68,11 +68,10 @@ export function CheckoutView({
   const [notes, setNotes] = useState("");
   const [placing, setPlacing] = useState(false);
   const [couponInput, setCouponInput] = useState("");
-  // The applied coupon's normalized code + pct + minimum; the discount is
-  // recomputed live from the current subtotal (the % is stable). If the cart
-  // later drops below the minimum the discount is withheld with a hint instead
-  // of a phantom price — `createOrder` re-validates authoritatively regardless.
-  const [applied, setApplied] = useState<{ code: string; discountPct: number; minSubtotal: number } | null>(null);
+  // The applied coupon lives in checkout context (shared with the cart, so a code
+  // applied there carries here). The discount is recomputed live from the current
+  // subtotal; if it drops below the minimum the discount is withheld with a hint
+  // instead of a phantom price — `createOrder` re-validates authoritatively.
   const [applyingCoupon, startApplyCoupon] = useTransition();
 
   // Free shipping unlocks at the threshold. Keep the selection valid: auto-apply
@@ -134,10 +133,10 @@ export function CheckoutView({
   const deliveryZoneLabel = deliveryZone?.label ?? null;
   // Withhold the discount (but keep the coupon) if the cart is now below its
   // minimum, so the shown price never diverges from what the order will charge.
-  const couponBelowMin = applied != null && subtotal < applied.minSubtotal;
-  const discount = applied && !couponBelowMin ? computeCouponDiscount(subtotal, applied.discountPct) : 0;
-  const couponNote = couponBelowMin && applied
-    ? `Add ৳${(applied.minSubtotal - subtotal).toLocaleString("en-US")} more to use ${applied.code}.`
+  const couponBelowMin = appliedCoupon != null && subtotal < appliedCoupon.minSubtotal;
+  const discount = appliedCoupon && !couponBelowMin ? computeCouponDiscount(subtotal, appliedCoupon.discountPct) : 0;
+  const couponNote = couponBelowMin && appliedCoupon
+    ? `Add ৳${(appliedCoupon.minSubtotal - subtotal).toLocaleString("en-US")} more to use ${appliedCoupon.code}.`
     : null;
   const codLine = payment === "cod" ? codFee : 0;
   const total = subtotal + delivery + codLine - discount;
@@ -148,16 +147,16 @@ export function CheckoutView({
     startApplyCoupon(async () => {
       const r = await applyCoupon(code, subtotal);
       if (r.ok) {
-        setApplied({ code: r.code, discountPct: r.discountPct, minSubtotal: r.minSubtotal });
+        setAppliedCoupon({ code: r.code, discountPct: r.discountPct, minSubtotal: r.minSubtotal });
         toast.success(`Coupon ${r.code} applied — ${r.discountPct}% off.`);
       } else {
-        setApplied(null);
+        setAppliedCoupon(null);
         toast.error(r.error);
       }
     });
   };
   const onRemoveCoupon = () => {
-    setApplied(null);
+    setAppliedCoupon(null);
     setCouponInput("");
   };
 
@@ -197,11 +196,12 @@ export function CheckoutView({
         notes: notes || undefined,
         deliveryFee: delivery,
         shippingMethodId: effectiveShippingId,
-        couponCode: applied && !couponBelowMin ? applied.code : undefined,
+        couponCode: appliedCoupon && !couponBelowMin ? appliedCoupon.code : undefined,
       });
 
       if (result.ok) {
         clear();
+        setAppliedCoupon(null);
         toast.success(`Order placed! Your order number is ${result.orderNumber}.`);
         router.push("/");
       } else {
@@ -300,7 +300,7 @@ export function CheckoutView({
                 onCta={onCta}
                 advanceDueNow={advanceDueNow}
                 coupon={{
-                  applied: applied?.code ?? null,
+                  applied: appliedCoupon?.code ?? null,
                   input: couponInput,
                   onInput: setCouponInput,
                   onApply: onApplyCoupon,
