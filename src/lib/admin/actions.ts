@@ -3,6 +3,7 @@
 import { revalidatePath, revalidateTag } from "next/cache";
 import { getIsAdmin, getSessionUser } from "@/lib/auth/session";
 import { getIsSuperAdmin, adminEnvEmails } from "@/lib/auth/roles";
+import { wouldOrphanSupers } from "@/lib/auth/super-guard";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import type { Database } from "@/lib/supabase/database.types";
 import type { DetailContent } from "@/lib/types";
@@ -1447,19 +1448,34 @@ function isAdminRoleValue(value: string): value is AdminRoleValue {
   return (ADMIN_ROLES as readonly string[]).includes(value);
 }
 
-type AdminUserRow = { id: string; email: string };
+type AdminUserRow = { id: string; email: string; role: string };
 
-/** Look up a team row's id+email by id, for the guard chain shared by
+/** Look up a team row's id+email+role by id, for the guard chain shared by
  *  `setAdminRole`/`removeAdminUser` — null if the row doesn't exist. */
 async function findAdminUser(db: AdminDb, id: string): Promise<AdminUserRow | null> {
   const { data } = await db
     .from("admin_users" as never)
-    .select("id, email")
+    .select("id, email, role")
     .eq("id", id)
     .maybeSingle()
     .overrideTypes<AdminUserRow, { merge: false }>();
   return data ?? null;
 }
+
+/** Emails of every `admin_users` row currently `super_admin` (lowercased) —
+ *  the DB side of the "at least one super admin must remain" guard. */
+async function dbSuperEmails(db: AdminDb): Promise<string[]> {
+  const { data } = await db
+    .from("admin_users" as never)
+    .select("email")
+    .eq("role", "super_admin")
+    .overrideTypes<{ email: string }[], { merge: false }>();
+  return (data ?? []).map((r) => r.email.toLowerCase());
+}
+
+/** Message shown when an operation would remove the last super admin. */
+const LAST_SUPER_ERROR =
+  "At least one super admin must remain. Promote another member to super admin first.";
 
 /** Refresh the team page after a write. */
 function revalidateTeam(): void {
@@ -1499,10 +1515,12 @@ export async function addAdminUser(email: string, role: string): Promise<ActionR
 
 /**
  * Change a dashboard-managed admin's role. Server Action — super-gated, then:
- * the target row must exist; a row whose email is in the env bootstrap
- * allowlist is managed via server config, not this table; and a Super can
- * never change their own role (self-demotion risks an accidental lockout).
- * Another Super's row IS changeable — peer management, by decision.
+ * the target row must exist and a row whose email is in the env bootstrap
+ * allowlist is managed via server config, not this table. A Super MAY change
+ * their own role and another Super's role (peer + self management, by
+ * decision) — the one hard rule is that the store must never be left with
+ * zero super admins, so a demotion (super → admin) that would remove the last
+ * super admin is blocked (promote someone else first, then step down).
  */
 export async function setAdminRole(id: string, role: string): Promise<ActionResult> {
   if (!(await getIsSuperAdmin())) throw new Error("unauthorized");
@@ -1514,8 +1532,11 @@ export async function setAdminRole(id: string, role: string): Promise<ActionResu
   if (adminEnvEmails().includes(target.email.toLowerCase())) {
     return { ok: false, error: "This member is managed via server config." };
   }
-  if (target.email.toLowerCase() === (await getSessionUser())?.email?.toLowerCase()) {
-    return { ok: false, error: "You can't change or remove yourself." };
+  // Demoting a super to admin must not orphan the store (env supers count too).
+  if (target.role === "super_admin" && role === "admin") {
+    if (wouldOrphanSupers(adminEnvEmails(), await dbSuperEmails(db), target.email)) {
+      return { ok: false, error: LAST_SUPER_ERROR };
+    }
   }
 
   const { error } = await db.from("admin_users" as never).update({ role } as never).eq("id", id);
@@ -1525,9 +1546,11 @@ export async function setAdminRole(id: string, role: string): Promise<ActionResu
 }
 
 /**
- * Remove a dashboard-managed admin. Server Action — super-gated, with the
- * same two blocks as `setAdminRole` (env-managed rows and self). Another
- * Super's row IS removable — peer management, by decision.
+ * Remove a dashboard-managed admin. Server Action — super-gated; env-managed
+ * rows are blocked (server config), and a Super MAY remove another Super or
+ * themselves (peer + self management) — as long as at least one super admin
+ * remains. Removing the last super admin is blocked (promote a replacement
+ * first, then leave). Env supers count toward "at least one remains".
  */
 export async function removeAdminUser(id: string): Promise<ActionResult> {
   if (!(await getIsSuperAdmin())) throw new Error("unauthorized");
@@ -1538,8 +1561,9 @@ export async function removeAdminUser(id: string): Promise<ActionResult> {
   if (adminEnvEmails().includes(target.email.toLowerCase())) {
     return { ok: false, error: "This member is managed via server config." };
   }
-  if (target.email.toLowerCase() === (await getSessionUser())?.email?.toLowerCase()) {
-    return { ok: false, error: "You can't change or remove yourself." };
+  if (target.role === "super_admin"
+    && wouldOrphanSupers(adminEnvEmails(), await dbSuperEmails(db), target.email)) {
+    return { ok: false, error: LAST_SUPER_ERROR };
   }
 
   const { error } = await db.from("admin_users" as never).delete().eq("id", id);

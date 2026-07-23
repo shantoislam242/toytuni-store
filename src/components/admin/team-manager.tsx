@@ -11,7 +11,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { formatDate } from "@/lib/format";
 import { addAdminUser, setAdminRole, removeAdminUser } from "@/lib/admin/actions";
 import type { AdminTeamMember } from "@/lib/admin/queries";
-import { cn } from "@/lib/utils";
 
 const ROLE_OPTIONS = [
   { value: "admin", label: "Admin" },
@@ -66,7 +65,8 @@ export function TeamManager({ members, selfEmail }: { members: AdminTeamMember[]
       <AddAdminCard onAdded={refresh} />
       <MembersCard members={members} selfEmail={selfEmail} onChanged={refresh} />
       <p className="text-xs text-ink-soft">
-        Permanent members are configured on the server and can’t be edited here. You can’t remove or demote yourself.
+        Permanent members are configured on the server and can’t be edited here. At least one super admin must always
+        remain — to step down, promote another member to super admin first, then remove or demote yourself.
       </p>
     </div>
   );
@@ -154,7 +154,10 @@ function MembersCard({
   };
 
   const remove = (member: AdminTeamMember) => {
-    if (!confirm(`Remove ${member.email} from the dashboard?`)) return;
+    const prompt = member.email === selfEmail
+      ? "Remove yourself from the dashboard? You’ll lose admin access immediately."
+      : `Remove ${member.email} from the dashboard?`;
+    if (!confirm(prompt)) return;
     setBusyId(member.id);
     startTransition(async () => {
       const r = await removeAdminUser(member.id);
@@ -183,10 +186,11 @@ function MembersCard({
             <tbody>
               {members.map((member) => {
                 const busy = isPending && busyId === member.id;
-                const locked = member.permanent || member.email === selfEmail;
-                const lockedTitle = member.permanent
-                  ? "Managed via server config"
-                  : "You can't change or remove yourself";
+                // Only env-bootstrap ("permanent") rows are locked from the UI.
+                // Your own row IS editable now — a super may step down, as long
+                // as another super remains (the Server Action enforces that).
+                const locked = member.permanent;
+                const isSelf = member.email === selfEmail;
                 return (
                   <tr key={member.id} className="border-b border-cream-200 align-top last:border-b-0 hover:bg-cream-50">
                     <td className="px-4 py-3 font-mono text-xs text-ink">{member.email}</td>
@@ -200,12 +204,10 @@ function MembersCard({
                     <td className="px-4 py-3 text-ink-muted">{formatDate(member.createdAt.slice(0, 10))}</td>
                     <td className="px-4 py-3">
                       <div className="flex justify-end items-center gap-2">
+                        {isSelf && !locked && <span className="text-xs italic text-ink-soft">You</span>}
                         {locked ? (
-                          <span
-                            title={lockedTitle}
-                            className={cn("text-xs text-ink-soft", member.permanent && "italic")}
-                          >
-                            {member.permanent ? "Locked" : "This is you"}
+                          <span title="Managed via server config" className="text-xs italic text-ink-soft">
+                            Locked
                           </span>
                         ) : (
                           <>
