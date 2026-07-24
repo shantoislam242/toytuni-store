@@ -6,12 +6,10 @@ import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PlaceholderImage } from "@/components/placeholder-image";
-import { ageTiers } from "@/lib/mock/age-tiers";
-import { categories } from "@/lib/mock/categories";
 import { bulkPrograms } from "@/lib/mock/bulk";
 import { useCatalog, isShelfProduct } from "@/lib/catalog/catalog-context";
 import { cn } from "@/lib/utils";
-import type { Tone } from "@/lib/types";
+import type { AgeTier, Category, Tone } from "@/lib/types";
 
 const toneBg: Record<Tone, string> = {
   cream: "bg-cream-200 text-ink",
@@ -128,7 +126,18 @@ function AgeTierImage({
   );
 }
 
-export function ShopByAge() {
+/**
+ * "Shop by Age" + browse tabs. Age tiers and categories are passed in from the
+ * DB (admin-editable via /admin/categories) so renaming a tier or editing its
+ * tagline reflects here; the Bulk programs stay mock (no admin editor yet).
+ */
+export function ShopByAge({
+  ageTiers,
+  categories,
+}: {
+  ageTiers: AgeTier[];
+  categories: Category[];
+}) {
   const { all } = useCatalog();
   // how many shelf products sit in a given age tier (for the card's count line);
   // gifts are excluded so the count matches the browsable PLP, as before.

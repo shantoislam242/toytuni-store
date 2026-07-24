@@ -7,6 +7,7 @@ import { ProductTabs } from "@/components/home/product-tabs";
 import { Testimonials } from "@/components/home/testimonials";
 import { RecentlyViewed } from "@/components/product/recently-viewed";
 import { AboutTeaser } from "@/components/home/about-teaser";
+import { getAgeTiers, getCategories } from "@/lib/data/taxonomy";
 
 export const metadata: Metadata = {
   // Absolute title: rendered exactly, not wrapped by the "%s | Toytuni" template.
@@ -18,7 +19,9 @@ export const metadata: Metadata = {
   alternates: { canonical: "/" },
 };
 
-export default function Home() {
+export default async function Home() {
+  // DB taxonomy (admin-editable) for the Shop-by-Age + By-Category cards.
+  const [ageTiers, categories] = await Promise.all([getAgeTiers(), getCategories()]);
   return (
     <>
       {/* Page-level h1 for SEO/accessibility. The hero is image-led (its copy is
@@ -36,8 +39,8 @@ export default function Home() {
       {/* featured product spotlight — Traditional Push Wagon */}
       <FeaturedProductHero />
 
-      {/* shop by age — dedicated browse-by-stage section */}
-      <ShopByAge />
+      {/* shop by age — dedicated browse-by-stage section (DB, admin-editable) */}
+      <ShopByAge ageTiers={ageTiers} categories={categories} />
 
       {/* tabbed product module */}
       <ProductTabs />
