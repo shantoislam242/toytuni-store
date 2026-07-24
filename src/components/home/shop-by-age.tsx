@@ -22,14 +22,14 @@ const toneBg: Record<Tone, string> = {
   blush: "bg-blush text-ink",
 };
 
-function Tile({ href, label, slug }: { href: string; label: string; slug: string }) {
+function Tile({ href, label, slug, imageUrl }: { href: string; label: string; slug: string; imageUrl?: string }) {
   return (
     <Link
       href={href}
       className="group relative block aspect-square overflow-hidden rounded-xl border border-cream-300 bg-card transition-all hover:-translate-y-0.5 hover:shadow-md"
     >
       <Image
-        src={`/images/category/${slug}/1.webp`}
+        src={imageUrl ?? `/images/category/${slug}/1.webp`}
         alt={label}
         fill
         sizes="(max-width: 640px) 45vw, 30vw"
@@ -45,7 +45,7 @@ function Tile({ href, label, slug }: { href: string; label: string; slug: string
 function TileGrid({
   items,
 }: {
-  items: { href: string; label: string; slug: string }[];
+  items: { href: string; label: string; slug: string; imageUrl?: string }[];
 }) {
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
@@ -66,16 +66,26 @@ function AgeTierImage({
   label,
   fallbackTone,
   className,
+  imageUrl,
 }: {
   slug: string;
   label: string;
   fallbackTone: Tone;
   className?: string;
+  /** Admin-uploaded image (DB) — used directly when set; otherwise the bundled
+   *  /images/age-tiers/<slug>/ file is probed. */
+  imageUrl?: string;
 }) {
-  const [imagePath, setImagePath] = React.useState<string | null>(null);
-  const [imageExists, setImageExists] = React.useState(false);
+  const [imagePath, setImagePath] = React.useState<string | null>(imageUrl ?? null);
+  const [imageExists, setImageExists] = React.useState(Boolean(imageUrl));
 
   React.useEffect(() => {
+    // An admin-set image wins — use it directly, skip the bundled-file probe.
+    if (imageUrl) {
+      setImagePath(imageUrl);
+      setImageExists(true);
+      return;
+    }
     // Try common image extensions
     const extensions = [".jpg", ".jpeg", ".png", ".avif", ".webp", ".gif"];
 
@@ -103,7 +113,7 @@ function AgeTierImage({
     };
 
     tryExtension(0);
-  }, [slug]);
+  }, [slug, imageUrl]);
 
   if (!imageExists || !imagePath) {
     return (
@@ -176,6 +186,7 @@ export function ShopByAge({
                 slug={t.slug}
                 label={t.labelBn}
                 fallbackTone={t.tone}
+                imageUrl={t.imageUrl}
                 className="aspect-[4/3] w-full font-display text-lg"
               />
               <div className="flex flex-1 flex-col p-4">
@@ -216,6 +227,7 @@ export function ShopByAge({
                 href: c.href,
                 label: c.nameBn,
                 slug: c.slug,
+                imageUrl: c.imageUrl,
               }))}
             />
           </TabsContent>

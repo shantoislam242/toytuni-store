@@ -586,10 +586,13 @@ export async function getAdminInventory(): Promise<AdminInventoryItem[]> {
 }
 
 export type AdminTaxonomyItem = {
-  slug: string; title: string; tone: string | null; tagline: string | null; sort: number; productCount: number;
+  slug: string; title: string; tone: string | null; tagline: string | null; sort: number;
+  imageUrl: string | null; productCount: number;
 };
 
-type TaxonomyRow = { slug: string; title: string; tone: string | null; tagline: string | null; sort: number };
+type TaxonomyRow = {
+  slug: string; title: string; tone: string | null; tagline: string | null; sort: number; image_url: string | null;
+};
 
 /** All rows of a taxonomy (categories / age_tiers) ordered by sort, each with
  *  its referencing-product count (drives the delete-block UX). Service-role. */
@@ -598,7 +601,7 @@ export async function getAdminTaxonomy(kind: TaxonomyKind): Promise<AdminTaxonom
   const db = createAdminSupabase();
   const { data, error } = await db
     .from(table)
-    .select("slug, title, tone, tagline, sort")
+    .select("slug, title, tone, tagline, sort, image_url")
     .order("sort", { ascending: true })
     .overrideTypes<TaxonomyRow[], { merge: false }>();
   if (error) throw new Error(`getAdminTaxonomy(${kind}) failed: ${error.message}`);
@@ -612,7 +615,10 @@ export async function getAdminTaxonomy(kind: TaxonomyKind): Promise<AdminTaxonom
     }),
   );
   const byslug = new Map(counts);
-  return rows.map((r) => ({ ...r, productCount: byslug.get(r.slug) ?? 0 }));
+  return rows.map((r) => ({
+    slug: r.slug, title: r.title, tone: r.tone, tagline: r.tagline, sort: r.sort,
+    imageUrl: r.image_url ?? null, productCount: byslug.get(r.slug) ?? 0,
+  }));
 }
 
 export type AdminBlogListItem = {

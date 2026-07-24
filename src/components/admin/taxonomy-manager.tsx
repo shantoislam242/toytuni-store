@@ -1,15 +1,16 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, ArrowUp, ArrowDown } from "lucide-react";
+import { Plus, Pencil, Trash2, ArrowUp, ArrowDown, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { moveInArray } from "@/lib/array-move";
 import { TONES, type TaxonomyKind } from "@/lib/admin/taxonomy";
-import { createTaxonomy, updateTaxonomy, deleteTaxonomy, reorderTaxonomy } from "@/lib/admin/actions";
+import { createTaxonomy, updateTaxonomy, deleteTaxonomy, reorderTaxonomy, uploadTaxonomyImage } from "@/lib/admin/actions";
 import type { AdminTaxonomyItem } from "@/lib/admin/queries";
 import type { Tone } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -156,13 +157,29 @@ function TaxonomyDialog({
   const [tone, setTone] = useState(existing?.tone ?? "cream");
   const [tagline, setTagline] = useState(existing?.tagline ?? "");
   const [sort, setSort] = useState(String(existing?.sort ?? defaultSort ?? 0));
+  const [imageUrl, setImageUrl] = useState<string | null>(existing?.imageUrl ?? null);
   const [busy, start] = useTransition();
+  const [uploading, startUpload] = useTransition();
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const onImagePick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (slug.trim() === "") return toast.error("Enter a slug first.");
+    const formData = new FormData();
+    formData.set("file", file);
+    startUpload(async () => {
+      const r = await uploadTaxonomyImage(kind, slug, formData);
+      if (r.ok) { setImageUrl(r.url); toast.success("Image uploaded."); } else toast.error(r.error);
+    });
+  };
 
   const save = () => {
     const sortNum = Number(sort);
     if (!Number.isInteger(sortNum) || sortNum < 0) return toast.error("Sort must be a whole number ≥ 0.");
     start(async () => {
-      const payload = { title, tone, tagline: tagline.trim() === "" ? null : tagline, sort: sortNum };
+      const payload = { title, tone, tagline: tagline.trim() === "" ? null : tagline, sort: sortNum, imageUrl };
       const r = isEdit
         ? await updateTaxonomy(kind, existing!.slug, payload)
         : await createTaxonomy(kind, { slug, ...payload });
@@ -207,6 +224,31 @@ function TaxonomyDialog({
             <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">Tagline</span>
             <Input value={tagline} onChange={(e) => setTagline(e.target.value)} className="mt-1" />
           </label>
+          <div>
+            <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">Card image</span>
+            <div className="mt-1 flex items-center gap-3">
+              <div className="relative size-16 flex-none overflow-hidden rounded-lg border border-cream-300 bg-cream-100">
+                {imageUrl ? (
+                  <Image src={imageUrl} alt="" fill sizes="64px" className="object-cover" />
+                ) : (
+                  <span className="flex size-full items-center justify-center text-[10px] text-ink-soft">No image</span>
+                )}
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onImagePick} />
+                <Button type="button" variant="outline" size="sm" disabled={uploading} onClick={() => fileRef.current?.click()}>
+                  <Upload className="size-4" /> {uploading ? "Uploading…" : imageUrl ? "Replace" : "Upload"}
+                </Button>
+                {imageUrl && (
+                  <button type="button" onClick={() => setImageUrl(null)}
+                    className="inline-flex items-center gap-1 text-xs text-ink-muted transition-colors hover:text-danger">
+                    <X className="size-3.5" /> Remove
+                  </button>
+                )}
+              </div>
+            </div>
+            <p className="mt-1 text-xs text-ink-soft">Shown on the storefront card. Enter a slug first. Falls back to the bundled image if empty.</p>
+          </div>
           <label className="block">
             <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">Sort</span>
             <Input type="number" min={0} step={1} inputMode="numeric" value={sort}
