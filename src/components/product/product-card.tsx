@@ -78,6 +78,23 @@ export function ProductCard({
       ? Math.round((1 - product.price / product.compareAtPrice) * 100)
       : 0;
 
+  // The single top-left status badge (priority: sold-out > pre-order >
+  // New/Best Seller/Limited). It's shown EVEN when a discount ribbon is present
+  // — the two just stack: the ribbon owns the corner, the badge sits below it.
+  const statusBadge =
+    availability?.state === "sold_out"
+      ? { text: "Sold out", tone: "bg-ink/70 text-paper" }
+      : availability?.state === "preorder"
+        ? { text: "Pre-order", tone: "bg-mustard text-ink" }
+        : product.badge
+          ? { text: product.badge, tone: "bg-neem text-paper" }
+          : null;
+  // When the discount ribbon (≈80/88px corner) is showing, drop the badge below
+  // it; otherwise it sits in the top-left corner as usual.
+  const badgePosition = discountPercent
+    ? "left-2 top-[4.75rem] sm:left-2.5 sm:top-[5.25rem] max-w-[calc(100%-1rem)]"
+    : "left-2 top-2 sm:left-2.5 sm:top-2.5 max-w-[calc(100%-3.5rem)]"; // clear the heart
+
   return (
     <motion.div
       className="group/card isolate relative z-0 h-full overflow-visible p-0.5 sm:p-1.5"
@@ -132,22 +149,18 @@ export function ProductCard({
           </div>
         ) : null}
 
-        {/* category badge — hidden on discounted (deal) cards so the ribbon
-            owns the corner; shown normally on every other card. Pre-order /
-            sold-out availability takes priority over the category badge, and
-            over the ribbon itself: z-30 keeps it above the ribbon's z-20 so
-            it stays legible even when a discount ribbon is also present. */}
-        {availability?.state === "sold_out" ? (
-          <Badge className="absolute left-2 top-2 z-30 max-w-[calc(100%-3.5rem)] truncate bg-ink/70 px-2 text-[10px] text-paper sm:left-2.5 sm:top-2.5 sm:text-xs">
-            Sold out
-          </Badge>
-        ) : availability?.state === "preorder" ? (
-          <Badge className="absolute left-2 top-2 z-30 max-w-[calc(100%-3.5rem)] truncate bg-mustard px-2 text-[10px] text-ink sm:left-2.5 sm:top-2.5 sm:text-xs">
-            Pre-order
-          </Badge>
-        ) : product.badge && !discountPercent ? (
-          <Badge className="absolute left-2 top-2 z-[1] max-w-[calc(100%-3.5rem)] truncate bg-neem px-2 text-[10px] text-paper sm:left-2.5 sm:top-2.5 sm:text-xs">
-            {product.badge}
+        {/* status badge — sits in the top-left corner, or just below the
+            discount ribbon when one is present, so both stay visible without
+            overlapping (z-30 keeps it above the ribbon either way). */}
+        {statusBadge ? (
+          <Badge
+            className={cn(
+              "absolute z-30 truncate px-2 text-[10px] sm:text-xs",
+              badgePosition,
+              statusBadge.tone,
+            )}
+          >
+            {statusBadge.text}
           </Badge>
         ) : null}
         {/* age pill — bottom-left (clear of the wishlist heart) */}
