@@ -19,6 +19,9 @@ export type AgeTier = {
   tone: Tone;
   /** developmental focus shown on the "Shop by Age" cards (optional). */
   taglineBn?: string; // "Grasp, soothe & sense"
+  /** Admin-uploaded card image (Supabase Storage URL). Falls back to the
+   *  bundled /images/age-tiers/<slug>/ file when absent. */
+  imageUrl?: string;
 };
 
 /** Product category used for "Browse by Category" and nav drawer. */
@@ -29,6 +32,9 @@ export type Category = {
   tone: Tone;
   /** short descriptor shown on the category PLP heading (optional). */
   taglineBn?: string;
+  /** Admin-uploaded card image (Supabase Storage URL). Falls back to the
+   *  bundled /images/category/<slug>/ file when absent. */
+  imageUrl?: string;
 };
 
 /** Visual-only variant swatch. */

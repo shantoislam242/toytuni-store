@@ -952,7 +952,26 @@ function revalidateTaxonomy(): void {
   revalidatePath("/admin/categories");
 }
 
-type TaxonomyWriteInput = { slug: string; title: string; tone: string; tagline: string | null; sort: number };
+type TaxonomyWriteInput = { slug: string; title: string; tone: string; tagline: string | null; sort: number; imageUrl: string | null };
+
+/**
+ * Upload a card image for a category / age tier to the public `product-images`
+ * bucket (namespaced under `taxonomy/<table>/<slug>/`) and return its https URL.
+ * Does NOT write any DB column — the manager holds the URL and persists it via
+ * create/update (mirrors `uploadBlogCover`). Server Action — admin re-check.
+ */
+export async function uploadTaxonomyImage(
+  kind: TaxonomyKind, slug: string, formData: FormData,
+): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+  if (!(await getIsAdmin())) throw new Error("unauthorized");
+  const s = slug.trim().toLowerCase();
+  if (!SLUG_RE.test(s)) return { ok: false, error: "Enter a valid slug first." };
+  const file = formData.get("file");
+  if (!(file instanceof File)) return { ok: false, error: "No image file provided." };
+  const { table } = TAXONOMY_TABLES[kind];
+  const db = createAdminSupabase();
+  return uploadImageToBucket(db, `taxonomy/${table}/${s}`, file);
+}
 
 /**
  * Create a category or age-tier row. Server Action — re-checks admin, then
@@ -973,7 +992,7 @@ export async function createTaxonomy(kind: TaxonomyKind, input: TaxonomyWriteInp
 
   const { error } = await db.from(table).insert({
     slug, title: input.title.trim(), tone: input.tone,
-    tagline: input.tagline?.trim() || null, sort: input.sort,
+    tagline: input.tagline?.trim() || null, sort: input.sort, image_url: input.imageUrl,
   } as never);
   if (error) return { ok: false, error: error.message };
   revalidateTaxonomy();
@@ -986,7 +1005,8 @@ export async function createTaxonomy(kind: TaxonomyKind, input: TaxonomyWriteInp
  * used here only to locate the row).
  */
 export async function updateTaxonomy(
-  kind: TaxonomyKind, slug: string, patch: { title: string; tone: string; tagline: string | null; sort: number },
+  kind: TaxonomyKind, slug: string,
+  patch: { title: string; tone: string; tagline: string | null; sort: number; imageUrl: string | null },
 ): Promise<ActionResult> {
   if (!(await getIsAdmin())) throw new Error("unauthorized");
   const v = validateTaxonomyInput({ title: patch.title, tone: patch.tone, sort: patch.sort }, { requireSlug: false });
@@ -994,7 +1014,8 @@ export async function updateTaxonomy(
   const { table } = TAXONOMY_TABLES[kind];
   const db = createAdminSupabase();
   const { data, error } = await db.from(table).update({
-    title: patch.title.trim(), tone: patch.tone, tagline: patch.tagline?.trim() || null, sort: patch.sort,
+    title: patch.title.trim(), tone: patch.tone, tagline: patch.tagline?.trim() || null,
+    sort: patch.sort, image_url: patch.imageUrl,
   } as never).eq("slug", slug).select("slug").maybeSingle();
   if (error) return { ok: false, error: error.message };
   if (!data) return { ok: false, error: "This entry no longer exists." };

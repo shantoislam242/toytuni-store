@@ -17,6 +17,7 @@ type TaxonomyRow = {
   tone: string | null;
   tagline: string | null;
   sort: number;
+  image_url: string | null;
 };
 
 /** `/collections/<slug>` — both categories and age tiers link here. */
@@ -41,7 +42,7 @@ export const getCategories = unstable_cache(
     const supabase = createPublicSupabase();
     const { data, error } = await supabase
       .from("categories")
-      .select("slug, title, tone, tagline, sort")
+      .select("slug, title, tone, tagline, sort, image_url")
       .order("sort", { ascending: true })
       .overrideTypes<TaxonomyRow[], { merge: false }>();
     if (error) throw error;
@@ -51,6 +52,7 @@ export const getCategories = unstable_cache(
       href: href(r.slug),
       tone: (r.tone ?? "cream") as Tone,
       taglineBn: r.tagline ?? undefined,
+      imageUrl: r.image_url ?? undefined,
     }));
   } catch (err) {
     console.error("getCategories failed; falling back to mock:", err);
@@ -72,7 +74,7 @@ export const getAgeTiers = unstable_cache(
     const supabase = createPublicSupabase();
     const { data, error } = await supabase
       .from("age_tiers")
-      .select("slug, title, tone, tagline, sort")
+      .select("slug, title, tone, tagline, sort, image_url")
       .order("sort", { ascending: true })
       .overrideTypes<TaxonomyRow[], { merge: false }>();
     if (error) throw error;
@@ -82,6 +84,7 @@ export const getAgeTiers = unstable_cache(
       href: href(r.slug),
       tone: (r.tone ?? "cream") as Tone,
       taglineBn: r.tagline ?? undefined,
+      imageUrl: r.image_url ?? undefined,
     }));
   } catch (err) {
     console.error("getAgeTiers failed; falling back to mock:", err);
