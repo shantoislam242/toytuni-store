@@ -45,7 +45,7 @@ export const bulkOrdersPolicy: PolicyContent = {
           type: "list",
           items: [
             "Minimum order quantities vary by product and program",
-            "Preschool, Retail, and International programs each have their own terms",
+            "Preschool, Wholesale, and International programs each have their own terms",
             "Your exact minimums are confirmed in your quote",
           ],
         },
