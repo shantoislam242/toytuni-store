@@ -196,7 +196,7 @@ export type BulkIcon =
   | "shield-check"
   | "truck";
 
-/** A wholesale program tier (Preschool / Retail / International). */
+/** A wholesale program tier (Preschool / Wholesale / International). */
 export type BulkTier = {
   id: string; // also the in-page anchor target, e.g. "preschool"
   icon: BulkIcon;

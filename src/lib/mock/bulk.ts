@@ -10,7 +10,7 @@ export const bulkPrograms: BulkProgram[] = [
   },
   {
     id: "retail",
-    titleBn: "Retail",
+    titleBn: "Wholesale",
     descBn: "Wholesale rates and steady stock support for shops and resellers.",
     href: "/bulk#retail",
     tone: "mustard",
@@ -36,7 +36,7 @@ export const bulkTiers: BulkTier[] = [
   {
     id: "retail",
     icon: "store",
-    titleBn: "Retail",
+    titleBn: "Wholesale",
     descBn:
       "Wholesale rates and steady stock support for toy shops, boutiques, and resellers.",
     points: [
