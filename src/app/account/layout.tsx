@@ -3,6 +3,7 @@ import { getSessionUser, getIsAdmin } from "@/lib/auth/session";
 import { getCustomerDashboard } from "@/lib/data/account";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import { getUnreadNotificationCount } from "@/lib/data/notifications";
+import { getUnreadThreadCount } from "@/lib/data/support";
 import { getSettings } from "@/lib/data/settings";
 import { customerTier } from "@/lib/admin/customer-tier";
 import { pointsFromSpend } from "@/lib/account/loyalty";
@@ -23,11 +24,13 @@ export default async function AccountLayout({ children }: { children: ReactNode 
   const user = await getSessionUser();
   if (!user?.email) return <AccountGate />;
 
-  const [dashboard, settings, showAdminLink, notifUnread] = await Promise.all([
+  const db = createAdminSupabase();
+  const [dashboard, settings, showAdminLink, notifUnread, inboxUnread] = await Promise.all([
     getCustomerDashboard(user.email),
     getSettings(),
     getIsAdmin(),
-    getUnreadNotificationCount(createAdminSupabase(), user.email),
+    getUnreadNotificationCount(db, user.email),
+    getUnreadThreadCount(db, user.email),
   ]);
   const tier = customerTier(dashboard.totalSpent, settings.customerTiers);
   const points = pointsFromSpend(dashboard.totalSpent);
@@ -45,6 +48,7 @@ export default async function AccountLayout({ children }: { children: ReactNode 
           points={points}
           orderCount={dashboard.totalOrders}
           notifUnread={notifUnread}
+          inboxUnread={inboxUnread}
           showAdminLink={showAdminLink}
         />
         <div className="min-w-0">{children}</div>

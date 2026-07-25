@@ -9,6 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatDate } from "@/lib/format";
 import { setSubmissionStatus, deleteSubmission, deleteSubscriber } from "@/lib/admin/actions";
 import type { InboxSubmission, NewsletterSubscriber } from "@/lib/admin/queries";
+import type { SupportThread } from "@/lib/data/support";
+import { AdminSupportThreads } from "@/components/admin/admin-support-threads";
 import { cn } from "@/lib/utils";
 
 function StatusBadge({ status }: { status: string }) {
@@ -50,9 +52,11 @@ function StatusBadge({ status }: { status: string }) {
 export function InboxManager({
   submissions,
   subscribers,
+  threads,
 }: {
   submissions: InboxSubmission[];
   subscribers: NewsletterSubscriber[];
+  threads: SupportThread[];
 }) {
   const router = useRouter();
   const [overrides, setOverrides] = useState<Record<string, string>>({});
@@ -73,6 +77,7 @@ export function InboxManager({
     [messages, overrides],
   );
   const newBulkCount = useMemo(() => bulk.filter((s) => statusOf(s) === "new").length, [bulk, overrides]);
+  const unreadThreads = useMemo(() => threads.filter((t) => t.adminUnread).length, [threads]);
 
   return (
     <Tabs defaultValue="messages">
@@ -82,6 +87,9 @@ export function InboxManager({
         </TabsTrigger>
         <TabsTrigger value="bulk">
           Bulk orders{newBulkCount > 0 ? ` (${newBulkCount})` : ""}
+        </TabsTrigger>
+        <TabsTrigger value="support">
+          Support{unreadThreads > 0 ? ` (${unreadThreads})` : ""}
         </TabsTrigger>
         <TabsTrigger value="subscribers">Subscribers</TabsTrigger>
       </TabsList>
@@ -104,6 +112,9 @@ export function InboxManager({
           onClearOverride={clearOverride}
           onRefresh={refresh}
         />
+      </TabsContent>
+      <TabsContent value="support" className="mt-4">
+        <AdminSupportThreads threads={threads} />
       </TabsContent>
       <TabsContent value="subscribers" className="mt-4">
         <SubscribersList subscribers={subscribers} onRefresh={refresh} />

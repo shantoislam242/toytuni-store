@@ -83,6 +83,26 @@ export async function getUnreadNotificationCount(
   return count ?? 0;
 }
 
+/**
+ * Insert a notification for a customer email directly (no order lookup). Used
+ * for non-order events — e.g. a support reply. Fail-soft. `orderNumber` is an
+ * optional deep-link target.
+ */
+export async function createNotification(
+  db: AdminDb,
+  email: string,
+  n: { type?: string; title: string; body?: string | null; orderNumber?: string | null },
+): Promise<void> {
+  const { error } = await db.from("notifications" as never).insert({
+    customer_email: email,
+    type: n.type ?? "system",
+    title: n.title,
+    body: n.body ?? null,
+    order_number: n.orderNumber ?? null,
+  } as never);
+  if (error) console.error("createNotification insert failed:", error);
+}
+
 /** Friendly title for an order-status notification. */
 function statusTitle(status: string): string {
   switch (status) {
