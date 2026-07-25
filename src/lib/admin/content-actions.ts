@@ -7,6 +7,7 @@ import { uploadImageToBucket } from "@/lib/storage/upload-image";
 import { rowToContent, type SiteContent } from "@/lib/data/content-shape";
 import { rowToAbout, type AboutContent } from "@/lib/data/about-shape";
 import { rowToBulk, type BulkContent } from "@/lib/data/bulk-shape";
+import { rowToLoyalty, type LoyaltyContent } from "@/lib/data/loyalty-shape";
 import type { Database } from "@/lib/supabase/database.types";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
@@ -74,6 +75,27 @@ export async function updateBulkContent(next: BulkContent): Promise<ActionResult
 
   revalidateTag("bulk-content", "max");
   revalidatePath("/bulk");
+  return { ok: true };
+}
+
+/**
+ * Save the editable Loyalty-page content. Admin-gated (any admin). Normalized
+ * via `rowToLoyalty`. Stored in `site_settings` under the `loyalty` key; busts
+ * the `loyalty-content` cache + the /loyalty page.
+ */
+export async function updateLoyaltyContent(next: LoyaltyContent): Promise<ActionResult> {
+  if (!(await getIsAdmin())) throw new Error("unauthorized");
+
+  const value = rowToLoyalty(next);
+  const db = createAdminSupabase();
+  const { error } = await db.from("site_settings").upsert(
+    { key: "loyalty", value: value as unknown as SettingsValue },
+    { onConflict: "key" },
+  );
+  if (error) return { ok: false, error: error.message };
+
+  revalidateTag("loyalty-content", "max");
+  revalidatePath("/loyalty");
   return { ok: true };
 }
 

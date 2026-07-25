@@ -30,16 +30,8 @@ import {
 } from "@/components/ui/accordion";
 import { LoyaltyProgress } from "@/components/loyalty/loyalty-progress";
 import { Reveal } from "@/components/policy/reveal";
-import {
-  loyaltyBenefits,
-  loyaltyDashboard,
-  loyaltyFaqs,
-  loyaltyRewards,
-  loyaltySteps,
-  loyaltyTestimonials,
-  loyaltyTiers,
-  type LoyaltyIcon,
-} from "@/lib/mock/loyalty";
+import { loyaltyDashboard, type LoyaltyIcon } from "@/lib/mock/loyalty";
+import type { LoyaltyContent } from "@/lib/data/loyalty-shape";
 import type { Tone } from "@/lib/types";
 
 const loyaltyIcon: Record<LoyaltyIcon, LucideIcon> = {
@@ -92,7 +84,8 @@ function SectionHead({ eyebrow, title, sub }: { eyebrow: string; title: string; 
  * loyalty config; the only client islands are the Reveal scroll animation, the
  * FAQ accordion, and the animated dashboard progress bar.
  */
-export function LoyaltyView() {
+export function LoyaltyView({ content }: { content: LoyaltyContent }) {
+  const { hero, benefits, steps, tiers, rewards, testimonials, faqs, cta } = content;
   return (
     <main className="flex-1 bg-paper">
       {/* hero */}
@@ -113,25 +106,22 @@ export function LoyaltyView() {
               Member Exclusive
             </span>
             <h1 className="mt-4 font-display text-4xl font-bold tracking-tight text-ink sm:text-5xl lg:text-6xl">
-              Loyalty Rewards
+              {hero.title}
             </h1>
-            <p className="mx-auto mt-4 max-w-xl text-ink-muted">
-              Earn rewards every time you shop for the toys your little one loves — and
-              unlock member-only perks that grow with you.
-            </p>
+            <p className="mx-auto mt-4 max-w-xl text-ink-muted">{hero.subtitle}</p>
             <div className="mt-8 flex flex-wrap justify-center gap-3">
               <Link
-                href="/signin"
+                href={hero.primaryHref}
                 className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-neem px-6 text-sm font-bold text-paper transition-all duration-300 hover:-translate-y-0.5 hover:bg-neem-deep"
               >
-                Join Free
+                {hero.primaryLabel}
                 <ArrowRight className="size-4" />
               </Link>
               <Link
-                href="#rewards"
+                href={hero.secondaryHref}
                 className="inline-flex h-11 items-center justify-center rounded-md border border-cream-300 bg-paper px-6 text-sm font-bold text-ink transition-colors hover:border-neem"
               >
-                View Rewards
+                {hero.secondaryLabel}
               </Link>
             </div>
           </Reveal>
@@ -144,7 +134,7 @@ export function LoyaltyView() {
           <SectionHead eyebrow="Why join" title="Member benefits" sub="A warm little club of perks for the families who shop with us most." />
         </Reveal>
         <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {loyaltyBenefits.map((b, i) => {
+          {benefits.map((b, i) => {
             const Icon = loyaltyIcon[b.icon];
             return (
               <Reveal key={b.id} delay={Math.min(i * 0.05, 0.25)}>
@@ -174,7 +164,7 @@ export function LoyaltyView() {
               aria-hidden
             />
             <ol className="relative grid grid-cols-1 gap-8 sm:grid-cols-4">
-              {loyaltySteps.map((s, i) => {
+              {steps.map((s, i) => {
                 const Icon = loyaltyIcon[s.icon];
                 return (
                   <li key={s.id} className="flex flex-col items-center text-center">
@@ -200,7 +190,7 @@ export function LoyaltyView() {
           <SectionHead eyebrow="Membership" title="Choose your tier" sub="The more you shop, the more you unlock. Every tier keeps the last one's perks." />
         </Reveal>
         <div className="mt-8 grid grid-cols-1 items-stretch gap-5 lg:grid-cols-3">
-          {loyaltyTiers.map((tier, i) => {
+          {tiers.map((tier, i) => {
             const Icon = loyaltyIcon[tier.icon];
             return (
               <Reveal key={tier.id} delay={Math.min(i * 0.06, 0.2)} className="h-full">
@@ -259,7 +249,7 @@ export function LoyaltyView() {
           <SectionHead eyebrow="Redeem" title="Reward examples" sub="Turn the points you earn into real perks at checkout." />
         </Reveal>
         <div className="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
-          {loyaltyRewards.map((r, i) => {
+          {rewards.map((r, i) => {
             const Icon = loyaltyIcon[r.icon];
             return (
               <Reveal key={r.id} delay={Math.min(i * 0.05, 0.2)} className="h-full">
@@ -378,7 +368,7 @@ export function LoyaltyView() {
           <SectionHead eyebrow="Loved by members" title="What our members say" />
         </Reveal>
         <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
-          {loyaltyTestimonials.map((t, i) => (
+          {testimonials.map((t, i) => (
             <Reveal key={t.id} delay={Math.min(i * 0.06, 0.2)} className="h-full">
               <figure className="flex h-full flex-col rounded-3xl border border-cream-200 bg-paper p-6 shadow-sm">
                 <div className="flex items-center gap-0.5 text-mustard" aria-hidden>
@@ -414,7 +404,7 @@ export function LoyaltyView() {
         <Reveal>
           <div className="mx-auto mt-8 max-w-2xl overflow-hidden rounded-2xl border border-cream-200 bg-paper shadow-sm">
             <Accordion type="single" collapsible defaultValue="loyalty-faq-0">
-              {loyaltyFaqs.map((f, i) => (
+              {faqs.map((f, i) => (
                 <AccordionItem key={f.q} value={`loyalty-faq-${i}`} className="border-cream-200 px-5">
                   <AccordionTrigger className="py-4 text-left text-[15px] font-semibold text-ink hover:no-underline">
                     {f.q}
@@ -441,17 +431,15 @@ export function LoyaltyView() {
                 <Crown className="size-7" aria-hidden />
               </span>
               <h2 className="mt-4 font-display text-2xl font-bold text-ink sm:text-3xl">
-                Become a member today
+                {cta.heading}
               </h2>
-              <p className="mx-auto mt-3 max-w-md text-ink-muted">
-                Start earning rewards from your very first purchase.
-              </p>
+              <p className="mx-auto mt-3 max-w-md text-ink-muted">{cta.subtitle}</p>
               <div className="mt-7">
                 <Link
-                  href="/signin"
+                  href={cta.buttonHref}
                   className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-neem px-8 text-sm font-bold text-paper shadow-[0_12px_30px_rgba(83,117,57,0.22)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-neem-deep"
                 >
-                  Join Now
+                  {cta.buttonLabel}
                   <ArrowRight className="size-4 transition-transform duration-300 group-hover:translate-x-1" />
                 </Link>
               </div>
