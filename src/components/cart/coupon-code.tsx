@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useCheckout } from "@/lib/checkout/checkout-context";
 import { applyCoupon } from "@/lib/coupons/actions";
+import { couponLabel } from "@/lib/coupons/discount";
 import { formatTk } from "@/lib/format";
 
 /**
@@ -29,7 +30,10 @@ export function CouponCode({ subtotal }: { subtotal: number }) {
     start(async () => {
       const r = await applyCoupon(entered, subtotal);
       if (r.ok) {
-        setAppliedCoupon({ code: r.code, discountPct: r.discountPct, minSubtotal: r.minSubtotal });
+        setAppliedCoupon({
+          code: r.code, type: r.type, discountPct: r.discountPct,
+          discountAmount: r.discountAmount, minSubtotal: r.minSubtotal,
+        });
         setError("");
         setCode("");
       } else {
@@ -52,7 +56,7 @@ export function CouponCode({ subtotal }: { subtotal: number }) {
         <div className="mt-2 rounded-lg border border-neem/30 bg-neem/5 px-3 py-2">
           <div className="flex items-center justify-between">
             <span className="flex items-center gap-1.5 text-sm font-medium text-neem-deep">
-              <Check className="size-4" /> {appliedCoupon.code} · {appliedCoupon.discountPct}% off
+              <Check className="size-4" /> {appliedCoupon.code} · {couponLabel(appliedCoupon)}
             </span>
             <button
               type="button"

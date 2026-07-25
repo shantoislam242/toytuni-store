@@ -2,13 +2,21 @@
 
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
 import { getShippingFee } from "@/lib/shipping";
+import type { CouponType } from "@/lib/coupons/discount";
 import type { Address } from "@/lib/types";
 
-/** A coupon the shopper applied — its normalized code + the resolved percentage
- *  and minimum. The discount is recomputed live from the current subtotal (the
- *  % is stable; `createOrder` re-validates authoritatively at order time). Lives
- *  in checkout context so it survives the cart → checkout navigation. */
-export type AppliedCoupon = { code: string; discountPct: number; minSubtotal: number };
+/** A coupon the shopper applied — its normalized code, type, and the numbers the
+ *  discount math needs (percent uses `discountPct`, fixed uses `discountAmount`)
+ *  plus the minimum. The discount is recomputed live from the current subtotal
+ *  (the coupon shape is stable; `createOrder` re-validates authoritatively at
+ *  order time). Lives in checkout context so it survives cart → checkout. */
+export type AppliedCoupon = {
+  code: string;
+  type: CouponType;
+  discountPct: number;
+  discountAmount: number;
+  minSubtotal: number;
+};
 
 /**
  * Shared checkout state — the delivery address chosen in the address modal and

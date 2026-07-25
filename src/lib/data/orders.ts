@@ -128,13 +128,13 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
     const normalized = normalizeCode(input.couponCode);
     const { data: coupon } = await db
       .from("coupons" as never)
-      .select("discount_pct, active, min_subtotal, expires_at, usage_limit, used_count")
+      .select("type, discount_pct, discount_amount, active, min_subtotal, expires_at, usage_limit, used_count")
       .eq("code", normalized)
       .maybeSingle()
       .overrideTypes<CouponRow, { merge: false }>();
     const v = validateCoupon(coupon ?? null, subtotal, new Date());
     if (!v.ok) return { ok: false, error: COUPON_REASON_MESSAGE[v.reason] };
-    discountTotal = computeCouponDiscount(subtotal, v.discountPct);
+    discountTotal = computeCouponDiscount(v.kind, subtotal);
     couponCode = normalized;
   }
 

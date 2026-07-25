@@ -1,6 +1,12 @@
-/** The coupon fields the validator needs (a plain shape, DB-agnostic). */
+import { couponKind, type CouponKind, type CouponType } from "@/lib/coupons/discount";
+
+/** The coupon fields the validator needs (a plain shape, DB-agnostic). `type` /
+ *  `discount_amount` are optional so a pre-migration-0023 row (percent-only)
+ *  still validates as a percentage coupon. */
 export type CouponRow = {
+  type?: CouponType | null;
   discount_pct: number;
+  discount_amount?: number | null;
   active: boolean;
   min_subtotal: number;
   expires_at: string | null;
@@ -16,7 +22,7 @@ export type CouponReason =
   | "usage_exhausted";
 
 export type CouponValidation =
-  | { ok: true; discountPct: number }
+  | { ok: true; kind: CouponKind }
   | { ok: false; reason: CouponReason };
 
 /** A user-facing message for each rejection reason. */
@@ -31,7 +37,8 @@ export const COUPON_REASON_MESSAGE: Record<CouponReason, string> = {
 /**
  * Validate a coupon against the current subtotal and time. Pure — reused by the
  * checkout apply action and by `createOrder`'s authoritative re-check. Checks in
- * order: exists → active → not expired → minimum met → usage left.
+ * order: exists → active → not expired → minimum met → usage left. On success
+ * returns the `CouponKind` (percent/fixed) for the discount math.
  */
 export function validateCoupon(
   coupon: CouponRow | null,
@@ -50,5 +57,12 @@ export function validateCoupon(
   if (coupon.usage_limit != null && coupon.used_count >= coupon.usage_limit) {
     return { ok: false, reason: "usage_exhausted" };
   }
-  return { ok: true, discountPct: coupon.discount_pct };
+  return {
+    ok: true,
+    kind: couponKind({
+      type: coupon.type ?? "percent",
+      discountPct: coupon.discount_pct,
+      discountAmount: coupon.discount_amount ?? 0,
+    }),
+  };
 }
