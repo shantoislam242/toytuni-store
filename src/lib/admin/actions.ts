@@ -19,6 +19,7 @@ import { sendOrderEmail } from "@/lib/email/send-order-email";
 import { getAdminOrderById } from "@/lib/admin/queries";
 import { ORDER_CARRIERS } from "@/lib/admin/order-constants";
 import { notifyOrderStatus, createOrderNotification } from "@/lib/data/notifications";
+import { logAudit } from "@/lib/admin/audit";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -106,6 +107,7 @@ export async function updateOrderStatus(orderId: string, to: string): Promise<Ac
   await notifyOrderStatus(db, orderId, to);
   revalidateOrder(orderId);
   if (to === "delivered") await emailOrder(orderId, "delivered");
+  await logAudit({ action: "order.status", entity: "order", entityId: orderId, summary: `Status changed to ${to}` });
   return { ok: true };
 }
 
@@ -138,6 +140,7 @@ export async function shipOrder(
   await notifyOrderStatus(db, orderId, "shipped", `${carrier} · ${trackingNumber}`);
   revalidateOrder(orderId);
   await emailOrder(orderId, "shipped");
+  await logAudit({ action: "order.ship", entity: "order", entityId: orderId, summary: `Shipped via ${carrier} (${trackingNumber})` });
   return { ok: true };
 }
 
@@ -162,6 +165,7 @@ export async function markOrderPaid(orderId: string): Promise<ActionResult> {
   await appendHistory(db, orderId, data.status, "Marked paid", await actorEmail());
   await createOrderNotification(db, orderId, "Payment received", "We've recorded your payment. Thank you!");
   revalidateOrder(orderId);
+  await logAudit({ action: "order.paid", entity: "order", entityId: orderId, summary: "Marked payment as paid" });
   return { ok: true };
 }
 
@@ -189,6 +193,7 @@ export async function cancelOrder(orderId: string, reason: string): Promise<Acti
   await notifyOrderStatus(db, orderId, "cancelled", reason.trim() || undefined);
   revalidateOrder(orderId);
   await emailOrder(orderId, "cancelled");
+  await logAudit({ action: "order.cancel", entity: "order", entityId: orderId, summary: `Cancelled${reason.trim() ? `: ${reason.trim()}` : ""}` });
   return { ok: true };
 }
 
@@ -212,6 +217,7 @@ export async function returnOrder(orderId: string, reason: string): Promise<Acti
   }
   await notifyOrderStatus(db, orderId, "returned", reason.trim() || undefined);
   revalidateOrder(orderId);
+  await logAudit({ action: "order.return", entity: "order", entityId: orderId, summary: `Returned${reason.trim() ? `: ${reason.trim()}` : ""}` });
   return { ok: true };
 }
 
@@ -234,6 +240,7 @@ export async function markOrderRefunded(orderId: string): Promise<ActionResult> 
   await appendHistory(db, orderId, data.status, "Payment refunded", await actorEmail());
   await createOrderNotification(db, orderId, "Refund processed", "Your payment has been refunded.");
   revalidateOrder(orderId);
+  await logAudit({ action: "order.refund", entity: "order", entityId: orderId, summary: "Refunded payment" });
   return { ok: true };
 }
 
@@ -873,6 +880,7 @@ export async function createProduct(
   }
 
   revalidateStorefront(slug);
+  await logAudit({ action: "product.create", entity: "product", entityId: slug, summary: `Created product “${title}”` });
   return { ok: true, slug };
 }
 
@@ -889,6 +897,7 @@ export async function softDeleteProduct(slug: string): Promise<ActionResult> {
   if (error) return { ok: false, error: error.message };
 
   revalidateStorefront(slug);
+  await logAudit({ action: "product.deactivate", entity: "product", entityId: slug, summary: `Deactivated product ${slug}` });
   return { ok: true };
 }
 
@@ -969,6 +978,7 @@ export async function updateSettings(next: Settings): Promise<ActionResult> {
   revalidatePath("/checkout");
   revalidatePath("/contact");
   revalidatePath("/admin/settings");
+  await logAudit({ action: "settings.update", entity: "settings", summary: "Updated store settings" });
   return { ok: true };
 }
 
@@ -1581,6 +1591,7 @@ export async function addAdminUser(email: string, role: string): Promise<ActionR
     return { ok: false, error: error.message };
   }
   revalidateTeam();
+  await logAudit({ action: "team.add", entity: "admin_user", entityId: trimmed, summary: `Added ${trimmed} as ${role}` });
   return { ok: true };
 }
 
@@ -1613,6 +1624,7 @@ export async function setAdminRole(id: string, role: string): Promise<ActionResu
   const { error } = await db.from("admin_users" as never).update({ role } as never).eq("id", id);
   if (error) return { ok: false, error: error.message };
   revalidateTeam();
+  await logAudit({ action: "team.role", entity: "admin_user", entityId: target.email, summary: `${target.email} role changed to ${role}` });
   return { ok: true };
 }
 
@@ -1640,5 +1652,6 @@ export async function removeAdminUser(id: string): Promise<ActionResult> {
   const { error } = await db.from("admin_users" as never).delete().eq("id", id);
   if (error) return { ok: false, error: error.message };
   revalidateTeam();
+  await logAudit({ action: "team.remove", entity: "admin_user", entityId: target.email, summary: `Removed admin ${target.email}` });
   return { ok: true };
 }

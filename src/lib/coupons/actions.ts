@@ -6,6 +6,7 @@ import { createAdminSupabase } from "@/lib/supabase/admin";
 import { normalizeCode } from "@/lib/coupons/normalize";
 import { type CouponType } from "@/lib/coupons/discount";
 import { validateCoupon, COUPON_REASON_MESSAGE, type CouponRow } from "@/lib/coupons/validate";
+import { logAudit } from "@/lib/admin/audit";
 
 export type CouponActionResult = { ok: true } | { ok: false; error: string };
 
@@ -152,6 +153,7 @@ export async function createCoupon(input: CouponInput): Promise<CouponActionResu
     return { ok: false, error: error.message };
   }
   revalidatePath("/admin/coupons");
+  await logAudit({ action: "coupon.create", entity: "coupon", entityId: v.row.code, summary: `Created coupon ${v.row.code}` });
   return { ok: true };
 }
 
@@ -174,6 +176,7 @@ export async function updateCoupon(id: string, input: CouponInput): Promise<Coup
   }
   if (!data) return { ok: false, error: "Coupon not found." };
   revalidatePath("/admin/coupons");
+  await logAudit({ action: "coupon.update", entity: "coupon", entityId: v.row.code, summary: `Updated coupon ${v.row.code}` });
   return { ok: true };
 }
 
@@ -185,5 +188,6 @@ export async function deleteCoupon(id: string): Promise<CouponActionResult> {
   const { error } = await db.from("coupons" as never).delete().eq("id", id);
   if (error) return { ok: false, error: error.message };
   revalidatePath("/admin/coupons");
+  await logAudit({ action: "coupon.delete", entity: "coupon", entityId: id, summary: "Deleted a coupon" });
   return { ok: true };
 }
