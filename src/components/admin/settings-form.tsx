@@ -7,6 +7,14 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { updateSettings } from "@/lib/admin/actions";
 import type { Settings } from "@/lib/data/settings-shape";
+import { BD_LOCATIONS } from "@/lib/bd-locations";
+import { X, Plus } from "lucide-react";
+
+/** Every BD district (flattened from the divisions), sorted, for the
+ *  inside-Dhaka zone picker. */
+const ALL_DISTRICTS: string[] = Array.from(
+  new Set(BD_LOCATIONS.flatMap((d) => d.districts)),
+).sort();
 
 /** Parse a user-entered integer field. Returns `null` for blank/invalid so the
  *  caller can surface a validation error (mirrors `product-edit-form`'s
@@ -29,6 +37,7 @@ export function SettingsForm({ settings }: { settings: Settings }) {
   const [insideFee, setInsideFee] = useState(String(settings.shipping.insideDhakaFee));
   const [outsideFee, setOutsideFee] = useState(String(settings.shipping.outsideDhakaFee));
   const [threshold, setThreshold] = useState(String(settings.shipping.freeShippingThreshold));
+  const [insideDistricts, setInsideDistricts] = useState<string[]>(settings.shipping.insideDistricts);
   const [codFee, setCodFee] = useState(String(settings.codFee));
   const [phone, setPhone] = useState(settings.contact.phone);
   const [whatsapp, setWhatsapp] = useState(settings.contact.whatsapp);
@@ -65,7 +74,12 @@ export function SettingsForm({ settings }: { settings: Settings }) {
       return toast.error("Pre-order advance must be between 0 and 100.");
     }
     const next: Settings = {
-      shipping: { insideDhakaFee: nums.inside!, outsideDhakaFee: nums.outside!, freeShippingThreshold: nums.thr! },
+      shipping: {
+        insideDhakaFee: nums.inside!,
+        outsideDhakaFee: nums.outside!,
+        freeShippingThreshold: nums.thr!,
+        insideDistricts: insideDistricts.length ? insideDistricts : ["Dhaka"],
+      },
       codFee: nums.cod!,
       contact: { phone, whatsapp, email, address },
       brand: { tagline, description },
@@ -132,6 +146,49 @@ export function SettingsForm({ settings }: { settings: Settings }) {
               className="mt-1"
             />
           </label>
+
+          {/* Inside-Dhaka district list — these get the local (inside) rate; every
+              other district gets the outside rate. */}
+          <div className="sm:col-span-3">
+            <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">
+              Inside-Dhaka districts (local rate)
+            </span>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {insideDistricts.length === 0 ? (
+                <span className="text-sm text-ink-soft">None — every district gets the outside rate.</span>
+              ) : (
+                insideDistricts.map((d) => (
+                  <span key={d} className="inline-flex items-center gap-1 rounded-full bg-neem/10 px-2.5 py-1 text-xs font-medium text-neem-deep">
+                    {d}
+                    <button
+                      type="button"
+                      onClick={() => setInsideDistricts((prev) => prev.filter((x) => x !== d))}
+                      aria-label={`Remove ${d}`}
+                      className="text-neem-deep/70 hover:text-danger"
+                    >
+                      <X className="size-3" />
+                    </button>
+                  </span>
+                ))
+              )}
+            </div>
+            <div className="mt-2 flex items-center gap-2">
+              <Plus className="size-4 text-ink-soft" />
+              <select
+                value=""
+                onChange={(e) => {
+                  const d = e.target.value;
+                  if (d) setInsideDistricts((prev) => (prev.includes(d) ? prev : [...prev, d]));
+                }}
+                className="h-9 rounded-md border border-cream-300 bg-paper px-3 text-sm text-ink outline-none focus-visible:border-neem focus-visible:ring-2 focus-visible:ring-neem/25"
+              >
+                <option value="">Add a district…</option>
+                {ALL_DISTRICTS.filter((d) => !insideDistricts.includes(d)).map((d) => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
+              </select>
+            </div>
+          </div>
         </CardContent>
       </Card>
 

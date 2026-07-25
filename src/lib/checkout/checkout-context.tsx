@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
-import { getShippingFee } from "@/lib/shipping";
+import { shippingFeeFor, type ShippingConfig } from "@/lib/shipping";
 import type { CouponType } from "@/lib/coupons/discount";
 import type { Address } from "@/lib/types";
 
@@ -28,6 +28,8 @@ type CheckoutContextValue = {
   address: Address | null;
   /** Flat delivery fee (BDT) for the chosen address's district; 0 if unset. */
   shippingFee: number;
+  /** Admin-set delivery config (fees + inside-Dhaka districts), from settings. */
+  shipping: ShippingConfig;
   /** Store the confirmed address; fee is derived from its district. */
   setDeliveryAddress: (address: Address) => void;
   clearDeliveryAddress: () => void;
@@ -38,7 +40,13 @@ type CheckoutContextValue = {
 
 const CheckoutContext = createContext<CheckoutContextValue | null>(null);
 
-export function CheckoutProvider({ children }: { children: React.ReactNode }) {
+export function CheckoutProvider({
+  children,
+  shipping,
+}: {
+  children: React.ReactNode;
+  shipping: ShippingConfig;
+}) {
   const [address, setAddress] = useState<Address | null>(null);
   const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
 
@@ -48,14 +56,14 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
 
   const clearDeliveryAddress = useCallback(() => setAddress(null), []);
 
-  const shippingFee = address ? getShippingFee(address.district) : 0;
+  const shippingFee = address ? shippingFeeFor(address.district, shipping) : 0;
 
   const value = useMemo<CheckoutContextValue>(
     () => ({
-      address, shippingFee, setDeliveryAddress, clearDeliveryAddress,
+      address, shippingFee, shipping, setDeliveryAddress, clearDeliveryAddress,
       appliedCoupon, setAppliedCoupon,
     }),
-    [address, shippingFee, setDeliveryAddress, clearDeliveryAddress, appliedCoupon],
+    [address, shippingFee, shipping, setDeliveryAddress, clearDeliveryAddress, appliedCoupon],
   );
 
   return <CheckoutContext.Provider value={value}>{children}</CheckoutContext.Provider>;

@@ -6,6 +6,7 @@ import { SiteJsonLd } from "@/components/seo/site-json-ld";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { getNavContent } from "@/lib/data/nav";
+import { getSettings } from "@/lib/data/settings";
 import { FooterGate } from "@/components/layout/footer-gate";
 import { SiteBackground } from "@/components/layout/site-background";
 import { MobileBottomBar } from "@/components/layout/mobile-bottom-bar";
@@ -80,7 +81,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const nav = await getNavContent();
+  const [nav, settings] = await Promise.all([getNavContent(), getSettings()]);
   return (
     <html
       lang="en"
@@ -97,7 +98,7 @@ export default async function RootLayout({
         <AuthProvider>
           <CatalogProviderServer>
             <CartProvider>
-              <CheckoutProvider>
+              <CheckoutProvider shipping={settings.shipping}>
                 <WishlistProvider>
                   <HomeResetProvider>
                     <Header mainNav={nav.main} />

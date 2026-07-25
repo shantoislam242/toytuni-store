@@ -12,9 +12,10 @@ import {
   validateDraft,
   type AddressDraft,
 } from "@/lib/checkout/address-fields";
-import { getShippingFee, zoneForDistrict } from "@/lib/shipping";
+import { shippingFeeFor, zoneForDistrict } from "@/lib/shipping";
 import { createAddress } from "@/lib/account/addresses";
 import { useAuth } from "@/lib/auth/auth-context";
+import { useCheckout } from "@/lib/checkout/checkout-context";
 import { formatTk } from "@/lib/format";
 import type { Address } from "@/lib/types";
 
@@ -46,6 +47,7 @@ export function AddressModal({
   onConfirm: (address: Address) => void;
 }) {
   const { user } = useAuth();
+  const { shipping } = useCheckout();
   const isLoggedIn = !!user;
   const hasSaved = isLoggedIn && savedAddresses.length > 0;
   const defaultId =
@@ -71,8 +73,8 @@ export function AddressModal({
 
   // Live fee: from the picked saved address, or the district typed in the form.
   const activeDistrict = showForm ? draft.district : selectedSaved?.district ?? "";
-  const zone = activeDistrict ? zoneForDistrict(activeDistrict) : null;
-  const fee = activeDistrict ? getShippingFee(activeDistrict) : null;
+  const zone = activeDistrict ? zoneForDistrict(activeDistrict, shipping.insideDistricts) : null;
+  const fee = activeDistrict ? shippingFeeFor(activeDistrict, shipping) : null;
   const total = subtotal + (fee ?? 0);
 
   const canConfirm = showForm || Boolean(selectedSaved);

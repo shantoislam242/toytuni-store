@@ -42,22 +42,13 @@ function Section({ children, delay = 0 }: { children: React.ReactNode; delay?: n
  * delivery summary and the guest form. Order submission is wired
  * (`createOrder`); payment remains UI-only.
  */
-export function CheckoutView({
-  insideDhakaFee,
-  outsideDhakaFee,
-  freeShippingThreshold,
-  codFee,
-}: {
-  insideDhakaFee: number;
-  outsideDhakaFee: number;
-  freeShippingThreshold: number;
-  codFee: number;
-}) {
+export function CheckoutView({ codFee }: { codFee: number }) {
   const { items, subtotal, hydrated, clear } = useCart();
   // Delivery address chosen in the cart's address modal (drives the summary +
   // the delivery zone label). The actual delivery charge is driven by the
-  // shipping-method selector below.
-  const { address, appliedCoupon, setAppliedCoupon } = useCheckout();
+  // shipping-method selector below. `shippingConfig` (fees + inside-Dhaka
+  // districts) comes from admin settings via the checkout context.
+  const { address, appliedCoupon, setAppliedCoupon, shipping: shippingConfig } = useCheckout();
   const router = useRouter();
   const { bySlug } = useCatalog();
 
@@ -77,8 +68,8 @@ export function CheckoutView({
   // Free shipping unlocks at the threshold. Keep the selection valid: auto-apply
   // free once it unlocks (matches the cart), and never leave "free" selected on
   // an order that no longer qualifies.
-  const freeUnlocked = subtotal >= freeShippingThreshold;
-  const deliveryZone = address ? zoneForDistrict(address.district) : null;
+  const freeUnlocked = subtotal >= shippingConfig.freeShippingThreshold;
+  const deliveryZone = address ? zoneForDistrict(address.district, shippingConfig.insideDistricts) : null;
   const expressAvailable = deliveryZone?.id === "inside_dhaka";
 
   useEffect(() => {
@@ -126,9 +117,7 @@ export function CheckoutView({
   // never disagree. Before an address is chosen there's no district to price
   // against, so fall back to the selected option's flat mock price.
   const delivery = address
-    ? priceDelivery(shipping, subtotal, address.district, {
-        insideDhakaFee, outsideDhakaFee, freeShippingThreshold,
-      })
+    ? priceDelivery(shipping, subtotal, address.district, shippingConfig)
     : deliveryOption.price;
   const deliveryZoneLabel = deliveryZone?.label ?? null;
   // Withhold the discount (but keep the coupon) if the cart is now below its
@@ -260,7 +249,7 @@ export function CheckoutView({
               value={effectiveShippingId}
               onChange={setShipping}
               subtotal={subtotal}
-              freeShippingThreshold={freeShippingThreshold}
+              shipping={shippingConfig}
               district={address?.district ?? null}
             />
           </Section>
