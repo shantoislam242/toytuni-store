@@ -24,15 +24,14 @@ type NavItem = {
   badge?: "orders" | "wishlist";
 };
 
-/** Live nav for Phase 1: Overview + My Orders + Wishlist (existing top-level
- *  page). The rest land in later phases — shown disabled so the shell matches
- *  the final layout. */
+/** Live nav: Overview + My Orders + Wishlist. The rest land in later phases —
+ *  shown disabled so the shell already matches the final layout. */
 const DASHBOARD: NavItem[] = [
   { label: "Overview", href: "/account", icon: LayoutGrid },
   { label: "My Orders", href: "/account/orders", icon: Package, badge: "orders" },
   { label: "Notifications", href: "/account/notifications", icon: Bell, soon: true },
   { label: "Inbox", href: "/account/inbox", icon: MessageSquare, soon: true },
-  { label: "Wishlist", href: "/wishlist", icon: Heart, badge: "wishlist" },
+  { label: "Wishlist", href: "/account/wishlist", icon: Heart, badge: "wishlist" },
 ];
 const SETTINGS: NavItem[] = [
   { label: "Profile", href: "/account/profile", icon: UserRound, soon: true },
