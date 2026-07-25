@@ -10,6 +10,7 @@ const TABS = [
   { label: "Bulk page", href: "/admin/content/bulk" },
   { label: "Loyalty page", href: "/admin/content/loyalty" },
   { label: "Policies", href: "/admin/content/policies" },
+  { label: "Navigation", href: "/admin/content/navigation" },
 ];
 
 /** Sub-navigation for the admin Content area (Homepage / About / …). */

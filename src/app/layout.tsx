@@ -5,6 +5,7 @@ import { BRAND_NAME, SITE_URL } from "@/lib/config";
 import { SiteJsonLd } from "@/components/seo/site-json-ld";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
+import { getNavContent } from "@/lib/data/nav";
 import { FooterGate } from "@/components/layout/footer-gate";
 import { SiteBackground } from "@/components/layout/site-background";
 import { MobileBottomBar } from "@/components/layout/mobile-bottom-bar";
@@ -74,11 +75,12 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const nav = await getNavContent();
   return (
     <html
       lang="en"
@@ -98,7 +100,7 @@ export default function RootLayout({
               <CheckoutProvider>
                 <WishlistProvider>
                   <HomeResetProvider>
-                    <Header />
+                    <Header mainNav={nav.main} />
                     <div className="flex flex-1 flex-col">
                       <HomeResetBoundary>{children}</HomeResetBoundary>
                     </div>

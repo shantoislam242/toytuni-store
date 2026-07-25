@@ -2,15 +2,8 @@ import Link from "next/link";
 import { Globe } from "lucide-react";
 import { FooterLink } from "@/components/layout/footer-link";
 import { FooterNewsletter } from "@/components/layout/footer-newsletter";
-import {
-  footerShop,
-  footerCustomerCare,
-  footerAbout,
-  footerSupport,
-  socials,
-  type NavLink,
-  type Social,
-} from "@/lib/mock/nav";
+import { getNavContent } from "@/lib/data/nav";
+import type { NavLink, Social } from "@/lib/data/nav-shape";
 import { BRAND_NAME } from "@/lib/config";
 import { getSettings } from "@/lib/data/settings";
 import { cn } from "@/lib/utils";
@@ -185,6 +178,7 @@ function FooterColumn({ title, links }: { title: string; links: NavLink[] }) {
 }
 
 export async function Footer() {
+  const { footerShop, footerCustomerCare, footerAbout, footerSupport, socials } = await getNavContent();
   const settings = await getSettings();
 
   return (

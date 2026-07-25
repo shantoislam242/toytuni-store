@@ -8,6 +8,7 @@ import { rowToContent, type SiteContent } from "@/lib/data/content-shape";
 import { rowToAbout, type AboutContent } from "@/lib/data/about-shape";
 import { rowToBulk, type BulkContent } from "@/lib/data/bulk-shape";
 import { rowToLoyalty, type LoyaltyContent } from "@/lib/data/loyalty-shape";
+import { rowToNav, type NavContent } from "@/lib/data/nav-shape";
 import type { Database } from "@/lib/supabase/database.types";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
@@ -96,6 +97,27 @@ export async function updateLoyaltyContent(next: LoyaltyContent): Promise<Action
 
   revalidateTag("loyalty-content", "max");
   revalidatePath("/loyalty");
+  return { ok: true };
+}
+
+/**
+ * Save the editable header/footer navigation. Admin-gated (any admin).
+ * Normalized via `rowToNav`. Stored in `site_settings` under the `nav` key;
+ * busts the `nav-content` cache. Header + footer render on every page, so a
+ * layout revalidate isn't targeted — the tag + 1-hour bound cover it.
+ */
+export async function updateNavContent(next: NavContent): Promise<ActionResult> {
+  if (!(await getIsAdmin())) throw new Error("unauthorized");
+
+  const value = rowToNav(next);
+  const db = createAdminSupabase();
+  const { error } = await db.from("site_settings").upsert(
+    { key: "nav", value: value as unknown as SettingsValue },
+    { onConflict: "key" },
+  );
+  if (error) return { ok: false, error: error.message };
+
+  revalidateTag("nav-content", "max");
   return { ok: true };
 }
 
