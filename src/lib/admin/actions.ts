@@ -18,6 +18,7 @@ import { canTransition, timestampFieldFor, isOrderStatus, type OrderStatus } fro
 import { sendOrderEmail } from "@/lib/email/send-order-email";
 import { getAdminOrderById } from "@/lib/admin/queries";
 import { ORDER_CARRIERS } from "@/lib/admin/order-constants";
+import { notifyOrderStatus, createOrderNotification } from "@/lib/data/notifications";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -101,6 +102,7 @@ export async function updateOrderStatus(orderId: string, to: string): Promise<Ac
   const { error } = await db.from("orders").update(patch as never).eq("id", orderId);
   if (error) return { ok: false, error: error.message };
   await appendHistory(db, orderId, to, null, await actorEmail());
+  await notifyOrderStatus(db, orderId, to);
   revalidateOrder(orderId);
   if (to === "delivered") await emailOrder(orderId, "delivered");
   return { ok: true };
@@ -132,6 +134,7 @@ export async function shipOrder(
   } as never).eq("id", orderId);
   if (error) return { ok: false, error: error.message };
   await appendHistory(db, orderId, "shipped", `${carrier} · ${trackingNumber}`, await actorEmail());
+  await notifyOrderStatus(db, orderId, "shipped", `${carrier} · ${trackingNumber}`);
   revalidateOrder(orderId);
   await emailOrder(orderId, "shipped");
   return { ok: true };
@@ -156,6 +159,7 @@ export async function markOrderPaid(orderId: string): Promise<ActionResult> {
   } as never).eq("id", orderId);
   if (error) return { ok: false, error: error.message };
   await appendHistory(db, orderId, data.status, "Marked paid", await actorEmail());
+  await createOrderNotification(db, orderId, "Payment received", "We've recorded your payment. Thank you!");
   revalidateOrder(orderId);
   return { ok: true };
 }
@@ -181,6 +185,7 @@ export async function cancelOrder(orderId: string, reason: string): Promise<Acti
       ? "Only pending or confirmed orders can be cancelled." : error.message;
     return { ok: false, error: msg };
   }
+  await notifyOrderStatus(db, orderId, "cancelled", reason.trim() || undefined);
   revalidateOrder(orderId);
   await emailOrder(orderId, "cancelled");
   return { ok: true };
