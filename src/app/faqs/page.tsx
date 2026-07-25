@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { FaqView } from "@/components/faq/faq-view";
+import { getFaqs } from "@/lib/data/faqs";
 
 export function generateMetadata(): Metadata {
   return {
@@ -10,6 +11,7 @@ export function generateMetadata(): Metadata {
   };
 }
 
-export default function Page() {
-  return <FaqView />;
+export default async function Page() {
+  const faqs = await getFaqs();
+  return <FaqView faqs={faqs} />;
 }

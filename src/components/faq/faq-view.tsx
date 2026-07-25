@@ -12,6 +12,7 @@ import {
 import { Breadcrumb } from "@/components/breadcrumb";
 import { FaqExplorer } from "@/components/faq/faq-explorer";
 import { Reveal } from "@/components/policy/reveal";
+import type { FaqItem } from "@/lib/faq/faqs-shape";
 
 const trustCards: { icon: LucideIcon; title: string; desc: string }[] = [
   { icon: ShieldCheck, title: "Safe & Non-Toxic", desc: "Child-safe, natural neem-wood toys." },
@@ -25,7 +26,7 @@ const trustCards: { icon: LucideIcon; title: string; desc: string }[] = [
  * interactive FaqExplorer (search + filter + accordion), a "still need help" CTA,
  * and a trust row. Server component — the explorer and Reveal are client islands.
  */
-export function FaqView() {
+export function FaqView({ faqs }: { faqs: FaqItem[] }) {
   return (
     <main className="flex-1 bg-paper">
       {/* hero */}
@@ -60,7 +61,7 @@ export function FaqView() {
       {/* search + filter + accordion */}
       <section className="mx-auto w-full max-w-6xl lg:max-w-[90rem] px-4 pb-8 sm:px-6 lg:px-8">
         <Reveal>
-          <FaqExplorer />
+          <FaqExplorer faqs={faqs} />
         </Reveal>
       </section>
 

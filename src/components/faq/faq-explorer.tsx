@@ -5,17 +5,24 @@ import Link from "next/link";
 import { ChevronDown, Search, X } from "lucide-react";
 import { Accordion as AccordionPrimitive } from "radix-ui";
 import { cn } from "@/lib/utils";
-import { faqFilters, faqs, type FaqFilter } from "@/lib/mock/faqs";
+import { FAQ_CATEGORIES, type FaqItem } from "@/lib/faq/faqs-shape";
 
 /**
  * Interactive FAQ explorer: a live search box, category filter chips, and a
  * single-open accordion of matching questions. Client component — owns the
  * search and filter state. Filtering combines the active category with the
- * search query (matched against question and answer text).
+ * search query (matched against question and answer text). The `faqs` come
+ * from the admin-editable DB (`getFaqs`), passed down by the page.
  */
-export function FaqExplorer() {
-  const [filter, setFilter] = useState<FaqFilter>("All");
+export function FaqExplorer({ faqs }: { faqs: FaqItem[] }) {
+  const [filter, setFilter] = useState<string>("All");
   const [query, setQuery] = useState("");
+
+  // Only show filter chips for categories that actually have questions.
+  const faqFilters = useMemo(
+    () => ["All", ...FAQ_CATEGORIES.filter((c) => faqs.some((f) => f.category === c))],
+    [faqs],
+  );
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -26,7 +33,7 @@ export function FaqExplorer() {
         f.question.toLowerCase().includes(q) || f.answer.toLowerCase().includes(q)
       );
     });
-  }, [filter, query]);
+  }, [filter, query, faqs]);
 
   return (
     <div>
