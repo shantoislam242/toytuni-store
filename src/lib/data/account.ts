@@ -108,7 +108,7 @@ export type CustomerDashboard = {
 export async function getCustomerDashboard(email: string): Promise<CustomerDashboard> {
   const orders = await getOrdersForEmail(email);
   const totalSpent = orders
-    .filter((o) => o.status !== "cancelled")
+    .filter((o) => o.status !== "cancelled" && o.status !== "returned")
     .reduce((sum, o) => sum + o.total, 0);
   const pendingOrders = orders.filter((o) => o.status === "pending" || o.status === "confirmed").length;
   return {

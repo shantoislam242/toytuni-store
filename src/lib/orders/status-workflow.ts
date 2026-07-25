@@ -1,14 +1,18 @@
 export const ORDER_STATUSES = [
-  "pending", "confirmed", "shipped", "delivered", "cancelled",
+  "pending", "confirmed", "shipped", "delivered", "cancelled", "returned",
 ] as const;
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
 
+// `cancelled` and `returned` are reached via their own atomic RPCs
+// (cancel_order / return_order), never a generic transition — so neither is a
+// listed target here (and `updateOrderStatus` rejects them explicitly).
 const TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   pending: ["confirmed", "cancelled"],
   confirmed: ["shipped", "cancelled"],
   shipped: ["delivered"],
   delivered: [],
   cancelled: [],
+  returned: [],
 };
 
 const TIMESTAMP_FIELD: Record<OrderStatus, string | null> = {
@@ -17,6 +21,8 @@ const TIMESTAMP_FIELD: Record<OrderStatus, string | null> = {
   shipped: "shipped_at",
   delivered: "delivered_at",
   cancelled: "cancelled_at",
+  // returned_at is set by the return_order RPC, not updateOrderStatus.
+  returned: null,
 };
 
 export function isOrderStatus(v: string): v is OrderStatus {

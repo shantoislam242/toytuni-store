@@ -23,6 +23,7 @@ const STATUS_STYLES: Record<string, string> = {
   shipped: "bg-dusty-blue/15 text-dusty-blue",
   delivered: "bg-neem/15 text-neem-deep",
   cancelled: "bg-danger/15 text-danger",
+  returned: "bg-terracotta/15 text-terracotta",
 };
 
 function StatusBadge({ status }: { status: string }) {

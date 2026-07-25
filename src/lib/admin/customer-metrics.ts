@@ -24,9 +24,10 @@ export function aggregateCustomers(customers: CustomerRow[], orders: OrderAggRow
 
   const items: CustomerListItem[] = customers.map((c) => {
     const os = byCustomer.get(c.id) ?? [];
-    const nonCancelled = os.filter((o) => o.status !== "cancelled");
-    const totalSpent = nonCancelled.reduce((s, o) => s + o.total, 0);
-    const aov = nonCancelled.length > 0 ? Math.round(totalSpent / nonCancelled.length) : 0;
+    // Revenue excludes cancelled AND returned (a returned order is refunded).
+    const revenueOrders = os.filter((o) => o.status !== "cancelled" && o.status !== "returned");
+    const totalSpent = revenueOrders.reduce((s, o) => s + o.total, 0);
+    const aov = revenueOrders.length > 0 ? Math.round(totalSpent / revenueOrders.length) : 0;
     const cancelledCount = os.filter((o) => o.status === "cancelled").length;
     const lastOrderAt = os.reduce<string | null>(
       (max, o) => (max === null || o.created_at > max ? o.created_at : max), null,

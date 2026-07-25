@@ -4,8 +4,8 @@ import {
 } from "./status-workflow";
 
 describe("status-workflow", () => {
-  it("lists the five statuses", () => {
-    expect(ORDER_STATUSES).toEqual(["pending","confirmed","shipped","delivered","cancelled"]);
+  it("lists the order statuses", () => {
+    expect(ORDER_STATUSES).toEqual(["pending","confirmed","shipped","delivered","cancelled","returned"]);
   });
   it("allows legal transitions", () => {
     expect(canTransition("pending","confirmed")).toBe(true);
@@ -28,6 +28,7 @@ describe("status-workflow", () => {
     expect(allowedTransitions("shipped")).toEqual(["delivered"]);
     expect(allowedTransitions("delivered")).toEqual([]);
     expect(allowedTransitions("cancelled")).toEqual([]);
+    expect(allowedTransitions("returned")).toEqual([]);
   });
   it("maps a status to its timestamp column", () => {
     expect(timestampFieldFor("confirmed")).toBe("confirmed_at");
@@ -35,6 +36,7 @@ describe("status-workflow", () => {
     expect(timestampFieldFor("delivered")).toBe("delivered_at");
     expect(timestampFieldFor("cancelled")).toBe("cancelled_at");
     expect(timestampFieldFor("pending")).toBeNull();
+    expect(timestampFieldFor("returned")).toBeNull();
   });
   it("guards status strings", () => {
     expect(isOrderStatus("shipped")).toBe(true);
