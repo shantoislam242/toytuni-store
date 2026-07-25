@@ -1,14 +1,14 @@
 import Link from "next/link";
 import { ArrowRight, Leaf } from "lucide-react";
 import { Reveal } from "@/components/policy/reveal";
+import type { AboutTeaserContent } from "@/lib/data/content-shape";
 
 /**
- * Home-page About teaser. A centered section header (matching the "Parents'
- * Love & Recommendations" section) sits at the top; below it, the brand image
- * and supporting copy share a two-column layout (image first on mobile). Links
- * to the full About page.
+ * Home-page About teaser (admin-editable). A centered section header sits at
+ * the top; below it, the supporting copy + two CTAs. Content comes from the
+ * editable site content (`getSiteContent().about`), passed down by the page.
  */
-export function AboutTeaser() {
+export function AboutTeaser({ about }: { about: AboutTeaserContent }) {
   return (
     <section className="relative overflow-hidden bg-cream-50/40">
       {/* soft decorative background */}
@@ -22,33 +22,31 @@ export function AboutTeaser() {
         {/* centered section header */}
         <Reveal className="text-center">
           <h2 className="font-display text-3xl font-bold tracking-tight text-ink sm:text-4xl">
-            About Us
+            {about.heading}
           </h2>
           <p className="mx-auto mt-3 max-w-2xl font-display text-lg font-semibold text-ink sm:text-xl">
-            Learning Through Play, Inspired by Montessori.
+            {about.subheading}
           </p>
         </Reveal>
 
         {/* description + buttons */}
         <Reveal className="mt-6 text-center">
-          <p className="mx-auto max-w-2xl text-[15px] leading-relaxed text-ink-muted">
-            We craft natural, non-toxic wooden toys designed the Montessori way — to nurture
-            creativity, independence, and a lifelong love of learning. Every piece is made by
-            hand, and made to be treasured.
+          <p className="mx-auto max-w-2xl whitespace-pre-line text-[15px] leading-relaxed text-ink-muted">
+            {about.body}
           </p>
           <div className="mt-7 flex flex-wrap justify-center gap-3">
             <Link
-              href="/about"
+              href={about.primaryHref}
               className="group inline-flex h-11 items-center justify-center gap-2 rounded-md bg-neem px-6 text-sm font-bold text-paper transition-all duration-300 hover:-translate-y-0.5 hover:bg-neem-deep"
             >
-              Learn More
+              {about.primaryLabel}
               <ArrowRight className="size-4 transition-transform duration-300 group-hover:translate-x-1" />
             </Link>
             <Link
-              href="/collections/all"
+              href={about.secondaryHref}
               className="inline-flex h-11 items-center justify-center rounded-md border border-cream-300 bg-paper px-6 text-sm font-bold text-ink transition-colors hover:border-neem"
             >
-              Shop Collection
+              {about.secondaryLabel}
             </Link>
           </div>
         </Reveal>
