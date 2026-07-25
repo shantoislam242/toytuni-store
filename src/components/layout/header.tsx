@@ -34,12 +34,11 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import {
-  mainNav,
   ageNav,
   categoryNav,
   categoryGroups,
-  type NavLink,
 } from "@/lib/mock/nav";
+import type { NavLink } from "@/lib/data/nav-shape";
 import { ageTiers } from "@/lib/mock/age-tiers";
 import type { Tone } from "@/lib/types";
 import { BRAND_NAME } from "@/lib/config";
@@ -426,7 +425,7 @@ function DrawerList({
   );
 }
 
-export function Header() {
+export function Header({ mainNav }: { mainNav: NavLink[] }) {
   const [open, setOpen] = useState(false);
   // Mobile-only: the header search icon reveals a full-width search bar.
   const [mobileSearch, setMobileSearch] = useState(false);
