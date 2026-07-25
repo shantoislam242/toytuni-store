@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -34,10 +35,10 @@ const DASHBOARD: NavItem[] = [
   { label: "Wishlist", href: "/account/wishlist", icon: Heart, badge: "wishlist" },
 ];
 const SETTINGS: NavItem[] = [
-  { label: "Profile", href: "/account/profile", icon: UserRound, soon: true },
-  { label: "Preferences", href: "/account/preferences", icon: SlidersHorizontal, soon: true },
+  { label: "Profile", href: "/account/profile", icon: UserRound },
+  { label: "Preferences", href: "/account/preferences", icon: SlidersHorizontal },
   { label: "Addresses", href: "/account/addresses", icon: MapPin },
-  { label: "Security", href: "/account/security", icon: ShieldCheck, soon: true },
+  { label: "Security", href: "/account/security", icon: ShieldCheck },
 ];
 
 function isActive(pathname: string, href: string): boolean {
@@ -48,7 +49,7 @@ function isActive(pathname: string, href: string): boolean {
 export function AccountSidebar({
   user, tier, points, orderCount, showAdminLink,
 }: {
-  user: { name: string; email: string };
+  user: { name: string; email: string; avatarUrl?: string | null };
   tier: CustomerTier;
   points: number;
   orderCount: number;
@@ -117,8 +118,12 @@ export function AccountSidebar({
     <aside className="rounded-2xl border border-cream-300 bg-card p-4 lg:sticky lg:top-[110px]">
       {/* profile card */}
       <div className="flex items-center gap-3 border-b border-cream-200 pb-4">
-        <span className="flex size-12 flex-none items-center justify-center rounded-full bg-neem/10 text-lg font-bold text-neem-deep">
-          {(user.name || user.email).charAt(0).toUpperCase()}
+        <span className="relative flex size-12 flex-none items-center justify-center overflow-hidden rounded-full bg-neem/10 text-lg font-bold text-neem-deep">
+          {user.avatarUrl ? (
+            <Image src={user.avatarUrl} alt="" fill sizes="48px" className="object-cover" />
+          ) : (
+            (user.name || user.email).charAt(0).toUpperCase()
+          )}
         </span>
         <div className="min-w-0">
           <p className="truncate font-display font-bold text-ink">{user.name}</p>

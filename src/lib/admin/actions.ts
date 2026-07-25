@@ -5,6 +5,7 @@ import { getIsAdmin, getSessionUser } from "@/lib/auth/session";
 import { getIsSuperAdmin, adminEnvEmails } from "@/lib/auth/roles";
 import { wouldOrphanSupers } from "@/lib/auth/super-guard";
 import { createAdminSupabase } from "@/lib/supabase/admin";
+import { uploadImageToBucket as uploadImageToBucketShared } from "@/lib/storage/upload-image";
 import type { Database } from "@/lib/supabase/database.types";
 import type { DetailContent } from "@/lib/types";
 import type { Settings } from "@/lib/data/settings-shape";
@@ -555,45 +556,14 @@ export async function adjustStock(
   return { ok: true, stock: next };
 }
 
-/** ~5 MB cap on uploaded product photos. */
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
-
-/** Map an image MIME subtype to a file extension for the storage object key. */
-function extFromType(type: string): string | null {
-  switch (type) {
-    case "image/jpeg":
-      return "jpg";
-    case "image/png":
-      return "png";
-    case "image/webp":
-      return "webp";
-    case "image/gif":
-      return "gif";
-    case "image/avif":
-      return "avif";
-    default:
-      return null;
-  }
-}
-
 /** Upload a validated image to the public product-images bucket; return its
  *  https URL. Does NOT write any product column — callers decide (image_url vs
- *  gallery_urls). */
+ *  gallery_urls). Shared with the customer-avatar upload — see
+ *  `@/lib/storage/upload-image`. */
 async function uploadImageToBucket(
   db: AdminDb, slug: string, file: File,
 ): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
-  if (file.size === 0) return { ok: false, error: "No image file provided." };
-  if (!file.type.startsWith("image/")) return { ok: false, error: "File must be an image." };
-  if (file.size > MAX_IMAGE_BYTES) return { ok: false, error: "Image must be 5 MB or smaller." };
-  const ext = extFromType(file.type);
-  if (!ext) return { ok: false, error: `Unsupported image type: ${file.type}` };
-  const objectPath = `${slug}/${Date.now()}-${Math.round(file.size)}.${ext}`;
-  const { error: uploadErr } = await db.storage
-    .from("product-images").upload(objectPath, file, { contentType: file.type, upsert: false });
-  if (uploadErr) return { ok: false, error: uploadErr.message };
-  const { data: pub } = db.storage.from("product-images").getPublicUrl(objectPath);
-  if (!pub.publicUrl?.startsWith("https")) return { ok: false, error: "Storage returned a non-https URL." };
-  return { ok: true, url: pub.publicUrl };
+  return uploadImageToBucketShared(db, slug, file);
 }
 
 /**
