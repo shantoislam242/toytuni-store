@@ -5,10 +5,11 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const TABS = [
-  { label: "Homepage", href: "/admin/content" },
+  { label: "Homepage", href: "/admin/content", exact: true },
   { label: "About page", href: "/admin/content/about" },
   { label: "Bulk page", href: "/admin/content/bulk" },
   { label: "Loyalty page", href: "/admin/content/loyalty" },
+  { label: "Policies", href: "/admin/content/policies" },
 ];
 
 /** Sub-navigation for the admin Content area (Homepage / About / …). */
@@ -17,7 +18,7 @@ export function ContentNav() {
   return (
     <div className="mt-4 flex flex-wrap gap-1 border-b border-cream-200">
       {TABS.map((t) => {
-        const active = pathname === t.href;
+        const active = t.exact ? pathname === t.href : pathname === t.href || pathname.startsWith(`${t.href}/`);
         return (
           <Link
             key={t.href}

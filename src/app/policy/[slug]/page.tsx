@@ -4,7 +4,7 @@ import { SafetyStandardsView } from "@/components/policy/safety-standards-view";
 import { ShippingPolicyView } from "@/components/policy/shipping-policy-view";
 import { SustainabilityView } from "@/components/policy/sustainability-view";
 import { StubPage } from "@/components/stub-page";
-import { getPolicy } from "@/lib/policy";
+import { getPolicyContent } from "@/lib/data/policy-content";
 
 export async function generateMetadata({
   params,
@@ -38,7 +38,7 @@ export async function generateMetadata({
         "Our commitment to the planet — renewable neem wood, plastic-free packaging, low-waste craftsmanship, and toys made to last generations then return to the earth.",
     };
   }
-  const policy = getPolicy(slug);
+  const policy = await getPolicyContent(slug);
   if (policy) {
     return { title: policy.title, alternates, description: policy.intro };
   }
@@ -60,7 +60,7 @@ export default async function Page({
   if (slug === "sustainability") {
     return <SustainabilityView />;
   }
-  const policy = getPolicy(slug);
+  const policy = await getPolicyContent(slug);
   if (policy) {
     return <PolicyPageView content={policy} />;
   }
