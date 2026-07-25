@@ -4,6 +4,14 @@ import Link from "next/link";
 import Image from "next/image";
 import { motion } from "motion/react";
 import { ArrowRight, Heart } from "lucide-react";
+import {
+  DEFAULT_HERO_DESKTOP,
+  DEFAULT_HERO_MOBILE,
+  type HeroContent,
+} from "@/lib/data/content-shape";
+
+const HERO_ALT =
+  "Handmade neem-wood Montessori stacking tower, shape sorter, pull-along duck and rattle on a linen tabletop";
 
 // Entrance choreography — a calm, staggered fade-up with a gentle defocus→focus
 // blur. Slow easeOut curve (no bounce/overshoot) so it reads elegant, not flashy.
@@ -34,7 +42,9 @@ const rise = {
  * markup (never gated by JS), so the hero always paints; only the CTA float /
  * shine / hover-arrow are animated.
  */
-export function HeroCarousel() {
+export function HeroCarousel({ hero }: { hero: HeroContent }) {
+  const desktopSrc = hero.imageDesktop ?? DEFAULT_HERO_DESKTOP;
+  const mobileSrc = hero.imageMobile ?? DEFAULT_HERO_MOBILE;
   return (
     <section className="relative w-full overflow-hidden">
       {/* CONTENT — absolute overlay at every size, vertically centred over the
@@ -49,12 +59,10 @@ export function HeroCarousel() {
           >
             <motion.div className="max-w-xl lg:translate-y-7" variants={stagger}>
               <motion.h2
-                className="font-[family-name:var(--font-fraunces)] text-2xl font-bold leading-[1.05] tracking-tight text-neem-deep sm:text-4xl lg:text-6xl"
+                className="whitespace-pre-line font-[family-name:var(--font-fraunces)] text-2xl font-bold leading-[1.05] tracking-tight text-neem-deep sm:text-4xl lg:text-6xl"
                 variants={rise}
               >
-                Learning Begins
-                <br />
-                with Play
+                {hero.heading}
               </motion.h2>
 
               <motion.div className="mt-1.5 flex items-center gap-3 sm:mt-3" aria-hidden variants={rise}>
@@ -67,8 +75,7 @@ export function HeroCarousel() {
                 className="mt-3 hidden max-w-md text-xs leading-5 text-[#8a765c] sm:mt-4 sm:text-[15px] sm:leading-6 lg:block"
                 variants={rise}
               >
-                Thoughtfully crafted Montessori toys that nurture creativity,
-                confidence, and independent learning.
+                {hero.subheading}
               </motion.p>
             </motion.div>
 
@@ -87,7 +94,7 @@ export function HeroCarousel() {
               >
                 <div className="absolute inset-x-3 -bottom-2 h-3 rounded-full bg-ink/15 blur-xl" />
                 <Link
-                  href="/collections/by-age"
+                  href={hero.secondaryHref}
                   className="group relative inline-flex w-32 items-center justify-center overflow-hidden whitespace-nowrap rounded-full border border-white/60 bg-paper/80 px-3.5 py-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-neem-deep shadow-[0_10px_28px_rgba(31,41,20,0.14)] backdrop-blur-md transition-colors duration-300 ease-out hover:border-neem hover:bg-paper sm:w-44 sm:px-5 sm:py-3 sm:text-sm"
                 >
                   <motion.span
@@ -98,7 +105,7 @@ export function HeroCarousel() {
                   <span className="relative z-10 inline-flex items-center">
                     <ArrowRight className="pointer-events-none absolute left-0 top-1/2 size-4 -translate-x-8 -translate-y-1/2 opacity-0 transition-all duration-300 ease-out group-hover:translate-x-0 group-hover:opacity-100" />
                     <span className="transition-transform duration-300 ease-out group-hover:translate-x-6">
-                      Explore by Age
+                      {hero.secondaryLabel}
                     </span>
                   </span>
                 </Link>
@@ -114,7 +121,7 @@ export function HeroCarousel() {
               >
                 <div className="absolute inset-x-3 -bottom-2 h-3 rounded-full bg-neem/25 blur-xl" />
                 <Link
-                  href="/collections/all"
+                  href={hero.primaryHref}
                   className="group relative inline-flex w-32 items-center justify-center overflow-hidden whitespace-nowrap rounded-full border border-white/20 bg-[linear-gradient(135deg,#8fb466_0%,#5f7e3d_100%)] px-3.5 py-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-paper shadow-[0_14px_34px_rgba(83,117,57,0.24)] transition-all duration-300 ease-out hover:bg-[linear-gradient(135deg,#9cc56f_0%,#6d8f45_100%)] sm:w-44 sm:px-5 sm:py-3 sm:text-sm"
                 >
                   <motion.span
@@ -125,7 +132,7 @@ export function HeroCarousel() {
                   <span className="relative z-10 inline-flex items-center">
                     <ArrowRight className="pointer-events-none absolute left-0 top-1/2 size-4 -translate-x-8 -translate-y-1/2 opacity-0 transition-all duration-300 ease-out group-hover:translate-x-0 group-hover:opacity-100" />
                     <span className="transition-transform duration-300 ease-out group-hover:translate-x-6">
-                      Shop Now
+                      {hero.primaryLabel}
                     </span>
                   </span>
                 </Link>
@@ -141,8 +148,8 @@ export function HeroCarousel() {
           sides. Wide screens still get the tuned 76vh. */}
       <div className="relative hidden w-full overflow-hidden lg:block lg:h-[min(76vh,43vw)]">
         <Image
-          src="/images/hero/hero-v2.webp"
-          alt="Handmade neem-wood Montessori stacking tower, shape sorter, pull-along duck and rattle on a linen tabletop"
+          src={desktopSrc}
+          alt={HERO_ALT}
           fill
           priority
           sizes="100vw"
@@ -158,8 +165,8 @@ export function HeroCarousel() {
           it, with a cream scrim on the left for legibility. */}
       <div className="relative lg:hidden">
         <Image
-          src="/images/hero/hero-mobile-43.webp"
-          alt="Handmade neem-wood Montessori stacking tower, shape sorter, pull-along duck and rattle on a linen tabletop"
+          src={mobileSrc}
+          alt={HERO_ALT}
           width={1095}
           height={821}
           priority
