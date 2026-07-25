@@ -33,7 +33,11 @@ export default async function AccountLayout({ children }: { children: ReactNode 
     <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 lg:py-12">
       <div className="grid gap-6 lg:grid-cols-[264px_minmax(0,1fr)]">
         <AccountSidebar
-          user={{ name: user.user_metadata?.full_name ?? user.email, email: user.email }}
+          user={{
+            name: user.user_metadata?.full_name ?? user.email,
+            email: user.email,
+            avatarUrl: (user.user_metadata?.avatar_url as string | undefined) ?? null,
+          }}
           tier={tier}
           points={points}
           orderCount={dashboard.totalOrders}
