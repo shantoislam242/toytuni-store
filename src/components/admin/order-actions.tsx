@@ -9,6 +9,8 @@ import {
   PackageCheck,
   XCircle,
   BadgeDollarSign,
+  RotateCcw,
+  Undo2,
   Download,
   Printer,
   SendHorizontal,
@@ -27,12 +29,14 @@ import {
   shipOrder,
   markOrderPaid,
   cancelOrder,
+  returnOrder,
+  markOrderRefunded,
   addOrderNote,
 } from "@/lib/admin/actions";
 import { ORDER_CARRIERS } from "@/lib/admin/order-constants";
 import { allowedTransitions, type OrderStatus } from "@/lib/orders/status-workflow";
 
-type DialogState = { mode: "ship" } | { mode: "cancel" } | null;
+type DialogState = { mode: "ship" } | { mode: "cancel" } | { mode: "return" } | null;
 
 /**
  * Workflow-driven action panel for the order-detail page (Order-Fulfillment
@@ -65,6 +69,8 @@ export function OrderActions({
   const canDeliver = next.includes("delivered");
   const canCancel = next.includes("cancelled");
   const canMarkPaid = paymentStatus === "pending" && status !== "cancelled";
+  const canReturn = status === "delivered";
+  const canRefund = paymentStatus === "paid";
 
   const refresh = () => router.refresh();
 
@@ -83,6 +89,7 @@ export function OrderActions({
   const handleConfirm = () => runSimple("Order confirmed.", () => updateOrderStatus(orderId, "confirmed"));
   const handleDeliver = () => runSimple("Order marked delivered.", () => updateOrderStatus(orderId, "delivered"));
   const handleMarkPaid = () => runSimple("Order marked as paid.", () => markOrderPaid(orderId));
+  const handleRefund = () => runSimple("Payment refunded.", () => markOrderRefunded(orderId));
 
   const handleAddNote = () => {
     const trimmed = note.trim();
@@ -147,6 +154,16 @@ export function OrderActions({
           <XCircle className="size-4" /> Cancel…
         </Button>
       )}
+      {canReturn && (
+        <Button size="sm" variant="outline" onClick={() => setDialog({ mode: "return" })} disabled={isPending}>
+          <RotateCcw className="size-4" /> Return…
+        </Button>
+      )}
+      {canRefund && (
+        <Button size="sm" variant="outline" onClick={handleRefund} disabled={isPending}>
+          <Undo2 className="size-4" /> Refund
+        </Button>
+      )}
       <Button size="sm" variant="outline" onClick={handleDownloadInvoice} disabled={isPending}>
         <Download className="size-4" /> Download invoice
       </Button>
@@ -190,6 +207,81 @@ export function OrderActions({
           }}
         />
       )}
+      {dialog?.mode === "return" && (
+        <ReturnDialog
+          orderId={orderId}
+          onClose={() => setDialog(null)}
+          onDone={() => {
+            setDialog(null);
+            refresh();
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function ReturnDialog({
+  orderId,
+  onClose,
+  onDone,
+}: {
+  orderId: string;
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const [reason, setReason] = useState("");
+  const [busy, start] = useTransition();
+
+  const save = () => {
+    if (reason.trim() === "") return toast.error("A return reason is required.");
+    start(async () => {
+      const r = await returnOrder(orderId, reason);
+      if (r.ok) {
+        toast.success("Order returned.");
+        onDone();
+      } else {
+        toast.error(r.error);
+      }
+    });
+  };
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4"
+      onClick={() => !busy && onClose()}
+    >
+      <div
+        className="w-full max-w-md rounded-2xl border border-cream-300 bg-white p-6 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 className="font-display text-lg font-bold text-ink">Return order</h2>
+        <p className="mt-1 text-sm text-ink-muted">
+          Restocks the items and refunds the payment if it was marked paid.
+        </p>
+        <div className="mt-4">
+          <label className="block">
+            <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">Reason</span>
+            <textarea
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              rows={3}
+              placeholder="Why is this order being returned?"
+              className="mt-1 w-full rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+            />
+          </label>
+        </div>
+        <div className="mt-5 flex justify-end gap-3">
+          <Button variant="outline" onClick={onClose} disabled={busy}>
+            Back
+          </Button>
+          <Button onClick={save} disabled={busy}>
+            {busy ? "Processing…" : "Return order"}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

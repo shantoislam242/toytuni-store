@@ -116,6 +116,8 @@ function statusTitle(status: string): string {
       return "Order delivered";
     case "cancelled":
       return "Order cancelled";
+    case "returned":
+      return "Order returned";
     default:
       return `Order updated: ${status}`;
   }

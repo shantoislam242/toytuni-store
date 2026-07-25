@@ -92,6 +92,7 @@ export async function updateOrderStatus(orderId: string, to: string): Promise<Ac
   if (!(await getIsAdmin())) throw new Error("unauthorized");
   if (!isOrderStatus(to)) return { ok: false, error: "Invalid status." };
   if (to === "cancelled") return { ok: false, error: "Use cancel to cancel an order." };
+  if (to === "returned") return { ok: false, error: "Use return to return an order." };
   const db = createAdminSupabase();
   const from = await currentOrderStatus(db, orderId);
   if (!from) return { ok: false, error: "Order not found." };
@@ -188,6 +189,51 @@ export async function cancelOrder(orderId: string, reason: string): Promise<Acti
   await notifyOrderStatus(db, orderId, "cancelled", reason.trim() || undefined);
   revalidateOrder(orderId);
   await emailOrder(orderId, "cancelled");
+  return { ok: true };
+}
+
+/**
+ * Return a delivered order. Server Action — admin re-check; the status flip +
+ * stock restore (+ refund of a paid order) happen atomically in the
+ * `return_order` Postgres function (migration 0025), the same pattern as
+ * `cancelOrder`. Only `delivered` orders can be returned, mapped here to a
+ * friendly message. Notifies the customer (in-app).
+ */
+export async function returnOrder(orderId: string, reason: string): Promise<ActionResult> {
+  if (!(await getIsAdmin())) throw new Error("unauthorized");
+  const db = createAdminSupabase();
+  const { error } = await db.rpc("return_order" as never, {
+    p_order_id: orderId, p_reason: reason.trim(), p_changed_by: await actorEmail(),
+  } as never);
+  if (error) {
+    const msg = error.message.includes("cannot_return_from")
+      ? "Only delivered orders can be returned." : error.message;
+    return { ok: false, error: msg };
+  }
+  await notifyOrderStatus(db, orderId, "returned", reason.trim() || undefined);
+  revalidateOrder(orderId);
+  return { ok: true };
+}
+
+/**
+ * Mark a paid order's payment as refunded (without a return — e.g. a goodwill
+ * refund). Server Action — admin re-check; only a `paid` order can be refunded.
+ * Records `refunded_at`, a history note, and notifies the customer.
+ */
+export async function markOrderRefunded(orderId: string): Promise<ActionResult> {
+  if (!(await getIsAdmin())) throw new Error("unauthorized");
+  const db = createAdminSupabase();
+  const { data } = await db.from("orders").select("status, payment_status").eq("id", orderId)
+    .maybeSingle().overrideTypes<{ status: string; payment_status: string }, { merge: false }>();
+  if (!data) return { ok: false, error: "Order not found." };
+  if (data.payment_status !== "paid") return { ok: false, error: "Only a paid order can be refunded." };
+  const { error } = await db.from("orders").update({
+    payment_status: "refunded", refunded_at: new Date().toISOString(),
+  } as never).eq("id", orderId);
+  if (error) return { ok: false, error: error.message };
+  await appendHistory(db, orderId, data.status, "Payment refunded", await actorEmail());
+  await createOrderNotification(db, orderId, "Refund processed", "Your payment has been refunded.");
+  revalidateOrder(orderId);
   return { ok: true };
 }
 
