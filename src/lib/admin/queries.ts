@@ -946,7 +946,9 @@ export async function getAdminTeam(): Promise<AdminTeamMember[]> {
 export type AdminCoupon = {
   id: string;
   code: string;
+  type: "percent" | "fixed";
   discountPct: number;
+  discountAmount: number;
   active: boolean;
   minSubtotal: number;
   /** `YYYY-MM-DD` (the chosen day), or null for no expiry. */
@@ -959,7 +961,9 @@ export type AdminCoupon = {
 type CouponRow = {
   id: string;
   code: string;
+  type: "percent" | "fixed" | null;
   discount_pct: number;
+  discount_amount: number | null;
   active: boolean;
   min_subtotal: number;
   expires_at: string | null;
@@ -975,14 +979,16 @@ export async function getAdminCoupons(): Promise<AdminCoupon[]> {
   const db = createAdminSupabase();
   const { data, error } = await db
     .from("coupons" as never)
-    .select("id, code, discount_pct, active, min_subtotal, expires_at, usage_limit, used_count, created_at")
+    .select("id, code, type, discount_pct, discount_amount, active, min_subtotal, expires_at, usage_limit, used_count, created_at")
     .order("created_at", { ascending: false })
     .overrideTypes<CouponRow[], { merge: false }>();
   if (error) throw new Error(`getAdminCoupons failed: ${error.message}`);
   return (data ?? []).map((r) => ({
     id: r.id,
     code: r.code,
+    type: r.type ?? "percent",
     discountPct: r.discount_pct,
+    discountAmount: r.discount_amount ?? 0,
     active: r.active,
     minSubtotal: r.min_subtotal,
     expiresAt: r.expires_at ? r.expires_at.slice(0, 10) : null,

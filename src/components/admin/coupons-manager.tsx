@@ -19,9 +19,13 @@ function intOrNull(v: string): number | null {
   return Number.isInteger(n) && n >= 0 ? n : null;
 }
 
+type CouponType = "percent" | "fixed";
+
 type FormState = {
   code: string;
+  type: CouponType;
   discountPct: string;
+  discountAmount: string;
   minSubtotal: string;
   expiresAt: string;
   usageLimit: string;
@@ -29,13 +33,16 @@ type FormState = {
 };
 
 const BLANK: FormState = {
-  code: "", discountPct: "", minSubtotal: "0", expiresAt: "", usageLimit: "", active: true,
+  code: "", type: "percent", discountPct: "", discountAmount: "",
+  minSubtotal: "0", expiresAt: "", usageLimit: "", active: true,
 };
 
 function fromCoupon(c: AdminCoupon): FormState {
   return {
     code: c.code,
-    discountPct: String(c.discountPct),
+    type: c.type,
+    discountPct: c.type === "percent" ? String(c.discountPct) : "",
+    discountAmount: c.type === "fixed" ? String(c.discountAmount) : "",
     minSubtotal: String(c.minSubtotal),
     expiresAt: c.expiresAt ?? "",
     usageLimit: c.usageLimit == null ? "" : String(c.usageLimit),
@@ -66,9 +73,18 @@ export function CouponsManager({ coupons }: { coupons: AdminCoupon[] }) {
   };
 
   const submit = () => {
-    const pct = intOrNull(form.discountPct);
     if (form.code.trim() === "") return toast.error("Coupon code is required.");
-    if (pct == null || pct < 1 || pct > 100) return toast.error("Discount must be a whole number from 1 to 100.");
+    let pct = 0;
+    let amount = 0;
+    if (form.type === "percent") {
+      const p = intOrNull(form.discountPct);
+      if (p == null || p < 1 || p > 100) return toast.error("Discount must be a whole number from 1 to 100.");
+      pct = p;
+    } else {
+      const a = intOrNull(form.discountAmount);
+      if (a == null || a < 1) return toast.error("Discount amount must be a whole number ≥ ৳1.");
+      amount = a;
+    }
     const min = intOrNull(form.minSubtotal) ?? 0;
     const usage = form.usageLimit.trim() === "" ? null : intOrNull(form.usageLimit);
     if (form.usageLimit.trim() !== "" && (usage == null || usage < 1)) {
@@ -76,7 +92,9 @@ export function CouponsManager({ coupons }: { coupons: AdminCoupon[] }) {
     }
     const input: CouponInput = {
       code: form.code,
+      type: form.type,
       discountPct: pct,
+      discountAmount: amount,
       active: form.active,
       minSubtotal: min,
       expiresAt: form.expiresAt.trim() === "" ? null : form.expiresAt,
@@ -121,14 +139,39 @@ export function CouponsManager({ coupons }: { coupons: AdminCoupon[] }) {
               />
             </label>
             <label className="block">
-              <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">Discount (%)</span>
-              <Input
-                type="number" min={1} max={100} step={1} inputMode="numeric"
-                value={form.discountPct}
-                onChange={(e) => set("discountPct", e.target.value)}
-                className="mt-1"
-              />
+              <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">Type</span>
+              <select
+                value={form.type}
+                onChange={(e) => set("type", e.target.value as CouponType)}
+                className="mt-1 h-9 w-full rounded-md border border-cream-300 bg-paper px-3 text-sm text-ink outline-none focus-visible:border-neem focus-visible:ring-2 focus-visible:ring-neem/25"
+              >
+                <option value="percent">Percentage (%)</option>
+                <option value="fixed">Fixed amount (৳)</option>
+              </select>
             </label>
+            {form.type === "percent" ? (
+              <label className="block">
+                <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">Discount (%)</span>
+                <Input
+                  type="number" min={1} max={100} step={1} inputMode="numeric"
+                  value={form.discountPct}
+                  onChange={(e) => set("discountPct", e.target.value)}
+                  placeholder="15"
+                  className="mt-1"
+                />
+              </label>
+            ) : (
+              <label className="block">
+                <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">Discount (৳)</span>
+                <Input
+                  type="number" min={1} step={1} inputMode="numeric"
+                  value={form.discountAmount}
+                  onChange={(e) => set("discountAmount", e.target.value)}
+                  placeholder="100"
+                  className="mt-1"
+                />
+              </label>
+            )}
             <label className="block">
               <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">Min order (৳) — optional</span>
               <Input
@@ -202,7 +245,9 @@ export function CouponsManager({ coupons }: { coupons: AdminCoupon[] }) {
                 {coupons.map((c) => (
                   <tr key={c.id} className="border-b border-cream-200 last:border-b-0 hover:bg-cream-50">
                     <td className="px-4 py-3 font-mono text-xs font-semibold text-ink">{c.code}</td>
-                    <td className="px-4 py-3 text-ink">{c.discountPct}%</td>
+                    <td className="px-4 py-3 text-ink">
+                      {c.type === "fixed" ? `৳${c.discountAmount.toLocaleString("en-US")}` : `${c.discountPct}%`}
+                    </td>
                     <td className="px-4 py-3 text-ink-muted">{c.minSubtotal > 0 ? `৳${c.minSubtotal}` : "—"}</td>
                     <td className="px-4 py-3 text-ink-muted">
                       {c.usedCount}{c.usageLimit != null ? ` / ${c.usageLimit}` : ""}

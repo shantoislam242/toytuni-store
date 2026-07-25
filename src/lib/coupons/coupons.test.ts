@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { normalizeCode } from "./normalize";
-import { computeCouponDiscount } from "./discount";
+import { computeCouponDiscount, couponKind, couponLabel } from "./discount";
 import { validateCoupon, type CouponRow } from "./validate";
 
 describe("normalizeCode", () => {
@@ -10,21 +10,40 @@ describe("normalizeCode", () => {
   });
 });
 
-describe("computeCouponDiscount", () => {
+describe("computeCouponDiscount (percent)", () => {
+  const pct = (p: number) => couponKind({ type: "percent", discountPct: p, discountAmount: 0 });
   it("rounds to whole Taka", () => {
-    expect(computeCouponDiscount(1000, 15)).toBe(150);
-    expect(computeCouponDiscount(999, 10)).toBe(100); // 99.9 → 100
-    expect(computeCouponDiscount(720, 20)).toBe(144);
+    expect(computeCouponDiscount(pct(15), 1000)).toBe(150);
+    expect(computeCouponDiscount(pct(10), 999)).toBe(100); // 99.9 → 100
+    expect(computeCouponDiscount(pct(20), 720)).toBe(144);
   });
   it("caps at the subtotal and floors non-positive inputs at 0", () => {
-    expect(computeCouponDiscount(500, 100)).toBe(500);
-    expect(computeCouponDiscount(0, 20)).toBe(0);
-    expect(computeCouponDiscount(500, 0)).toBe(0);
+    expect(computeCouponDiscount(pct(100), 500)).toBe(500);
+    expect(computeCouponDiscount(pct(20), 0)).toBe(0);
+    expect(computeCouponDiscount(pct(0), 500)).toBe(0);
+  });
+});
+
+describe("computeCouponDiscount (fixed)", () => {
+  const fixed = (a: number) => couponKind({ type: "fixed", discountPct: 0, discountAmount: a });
+  it("takes the flat amount off, capped at the subtotal", () => {
+    expect(computeCouponDiscount(fixed(100), 1000)).toBe(100);
+    expect(computeCouponDiscount(fixed(500), 300)).toBe(300); // capped
+    expect(computeCouponDiscount(fixed(0), 1000)).toBe(0);
+  });
+});
+
+describe("couponLabel", () => {
+  it("formats percent and fixed", () => {
+    expect(couponLabel({ type: "percent", discountPct: 15, discountAmount: 0 })).toBe("15% off");
+    expect(couponLabel({ type: "fixed", discountPct: 0, discountAmount: 100 })).toBe("৳100 off");
   });
 });
 
 const base: CouponRow = {
+  type: "percent",
   discount_pct: 15,
+  discount_amount: 0,
   active: true,
   min_subtotal: 0,
   expires_at: null,
@@ -32,10 +51,18 @@ const base: CouponRow = {
   used_count: 0,
 };
 const now = new Date("2026-07-23T00:00:00Z");
+const okPercent = { ok: true, kind: { type: "percent", pct: 15 } };
 
 describe("validateCoupon", () => {
-  it("happy path returns the pct", () => {
-    expect(validateCoupon(base, 1000, now)).toEqual({ ok: true, discountPct: 15 });
+  it("happy path returns the percent kind", () => {
+    expect(validateCoupon(base, 1000, now)).toEqual(okPercent);
+  });
+  it("returns a fixed kind for a fixed coupon", () => {
+    expect(validateCoupon({ ...base, type: "fixed", discount_pct: 0, discount_amount: 100 }, 1000, now))
+      .toEqual({ ok: true, kind: { type: "fixed", amount: 100 } });
+  });
+  it("treats a missing type as percent (pre-migration row)", () => {
+    expect(validateCoupon({ ...base, type: undefined }, 1000, now)).toEqual(okPercent);
   });
   it("not_found for a null coupon", () => {
     expect(validateCoupon(null, 1000, now)).toEqual({ ok: false, reason: "not_found" });
@@ -50,17 +77,15 @@ describe("validateCoupon", () => {
       .toEqual({ ok: false, reason: "expired" });
   });
   it("future expiry passes", () => {
-    expect(validateCoupon({ ...base, expires_at: "2099-01-01T00:00:00Z" }, 1000, now))
-      .toEqual({ ok: true, discountPct: 15 });
+    expect(validateCoupon({ ...base, expires_at: "2099-01-01T00:00:00Z" }, 1000, now)).toEqual(okPercent);
   });
   it("below_min (and boundary: exactly min passes)", () => {
     expect(validateCoupon({ ...base, min_subtotal: 1000 }, 999, now)).toEqual({ ok: false, reason: "below_min" });
-    expect(validateCoupon({ ...base, min_subtotal: 1000 }, 1000, now)).toEqual({ ok: true, discountPct: 15 });
+    expect(validateCoupon({ ...base, min_subtotal: 1000 }, 1000, now)).toEqual(okPercent);
   });
   it("usage_exhausted when used_count reaches the limit", () => {
     expect(validateCoupon({ ...base, usage_limit: 2, used_count: 2 }, 1000, now))
       .toEqual({ ok: false, reason: "usage_exhausted" });
-    expect(validateCoupon({ ...base, usage_limit: 2, used_count: 1 }, 1000, now))
-      .toEqual({ ok: true, discountPct: 15 });
+    expect(validateCoupon({ ...base, usage_limit: 2, used_count: 1 }, 1000, now)).toEqual(okPercent);
   });
 });

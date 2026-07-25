@@ -4,26 +4,30 @@ import { revalidatePath } from "next/cache";
 import { getIsAdmin } from "@/lib/auth/session";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import { normalizeCode } from "@/lib/coupons/normalize";
-import { computeCouponDiscount } from "@/lib/coupons/discount";
+import { type CouponType } from "@/lib/coupons/discount";
 import { validateCoupon, COUPON_REASON_MESSAGE, type CouponRow } from "@/lib/coupons/validate";
 
 export type CouponActionResult = { ok: true } | { ok: false; error: string };
 
-/** Admin-supplied coupon fields. `expiresAt` is a `YYYY-MM-DD` day (or null);
- *  `usageLimit`/nulls mean "no limit". */
+/** Admin-supplied coupon fields. `type` picks percent vs fixed: percent uses
+ *  `discountPct` (1–100), fixed uses `discountAmount` (whole ৳). `expiresAt` is a
+ *  `YYYY-MM-DD` day (or null); `usageLimit`/nulls mean "no limit". */
 export type CouponInput = {
   code: string;
+  type: CouponType;
   discountPct: number;
+  discountAmount: number;
   active: boolean;
   minSubtotal: number;
   expiresAt: string | null;
   usageLimit: number | null;
 };
 
-/** `coupons` postpends the generated types (migration 0017), so reads/writes use
- *  the `as never` escape hatch, same as `admin_users` / other post-generation
+/** `coupons` postpends the generated types (migration 0017/0023), so reads/writes
+ *  use the `as never` escape hatch, same as `admin_users` / other post-generation
  *  tables in this repo. */
-const COUPON_SELECT = "discount_pct, active, min_subtotal, expires_at, usage_limit, used_count";
+const COUPON_SELECT =
+  "type, discount_pct, discount_amount, active, min_subtotal, expires_at, usage_limit, used_count";
 
 /**
  * Validate a code against the current subtotal (checkout "Apply"). Server-side +
@@ -36,7 +40,7 @@ export async function applyCoupon(
   code: string,
   subtotal: number,
 ): Promise<
-  | { ok: true; code: string; discountPct: number; discountAmount: number; minSubtotal: number }
+  | { ok: true; code: string; type: CouponType; discountPct: number; discountAmount: number; minSubtotal: number }
   | { ok: false; error: string }
 > {
   const normalized = normalizeCode(code);
@@ -52,11 +56,15 @@ export async function applyCoupon(
 
   const v = validateCoupon(data ?? null, subtotal, new Date());
   if (!v.ok) return { ok: false, error: COUPON_REASON_MESSAGE[v.reason] };
+  // Return the coupon's shape (type + both numbers) so the client stores it and
+  // the discount is (re)computed live from the current subtotal. `createOrder`
+  // re-validates authoritatively.
   return {
     ok: true,
     code: normalized,
-    discountPct: v.discountPct,
-    discountAmount: computeCouponDiscount(subtotal, v.discountPct),
+    type: v.kind.type,
+    discountPct: v.kind.type === "percent" ? v.kind.pct : 0,
+    discountAmount: v.kind.type === "fixed" ? v.kind.amount : 0,
     // Surfaced so the checkout can drop the discount (rather than fail at Place
     // Order) if the cart later falls below the minimum.
     minSubtotal: data?.min_subtotal ?? 0,
@@ -68,7 +76,9 @@ const CODE_RE = /^[A-Z0-9][A-Z0-9-]*$/;
 
 type NormalizedCoupon = {
   code: string;
+  type: CouponType;
   discount_pct: number;
+  discount_amount: number;
   active: boolean;
   min_subtotal: number;
   expires_at: string | null;
@@ -77,13 +87,27 @@ type NormalizedCoupon = {
 
 /** Validate + normalize admin input into a DB row (sans id/used_count). Expiry
  *  is stored as the END of the chosen day (UTC), so "expires 2026-08-01" stays
- *  valid through that whole day. */
+ *  valid through that whole day. Percent coupons need `discountPct` 1–100 (amount
+ *  stored 0); fixed coupons need `discountAmount` ≥ 1 (pct stored 0). */
 function normalizeInput(input: CouponInput): { ok: true; row: NormalizedCoupon } | { ok: false; error: string } {
   const code = normalizeCode(input.code);
   if (!code) return { ok: false, error: "Coupon code is required." };
   if (!CODE_RE.test(code)) return { ok: false, error: "Code can use only letters, numbers and dashes." };
-  if (!Number.isInteger(input.discountPct) || input.discountPct < 1 || input.discountPct > 100) {
-    return { ok: false, error: "Discount must be a whole number from 1 to 100." };
+  if (input.type !== "percent" && input.type !== "fixed") {
+    return { ok: false, error: "Choose a discount type." };
+  }
+  let discount_pct = 0;
+  let discount_amount = 0;
+  if (input.type === "percent") {
+    if (!Number.isInteger(input.discountPct) || input.discountPct < 1 || input.discountPct > 100) {
+      return { ok: false, error: "Discount must be a whole number from 1 to 100." };
+    }
+    discount_pct = input.discountPct;
+  } else {
+    if (!Number.isInteger(input.discountAmount) || input.discountAmount < 1) {
+      return { ok: false, error: "Discount amount must be a whole number ≥ ৳1." };
+    }
+    discount_amount = input.discountAmount;
   }
   if (!Number.isInteger(input.minSubtotal) || input.minSubtotal < 0) {
     return { ok: false, error: "Minimum order must be a non-negative whole number." };
@@ -102,7 +126,9 @@ function normalizeInput(input: CouponInput): { ok: true; row: NormalizedCoupon }
     ok: true,
     row: {
       code,
-      discount_pct: input.discountPct,
+      type: input.type,
+      discount_pct,
+      discount_amount,
       active: input.active,
       min_subtotal: input.minSubtotal,
       expires_at,

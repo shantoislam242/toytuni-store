@@ -19,7 +19,7 @@ import { useCart } from "@/lib/cart/cart-context";
 import { useCheckout } from "@/lib/checkout/checkout-context";
 import { useAuth } from "@/lib/auth/auth-context";
 import { listAddresses } from "@/lib/account/addresses";
-import { computeCouponDiscount } from "@/lib/coupons/discount";
+import { computeCouponDiscount, couponKind } from "@/lib/coupons/discount";
 import { formatTk } from "@/lib/format";
 import type { Address } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -323,7 +323,7 @@ export function CartView() {
   // selected subtotal; withheld if it's now below the coupon's minimum.
   const effectiveDiscount =
     appliedCoupon && selectedSubtotal >= appliedCoupon.minSubtotal
-      ? computeCouponDiscount(selectedSubtotal, appliedCoupon.discountPct)
+      ? computeCouponDiscount(couponKind(appliedCoupon), selectedSubtotal)
       : 0;
   // Gift wrapping only charges when there's something to wrap.
   const giftWrapCharge = giftWrap && selectedCount > 0 ? GIFT_WRAP_CHARGE : 0;

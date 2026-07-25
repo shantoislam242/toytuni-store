@@ -20,7 +20,7 @@ import { useCheckout } from "@/lib/checkout/checkout-context";
 import { computeAdvance } from "@/lib/data/advance";
 import { createOrder } from "@/lib/data/orders";
 import { applyCoupon } from "@/lib/coupons/actions";
-import { computeCouponDiscount } from "@/lib/coupons/discount";
+import { computeCouponDiscount, couponKind, couponLabel } from "@/lib/coupons/discount";
 import type { OverlaidProduct } from "@/lib/data/product-overlay";
 import { shippingOptions } from "@/lib/mock/checkout";
 import { priceDelivery, zoneForDistrict } from "@/lib/shipping";
@@ -134,7 +134,7 @@ export function CheckoutView({
   // Withhold the discount (but keep the coupon) if the cart is now below its
   // minimum, so the shown price never diverges from what the order will charge.
   const couponBelowMin = appliedCoupon != null && subtotal < appliedCoupon.minSubtotal;
-  const discount = appliedCoupon && !couponBelowMin ? computeCouponDiscount(subtotal, appliedCoupon.discountPct) : 0;
+  const discount = appliedCoupon && !couponBelowMin ? computeCouponDiscount(couponKind(appliedCoupon), subtotal) : 0;
   const couponNote = couponBelowMin && appliedCoupon
     ? `Add ৳${(appliedCoupon.minSubtotal - subtotal).toLocaleString("en-US")} more to use ${appliedCoupon.code}.`
     : null;
@@ -147,8 +147,11 @@ export function CheckoutView({
     startApplyCoupon(async () => {
       const r = await applyCoupon(code, subtotal);
       if (r.ok) {
-        setAppliedCoupon({ code: r.code, discountPct: r.discountPct, minSubtotal: r.minSubtotal });
-        toast.success(`Coupon ${r.code} applied — ${r.discountPct}% off.`);
+        setAppliedCoupon({
+          code: r.code, type: r.type, discountPct: r.discountPct,
+          discountAmount: r.discountAmount, minSubtotal: r.minSubtotal,
+        });
+        toast.success(`Coupon ${r.code} applied — ${couponLabel(r)}.`);
       } else {
         setAppliedCoupon(null);
         toast.error(r.error);
