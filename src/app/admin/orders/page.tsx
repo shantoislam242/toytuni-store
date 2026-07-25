@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { ShoppingCart } from "lucide-react";
 import { getAdminOrders } from "@/lib/admin/queries";
 import { OrdersTable } from "@/components/admin/orders-table";
+import { ExportCsvLink } from "@/components/admin/export-csv-link";
 
 export function generateMetadata(): Metadata {
   return {
@@ -19,10 +20,15 @@ export default async function Page() {
 
   return (
     <div>
-      <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-neem-deep">
-        Sales
-      </p>
-      <h1 className="mt-1 font-display text-2xl font-bold text-ink">Orders</h1>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-neem-deep">
+            Sales
+          </p>
+          <h1 className="mt-1 font-display text-2xl font-bold text-ink">Orders</h1>
+        </div>
+        {orders.length > 0 ? <ExportCsvLink href="/admin/orders/export" /> : null}
+      </div>
 
       {orders.length === 0 ? (
         <div className="mt-6 flex flex-col items-center rounded-2xl border border-dashed border-cream-300 px-6 py-14 text-center">

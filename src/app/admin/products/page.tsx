@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Package, Plus } from "lucide-react";
 import { getAdminProducts } from "@/lib/admin/queries";
 import { ProductsTable } from "@/components/admin/products-table";
+import { ExportCsvLink } from "@/components/admin/export-csv-link";
 import { Button } from "@/components/ui/button";
 
 export function generateMetadata(): Metadata {
@@ -22,10 +23,15 @@ export default async function Page() {
 
   return (
     <div>
-      <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-neem-deep">
-        Catalog
-      </p>
-      <h1 className="mt-1 font-display text-2xl font-bold text-ink">Products</h1>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-neem-deep">
+            Catalog
+          </p>
+          <h1 className="mt-1 font-display text-2xl font-bold text-ink">Products</h1>
+        </div>
+        {products.length > 0 ? <ExportCsvLink href="/admin/products/export" /> : null}
+      </div>
 
       {products.length === 0 ? (
         <div className="mt-6 flex flex-col items-center rounded-2xl border border-dashed border-cream-300 px-6 py-14 text-center">
