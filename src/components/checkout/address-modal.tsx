@@ -4,15 +4,16 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Dialog } from "radix-ui";
 import { Check, LogIn, MapPin, Plus, Truck, X } from "lucide-react";
+import { AddressForm } from "@/components/checkout/address-form";
 import {
-  AddressForm,
   emptyDraft,
   isDraftValid,
   normalizeBdPhone,
   validateDraft,
   type AddressDraft,
-} from "@/components/checkout/address-form";
+} from "@/lib/checkout/address-fields";
 import { getShippingFee, zoneForDistrict } from "@/lib/shipping";
+import { createAddress } from "@/lib/account/addresses";
 import { useAuth } from "@/lib/auth/auth-context";
 import { formatTk } from "@/lib/format";
 import type { Address } from "@/lib/types";
@@ -102,9 +103,10 @@ export function AddressModal({
       landmark: draft.landmark.trim() || undefined,
       isDefault: false,
     };
-    // Stub — persist to the customer's account when a real API exists.
+    // Persist to the customer's account when asked (fire-and-forget — the
+    // checkout continues regardless; a first saved address becomes default).
     if (isLoggedIn && saveToAccount) {
-      // saveAddressToAccount(address)
+      void createAddress(draft, false);
     }
     onConfirm(address);
   };

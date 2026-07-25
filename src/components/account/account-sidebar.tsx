@@ -36,7 +36,7 @@ const DASHBOARD: NavItem[] = [
 const SETTINGS: NavItem[] = [
   { label: "Profile", href: "/account/profile", icon: UserRound, soon: true },
   { label: "Preferences", href: "/account/preferences", icon: SlidersHorizontal, soon: true },
-  { label: "Addresses", href: "/account/addresses", icon: MapPin, soon: true },
+  { label: "Addresses", href: "/account/addresses", icon: MapPin },
   { label: "Security", href: "/account/security", icon: ShieldCheck, soon: true },
 ];
 

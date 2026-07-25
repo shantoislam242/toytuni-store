@@ -2,69 +2,20 @@
 
 import { ChevronDown } from "lucide-react";
 import { divisionNames, districtsForDivision } from "@/lib/bd-locations";
+import type { AddressDraft, AddressErrors } from "@/lib/checkout/address-fields";
 
-/** Editable address fields (landmark optional). Kept separate from the saved
- *  `Address` type since a draft has no id / isDefault yet. */
-export type AddressDraft = {
-  fullName: string;
-  phone: string;
-  altPhone: string;
-  email: string;
-  division: string;
-  district: string;
-  area: string;
-  addressLine: string;
-  landmark: string;
-};
-
-export type AddressErrors = Partial<Record<keyof AddressDraft, string>>;
-
-/** BD mobile with separate +880 prefix: accepts 01712345678 or 1712345678. */
-export const PHONE_RE = /^0?1\d{9}$/;
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-export function normalizeBdPhone(phone: string): string {
-  const digits = phone.replace(/\D/g, "");
-  const local = digits.startsWith("0") ? digits.slice(1) : digits;
-  return `+880${local}`;
-}
-
-export function emptyDraft(): AddressDraft {
-  return {
-    fullName: "",
-    phone: "",
-    altPhone: "",
-    email: "",
-    division: "",
-    district: "",
-    area: "",
-    addressLine: "",
-    landmark: "",
-  };
-}
-
-/** Validate required fields + phone shape. Returns a per-field error map. */
-export function validateDraft(d: AddressDraft): AddressErrors {
-  const e: AddressErrors = {};
-  if (!d.fullName.trim()) e.fullName = "Full name is required.";
-  if (!d.phone.trim()) e.phone = "Phone number is required.";
-  else if (!PHONE_RE.test(d.phone.trim()))
-    e.phone = "Enter a valid BD number, e.g. 01712345678 or 1712345678.";
-  // Alternative phone is optional, but validate the shape when provided.
-  if (d.altPhone.trim() && !PHONE_RE.test(d.altPhone.trim()))
-    e.altPhone = "Enter a valid BD number, e.g. 01712345678 or 1712345678.";
-  if (d.email.trim() && !EMAIL_RE.test(d.email.trim()))
-    e.email = "Enter a valid email address.";
-  if (!d.division) e.division = "Select a division.";
-  if (!d.district) e.district = "Select a district.";
-  if (!d.area.trim()) e.area = "Area / thana is required.";
-  if (!d.addressLine.trim()) e.addressLine = "Full address is required.";
-  return e;
-}
-
-export function isDraftValid(d: AddressDraft): boolean {
-  return Object.keys(validateDraft(d)).length === 0;
-}
+// The address shape + validation live in the pure `address-fields` module so
+// the server-side address actions can share them; re-exported here so existing
+// importers of this component keep their import path.
+export type { AddressDraft, AddressErrors } from "@/lib/checkout/address-fields";
+export {
+  PHONE_RE,
+  normalizeBdPhone,
+  emptyDraft,
+  addressToDraft,
+  validateDraft,
+  isDraftValid,
+} from "@/lib/checkout/address-fields";
 
 const fieldCls =
   "h-11 w-full rounded-lg border border-cream-300 bg-paper px-3 text-sm text-ink outline-none transition-colors placeholder:text-ink-soft focus-visible:border-neem focus-visible:ring-2 focus-visible:ring-neem/25";

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Dialog } from "radix-ui";
@@ -17,6 +17,8 @@ import dynamic from "next/dynamic";
 import { GiftWrapDialog } from "@/components/cart/gift-wrap-dialog";
 import { useCart } from "@/lib/cart/cart-context";
 import { useCheckout } from "@/lib/checkout/checkout-context";
+import { useAuth } from "@/lib/auth/auth-context";
+import { listAddresses } from "@/lib/account/addresses";
 import { computeCouponDiscount } from "@/lib/coupons/discount";
 import { formatTk } from "@/lib/format";
 import type { Address } from "@/lib/types";
@@ -175,6 +177,7 @@ function QtyStepper({
 export function CartView() {
   const { items, hydrated, addItem, setQty, removeItem, clear } = useCart();
   const { setDeliveryAddress, appliedCoupon } = useCheckout();
+  const { user } = useAuth();
   const router = useRouter();
   // Terms agreement lives here so it can gate the Checkout button below.
   const [agreedToTerms, setAgreedToTerms] = useState(false);
@@ -332,10 +335,27 @@ export function CartView() {
   const preDeliveryTotal =
     Math.max(0, selectedSubtotal - effectiveDiscount) + giftWrapCharge;
 
-  // There is no real saved-address API yet, so everyone — signed-in or
-  // guest — gets the address form in the modal rather than a fabricated
-  // pre-selected address.
-  const savedAddresses: Address[] = [];
+  // Signed-in customers get their saved address book pre-loaded into the modal
+  // (default pre-selected); guests always type a fresh address. Loaded lazily —
+  // an empty list simply shows the form.
+  const [savedAddresses, setSavedAddresses] = useState<Address[]>([]);
+  useEffect(() => {
+    if (!user) {
+      setSavedAddresses([]);
+      return;
+    }
+    let active = true;
+    listAddresses()
+      .then((a) => {
+        if (active) setSavedAddresses(a);
+      })
+      .catch(() => {
+        /* fail-soft: no saved addresses → the modal shows the form */
+      });
+    return () => {
+      active = false;
+    };
+  }, [user]);
 
   const canCheckout = agreedToTerms && selectedCount > 0;
   const confirmItemCount =
