@@ -16,7 +16,7 @@ import {
 import { Breadcrumb } from "@/components/breadcrumb";
 import { BulkForm } from "@/components/bulk/bulk-form";
 import { Button } from "@/components/ui/button";
-import { bulkBenefits, bulkContact, bulkSteps, bulkTiers } from "@/lib/mock/bulk";
+import type { BulkContent } from "@/lib/data/bulk-shape";
 import type { BulkIcon, Tone } from "@/lib/types";
 
 // String → lucide icon, covering every BulkIcon value used by the data.
@@ -48,7 +48,8 @@ const tierWash: Record<Tone, string> = {
  * strip + how-it-works steps + a UI-only inquiry form. Server component — maps
  * static data; the only client island is BulkForm.
  */
-export function BulkView() {
+export function BulkView({ content }: { content: BulkContent }) {
+  const { header, tiers, benefits, steps, contact } = content;
   return (
     <main className="flex-1 bg-paper">
       {/* hero */}
@@ -59,23 +60,21 @@ export function BulkView() {
             For Business
           </span>
           <h1 className="mt-2 font-display text-3xl font-bold tracking-tight text-ink sm:text-4xl">
-            Wholesale &amp; Bulk Orders
+            {header.title}
           </h1>
-          <p className="mx-auto mt-3 max-w-2xl text-ink-muted">
-            Partner with us to bring safe, natural neem-wood Montessori toys to your
-            preschool, shop, or region — at wholesale pricing with dedicated support.
-          </p>
-          {/* placeholder stat strip */}
+          <p className="mx-auto mt-3 max-w-2xl text-ink-muted">{header.subtitle}</p>
+          {/* stat strip */}
           <div className="mx-auto mt-5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-soft">
-            <span>250+ preschools</span>
-            <span aria-hidden>·</span>
-            <span>10,000+ toys shipped</span>
-            <span aria-hidden>·</span>
-            <span>Ships to 3 countries</span>
+            {header.stats.map((s, i) => (
+              <span key={i} className="flex items-center gap-x-3">
+                {i > 0 ? <span aria-hidden>·</span> : null}
+                {s}
+              </span>
+            ))}
           </div>
           <div className="mt-7">
             <Button asChild>
-              <Link href="#inquiry">Request a quote</Link>
+              <Link href="#inquiry">{header.ctaLabel}</Link>
             </Button>
           </div>
         </div>
@@ -84,7 +83,7 @@ export function BulkView() {
       {/* program tiers */}
       <section className="mx-auto w-full max-w-[80rem] px-4 pb-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 sm:gap-5">
-          {bulkTiers.map((tier) => {
+          {tiers.map((tier) => {
             const Icon = bulkIcon[tier.icon];
             return (
               <div
@@ -117,7 +116,7 @@ export function BulkView() {
           Why partner with us
         </h2>
         <div className="mt-8 grid grid-cols-2 gap-6 rounded-2xl border border-cream-200 bg-cream-50/50 px-6 py-10 lg:grid-cols-4">
-          {bulkBenefits.map((b) => {
+          {benefits.map((b) => {
             const Icon = bulkIcon[b.icon];
             return (
               <div key={b.id} className="flex flex-col items-center text-center">
@@ -138,7 +137,7 @@ export function BulkView() {
           How it works
         </h2>
         <ol className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {bulkSteps.map((step, i) => (
+          {steps.map((step, i) => (
             <li key={step.id} className="flex flex-col items-start">
               <span className="flex size-10 items-center justify-center rounded-full bg-neem font-display text-base font-bold text-paper">
                 {i + 1}
@@ -179,7 +178,7 @@ export function BulkView() {
                 </span>
                 <div className="min-w-0">
                   <dt className="font-bold text-ink">Phone</dt>
-                  <dd className="mt-0.5 break-words text-sm text-ink-muted">{bulkContact.phone}</dd>
+                  <dd className="mt-0.5 break-words text-sm text-ink-muted">{contact.phone}</dd>
                 </div>
               </div>
               <div className="flex items-start gap-4 border-t border-cream-200/70 pt-5">
@@ -188,7 +187,7 @@ export function BulkView() {
                 </span>
                 <div className="min-w-0">
                   <dt className="font-bold text-ink">Email</dt>
-                  <dd className="mt-0.5 break-all text-sm text-ink-muted">{bulkContact.email}</dd>
+                  <dd className="mt-0.5 break-all text-sm text-ink-muted">{contact.email}</dd>
                 </div>
               </div>
               <div className="flex items-start gap-4 border-t border-cream-200/70 pt-5">
@@ -197,7 +196,7 @@ export function BulkView() {
                 </span>
                 <div className="min-w-0">
                   <dt className="font-bold text-ink">Hours</dt>
-                  <dd className="mt-0.5 break-words text-sm text-ink-muted">{bulkContact.hoursBn}</dd>
+                  <dd className="mt-0.5 break-words text-sm text-ink-muted">{contact.hours}</dd>
                 </div>
               </div>
             </dl>

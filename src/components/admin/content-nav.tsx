@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 const TABS = [
   { label: "Homepage", href: "/admin/content" },
   { label: "About page", href: "/admin/content/about" },
+  { label: "Bulk page", href: "/admin/content/bulk" },
 ];
 
 /** Sub-navigation for the admin Content area (Homepage / About / …). */
