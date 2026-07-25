@@ -18,6 +18,7 @@ import {
   Ticket,
   LayoutTemplate,
   HelpCircle,
+  ScrollText,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -60,13 +61,14 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Reviews", href: "/admin/reviews", icon: Star },
   { label: "Coupons", href: "/admin/coupons", icon: Ticket },
   { label: "Team", href: "/admin/team", icon: ShieldCheck },
+  { label: "Audit log", href: "/admin/audit", icon: ScrollText },
   { label: "Settings", href: "/admin/settings", icon: Settings },
 ];
 
 /** Nav items visible only to a `super_admin` — filtered at render (not a
  *  separate NAV_ITEMS definition) so there's a single source of truth for
  *  the nav list. */
-const SUPER_ADMIN_ONLY_HREFS = new Set(["/admin/team", "/admin/settings"]);
+const SUPER_ADMIN_ONLY_HREFS = new Set(["/admin/team", "/admin/audit", "/admin/settings"]);
 
 /** True iff `pathname` is `href` exactly, or a child route of it — except for
  *  `/admin` itself, which must match exactly (every admin route starts with
