@@ -136,3 +136,16 @@ export async function uploadContentImage(
   const db = createAdminSupabase();
   return uploadImageToBucket(db, "content/hero", file);
 }
+
+/** Upload the store's header logo → returns its https URL (stored in
+ *  `settings.brand.logoUrl` when the settings form saves). Admin-gated; reuses
+ *  the shared image uploader. */
+export async function uploadBrandLogo(
+  formData: FormData,
+): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+  if (!(await getIsAdmin())) throw new Error("unauthorized");
+  const file = formData.get("file");
+  if (!(file instanceof File)) return { ok: false, error: "No image file provided." };
+  const db = createAdminSupabase();
+  return uploadImageToBucket(db, "brand", file);
+}
