@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AboutView } from "@/components/about/about-view";
+import { getAboutContent } from "@/lib/data/about";
 
 export function generateMetadata(): Metadata {
   return {
@@ -10,6 +11,7 @@ export function generateMetadata(): Metadata {
   };
 }
 
-export default function Page() {
-  return <AboutView />;
+export default async function Page() {
+  const content = await getAboutContent();
+  return <AboutView content={content} />;
 }

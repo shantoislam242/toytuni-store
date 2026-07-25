@@ -1,19 +1,15 @@
 import type { Metadata } from "next";
-import { getSiteContent } from "@/lib/data/content";
-import { HomepageContentForm } from "@/components/admin/homepage-content-form";
+import { getAboutContent } from "@/lib/data/about";
+import { AboutContentForm } from "@/components/admin/about-content-form";
 import { ContentNav } from "@/components/admin/content-nav";
 
 export function generateMetadata(): Metadata {
-  return { title: "Content", robots: { index: false, follow: false } };
+  return { title: "About content", robots: { index: false, follow: false } };
 }
 
-/**
- * `/admin/content` — edit storefront content. Phase 1: the homepage hero +
- * about teaser. Reads the current (cached, fail-soft) content and hands it to
- * the client form.
- */
+/** `/admin/content/about` — edit the About page. */
 export default async function Page() {
-  const content = await getSiteContent();
+  const content = await getAboutContent();
   return (
     <div>
       <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-neem-deep">Storefront</p>
@@ -21,7 +17,7 @@ export default async function Page() {
       <p className="mt-1 text-sm text-ink-muted">Edit storefront pages.</p>
       <ContentNav />
       <div className="mt-6">
-        <HomepageContentForm initial={content} />
+        <AboutContentForm initial={content} />
       </div>
     </div>
   );

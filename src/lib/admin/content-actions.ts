@@ -5,9 +5,11 @@ import { getIsAdmin } from "@/lib/auth/session";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import { uploadImageToBucket } from "@/lib/storage/upload-image";
 import { rowToContent, type SiteContent } from "@/lib/data/content-shape";
+import { rowToAbout, type AboutContent } from "@/lib/data/about-shape";
 import type { Database } from "@/lib/supabase/database.types";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
+type SettingsValue = Database["public"]["Tables"]["site_settings"]["Insert"]["value"];
 
 /**
  * Save the editable homepage content (hero + about teaser). Admin-gated (any
@@ -22,16 +24,34 @@ export async function updateHomepageContent(next: SiteContent): Promise<ActionRe
   const value = rowToContent(next);
   const db = createAdminSupabase();
   const { error } = await db.from("site_settings").upsert(
-    {
-      key: "homepage",
-      value: value as unknown as Database["public"]["Tables"]["site_settings"]["Insert"]["value"],
-    },
+    { key: "homepage", value: value as unknown as SettingsValue },
     { onConflict: "key" },
   );
   if (error) return { ok: false, error: error.message };
 
   revalidateTag("site-content", "max");
   revalidatePath("/");
+  return { ok: true };
+}
+
+/**
+ * Save the editable About-page content. Admin-gated (any admin). Normalized via
+ * `rowToAbout` so every section is well-formed. Stored in `site_settings` under
+ * the `about` key; busts the `about-content` cache + the /about page.
+ */
+export async function updateAboutContent(next: AboutContent): Promise<ActionResult> {
+  if (!(await getIsAdmin())) throw new Error("unauthorized");
+
+  const value = rowToAbout(next);
+  const db = createAdminSupabase();
+  const { error } = await db.from("site_settings").upsert(
+    { key: "about", value: value as unknown as SettingsValue },
+    { onConflict: "key" },
+  );
+  if (error) return { ok: false, error: error.message };
+
+  revalidateTag("about-content", "max");
+  revalidatePath("/about");
   return { ok: true };
 }
 

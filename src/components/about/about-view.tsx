@@ -24,18 +24,7 @@ import {
 import { Breadcrumb } from "@/components/breadcrumb";
 import { Counter } from "@/components/about/counter";
 import { Reveal } from "@/components/policy/reveal";
-import { BRAND_NAME } from "@/lib/config";
-import {
-  aboutJourney,
-  aboutMissionVision,
-  aboutPhilosophy,
-  aboutStats,
-  aboutStory,
-  aboutTestimonials,
-  aboutValues,
-  aboutWhyChooseUs,
-  type AboutIcon,
-} from "@/lib/mock/about";
+import type { AboutContent, AboutIcon } from "@/lib/data/about-shape";
 import type { Tone } from "@/lib/types";
 
 const aboutIcon: Record<AboutIcon, LucideIcon> = {
@@ -97,9 +86,13 @@ function FeatureCard({ icon, title, desc }: { icon: AboutIcon; title: string; de
   );
 }
 
-/** Premium storytelling About page. Server component — only Reveal, AboutImage,
- *  and Counter are client islands. */
-export function AboutView() {
+/** Premium storytelling About page (admin-editable). Server component — only
+ *  Reveal and Counter are client islands. Content comes from `getAboutContent`,
+ *  passed down by the page. */
+export function AboutView({ content }: { content: AboutContent }) {
+  const {
+    header, story, missionVision, whyChooseUs, values, philosophy, journey, stats, testimonials, cta,
+  } = content;
   return (
     <main className="flex-1 bg-paper">
       {/* page header — text only (hero + imagery to be added later) */}
@@ -111,12 +104,9 @@ export function AboutView() {
             About Us
           </span>
           <h1 className="mx-auto mt-4 max-w-3xl font-display text-4xl font-bold tracking-tight text-ink sm:text-5xl lg:text-6xl">
-            Creating meaningful play experiences for every child.
+            {header.title}
           </h1>
-          <p className="mx-auto mt-4 max-w-xl text-ink-muted">
-            We design and handcraft natural, Montessori-inspired wooden toys that help
-            children learn, grow, and imagine — one joyful moment of play at a time.
-          </p>
+          <p className="mx-auto mt-4 max-w-xl text-ink-muted">{header.subtitle}</p>
         </Reveal>
       </section>
 
@@ -127,11 +117,11 @@ export function AboutView() {
             Our story
           </span>
           <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-ink sm:text-3xl">
-            It began with a search for better play
+            {story.heading}
           </h2>
         </Reveal>
         <div className="mx-auto mt-6 max-w-3xl space-y-4">
-          {aboutStory.map((p) => (
+          {story.paragraphs.map((p) => (
             <p key={p} className="text-[15px] leading-relaxed text-ink-muted">
               {p}
             </p>
@@ -142,7 +132,7 @@ export function AboutView() {
       {/* mission & vision */}
       <section className={`${SECTION} py-10`}>
         <div className="grid gap-5 sm:grid-cols-2">
-          {aboutMissionVision.map((m, i) => {
+          {missionVision.map((m, i) => {
             const Icon = aboutIcon[m.icon];
             return (
               <Reveal key={m.id} delay={i * 0.08} className="h-full">
@@ -165,7 +155,7 @@ export function AboutView() {
           <SectionHead eyebrow="Why choose us" title="Thoughtful in every detail" sub="The care we put into each toy is the reason families keep coming back." />
         </Reveal>
         <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {aboutWhyChooseUs.map((f, i) => (
+          {whyChooseUs.map((f, i) => (
             <Reveal key={f.id} delay={Math.min(i * 0.05, 0.25)}>
               <FeatureCard icon={f.icon} title={f.title} desc={f.desc} />
             </Reveal>
@@ -179,7 +169,7 @@ export function AboutView() {
           <SectionHead eyebrow="What we stand for" title="Our values" />
         </Reveal>
         <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {aboutValues.map((v, i) => {
+          {values.map((v, i) => {
             const Icon = aboutIcon[v.icon];
             return (
               <Reveal key={v.id} delay={Math.min(i * 0.06, 0.24)} className="h-full">
@@ -202,7 +192,7 @@ export function AboutView() {
           <SectionHead eyebrow="The Montessori way" title="How our toys help children grow" sub="Simple, purposeful play that builds real skills — naturally." />
         </Reveal>
         <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {aboutPhilosophy.map((p, i) => {
+          {philosophy.map((p, i) => {
             const Icon = aboutIcon[p.icon];
             return (
               <Reveal key={p.id} delay={Math.min(i * 0.05, 0.25)}>
@@ -230,7 +220,7 @@ export function AboutView() {
           <div className="relative mt-10">
             <div className="absolute inset-x-[12%] top-6 hidden h-0.5 bg-cream-300 lg:block" aria-hidden />
             <ol className="relative grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
-              {aboutJourney.map((m) => (
+              {journey.map((m) => (
                 <li key={m.year} className="flex flex-col items-center text-center">
                   <span className="relative z-10 flex size-12 items-center justify-center rounded-full bg-neem font-display text-sm font-bold text-paper ring-4 ring-paper">
                     {m.year.slice(2)}
@@ -249,7 +239,7 @@ export function AboutView() {
       <section className={`${SECTION} py-10`}>
         <Reveal>
           <div className="grid grid-cols-2 gap-4 rounded-3xl border border-cream-200 bg-cream-50/50 p-6 sm:p-8 lg:grid-cols-4">
-            {aboutStats.map((s) => (
+            {stats.map((s) => (
               <div key={s.id} className="text-center">
                 <Counter
                   target={s.target}
@@ -270,7 +260,7 @@ export function AboutView() {
           <SectionHead eyebrow="Loved by families" title="What parents say" />
         </Reveal>
         <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {aboutTestimonials.map((t, i) => (
+          {testimonials.map((t, i) => (
             <Reveal key={t.id} delay={Math.min(i * 0.06, 0.2)} className="h-full">
               <figure className="flex h-full flex-col rounded-3xl border border-cream-200 bg-paper p-6 shadow-sm">
                 <div className="flex items-center gap-0.5 text-mustard" aria-label={`${t.rating} out of 5 stars`}>
@@ -306,24 +296,22 @@ export function AboutView() {
             </div>
             <div className="relative">
               <h2 className="font-display text-2xl font-bold text-ink sm:text-3xl">
-                Start your child&apos;s learning journey today
+                {cta.heading}
               </h2>
-              <p className="mx-auto mt-3 max-w-md text-ink-muted">
-                Discover handmade toys made to spark curiosity, from {BRAND_NAME}.
-              </p>
+              <p className="mx-auto mt-3 max-w-md text-ink-muted">{cta.subtitle}</p>
               <div className="mt-7 flex flex-wrap justify-center gap-3">
                 <Link
-                  href="/collections/all"
+                  href={cta.primaryHref}
                   className="group inline-flex h-11 items-center justify-center gap-2 rounded-md bg-neem px-6 text-sm font-bold text-paper transition-all duration-300 hover:-translate-y-0.5 hover:bg-neem-deep"
                 >
-                  Shop Collection
+                  {cta.primaryLabel}
                   <ArrowRight className="size-4 transition-transform duration-300 group-hover:translate-x-1" />
                 </Link>
                 <Link
-                  href="/contact"
+                  href={cta.secondaryHref}
                   className="inline-flex h-11 items-center justify-center rounded-md border border-cream-300 bg-paper px-6 text-sm font-bold text-ink transition-colors hover:border-neem"
                 >
-                  Contact Us
+                  {cta.secondaryLabel}
                 </Link>
               </div>
 
