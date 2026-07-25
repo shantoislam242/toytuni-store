@@ -101,7 +101,7 @@ export default async function RootLayout({
               <CheckoutProvider shipping={settings.shipping}>
                 <WishlistProvider>
                   <HomeResetProvider>
-                    <Header mainNav={nav.main} />
+                    <Header mainNav={nav.main} logoUrl={settings.brand.logoUrl} />
                     <div className="flex flex-1 flex-col">
                       <HomeResetBoundary>{children}</HomeResetBoundary>
                     </div>

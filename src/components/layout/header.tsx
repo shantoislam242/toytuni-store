@@ -8,6 +8,7 @@ import {
   type MouseEvent as ReactMouseEvent,
 } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   Menu,
@@ -425,7 +426,7 @@ function DrawerList({
   );
 }
 
-export function Header({ mainNav }: { mainNav: NavLink[] }) {
+export function Header({ mainNav, logoUrl }: { mainNav: NavLink[]; logoUrl: string }) {
   const [open, setOpen] = useState(false);
   // Mobile-only: the header search icon reveals a full-width search bar.
   const [mobileSearch, setMobileSearch] = useState(false);
@@ -560,9 +561,16 @@ export function Header({ mainNav }: { mainNav: NavLink[] }) {
           <Link
             href="/"
             onClick={onBrandClick}
+            aria-label={BRAND_NAME}
             className="font-display text-3xl font-bold tracking-tight text-ink sm:text-3xl md:text-[2.75rem]"
           >
-            {BRAND_NAME}
+            {logoUrl ? (
+              <span className="relative block h-9 w-36 md:h-11 md:w-48">
+                <Image src={logoUrl} alt={BRAND_NAME} fill sizes="192px" className="object-contain object-left" priority />
+              </span>
+            ) : (
+              BRAND_NAME
+            )}
           </Link>
         </div>
 

@@ -951,6 +951,9 @@ export async function updateSettings(next: Settings): Promise<ActionResult> {
     brand: {
       tagline: (next.brand?.tagline ?? "").trim(),
       description: (next.brand?.description ?? "").trim(),
+      logoUrl: typeof next.brand?.logoUrl === "string" && next.brand.logoUrl.startsWith("http")
+        ? next.brand.logoUrl
+        : "",
     },
     // customerTiers was previously dropped here — a Save silently reset tiers to
     // defaults. Persist it (and the pre-order policy) so nothing is lost.

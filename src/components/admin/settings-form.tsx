@@ -1,11 +1,15 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
+import Image from "next/image";
 import { toast } from "sonner";
+import { Upload, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { updateSettings } from "@/lib/admin/actions";
+import { uploadBrandLogo } from "@/lib/admin/content-actions";
+import { BRAND_NAME } from "@/lib/config";
 import type { Settings } from "@/lib/data/settings-shape";
 import { BD_LOCATIONS } from "@/lib/bd-locations";
 import { X, Plus } from "lucide-react";
@@ -45,6 +49,26 @@ export function SettingsForm({ settings }: { settings: Settings }) {
   const [address, setAddress] = useState(settings.contact.address);
   const [tagline, setTagline] = useState(settings.brand.tagline);
   const [description, setDescription] = useState(settings.brand.description);
+  const [logoUrl, setLogoUrl] = useState(settings.brand.logoUrl);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const logoRef = useRef<HTMLInputElement>(null);
+
+  const pickLogo = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploadingLogo(true);
+    const fd = new FormData();
+    fd.append("file", file);
+    const res = await uploadBrandLogo(fd);
+    setUploadingLogo(false);
+    if (res.ok) {
+      setLogoUrl(res.url);
+      toast.success("Logo uploaded — Save to apply.");
+    } else {
+      toast.error(res.error);
+    }
+  };
   const [silver, setSilver] = useState(String(settings.customerTiers.silver));
   const [gold, setGold] = useState(String(settings.customerTiers.gold));
   const [preorderEnabled, setPreorderEnabled] = useState(settings.preorder.enabled);
@@ -82,7 +106,7 @@ export function SettingsForm({ settings }: { settings: Settings }) {
       },
       codFee: nums.cod!,
       contact: { phone, whatsapp, email, address },
-      brand: { tagline, description },
+      brand: { tagline, description, logoUrl },
       customerTiers: { silver: nums.silver!, gold: nums.gold! },
       preorder: {
         enabled: preorderEnabled,
@@ -354,6 +378,30 @@ export function SettingsForm({ settings }: { settings: Settings }) {
           <CardTitle>Brand</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* header logo */}
+          <div>
+            <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">Header logo</span>
+            <div className="mt-1.5 flex items-center gap-3">
+              <div className="relative flex h-10 w-36 flex-none items-center rounded-lg border border-cream-300 bg-paper px-2">
+                {logoUrl ? (
+                  <Image src={logoUrl} alt="Logo" fill sizes="144px" className="object-contain object-left p-1.5" />
+                ) : (
+                  <span className="font-display text-lg font-bold text-ink">{BRAND_NAME}</span>
+                )}
+              </div>
+              <Button type="button" variant="outline" size="sm" disabled={uploadingLogo} onClick={() => logoRef.current?.click()}>
+                {uploadingLogo ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
+                {uploadingLogo ? "Uploading…" : "Upload"}
+              </Button>
+              {logoUrl ? (
+                <Button type="button" variant="outline" size="sm" onClick={() => setLogoUrl("")}>
+                  <X className="size-4" /> Use text
+                </Button>
+              ) : null}
+              <input ref={logoRef} type="file" accept="image/*" onChange={pickLogo} className="hidden" />
+            </div>
+            <p className="mt-1 text-xs text-ink-soft">Shown in the storefront header. Empty = the brand name as text. PNG/SVG-like wide logo works best.</p>
+          </div>
           <label className="block">
             <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">Tagline</span>
             <Input value={tagline} onChange={(e) => setTagline(e.target.value)} className="mt-1" />

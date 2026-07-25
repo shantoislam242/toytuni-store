@@ -11,7 +11,8 @@ export type Settings = {
   };
   codFee: number;
   contact: { phone: string; whatsapp: string; email: string; address: string };
-  brand: { tagline: string; description: string };
+  /** `logoUrl` = uploaded header logo (https); "" → show the brand name as text. */
+  brand: { tagline: string; description: string; logoUrl: string };
   customerTiers: { silver: number; gold: number };
   /** Store-wide pre-order policy. When `enabled`, any product whose stock is at
    *  or below `thresholdQty` (low OR zero) is sold as a pre-order shipping in
@@ -30,7 +31,7 @@ export const DEFAULT_SETTINGS: Settings = {
     email: "hello@toytuni.com",
     address: "Dhaka, Bangladesh",
   },
-  brand: { tagline: BRAND_TAGLINE, description: BRAND_DESCRIPTION },
+  brand: { tagline: BRAND_TAGLINE, description: BRAND_DESCRIPTION, logoUrl: "" },
   customerTiers: { silver: 3000, gold: 10000 },
   preorder: { enabled: true, thresholdQty: 3, leadDays: 7, advancePct: 20 },
 };
@@ -83,6 +84,8 @@ export function rowToSettings(value: unknown): Settings {
     brand: {
       tagline: str(b.tagline, d.brand.tagline),
       description: str(b.description, d.brand.description),
+      // Only an https URL (an uploaded logo); anything else → "" (text brand).
+      logoUrl: typeof b.logoUrl === "string" && b.logoUrl.startsWith("http") ? b.logoUrl : "",
     },
     customerTiers: { silver, gold },
     preorder: {
