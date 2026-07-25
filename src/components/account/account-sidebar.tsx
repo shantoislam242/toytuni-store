@@ -21,8 +21,8 @@ type NavItem = {
   icon: LucideIcon;
   /** Not yet built — rendered disabled with a "Soon" tag. */
   soon?: boolean;
-  /** Live count badge (orders, wishlist, unread notifications). */
-  badge?: "orders" | "wishlist" | "notifications";
+  /** Live count badge. */
+  badge?: "orders" | "wishlist" | "notifications" | "inbox";
 };
 
 /** Live nav: Overview + My Orders + Wishlist. The rest land in later phases —
@@ -31,7 +31,7 @@ const DASHBOARD: NavItem[] = [
   { label: "Overview", href: "/account", icon: LayoutGrid },
   { label: "My Orders", href: "/account/orders", icon: Package, badge: "orders" },
   { label: "Notifications", href: "/account/notifications", icon: Bell, badge: "notifications" },
-  { label: "Inbox", href: "/account/inbox", icon: MessageSquare, soon: true },
+  { label: "Inbox", href: "/account/inbox", icon: MessageSquare, badge: "inbox" },
   { label: "Wishlist", href: "/account/wishlist", icon: Heart, badge: "wishlist" },
 ];
 const SETTINGS: NavItem[] = [
@@ -47,13 +47,14 @@ function isActive(pathname: string, href: string): boolean {
 }
 
 export function AccountSidebar({
-  user, tier, points, orderCount, notifUnread, showAdminLink,
+  user, tier, points, orderCount, notifUnread, inboxUnread, showAdminLink,
 }: {
   user: { name: string; email: string; avatarUrl?: string | null };
   tier: CustomerTier;
   points: number;
   orderCount: number;
   notifUnread: number;
+  inboxUnread: number;
   showAdminLink: boolean;
 }) {
   const pathname = usePathname();
@@ -81,7 +82,9 @@ export function AccountSidebar({
         ? wishlistCount
         : b === "notifications"
           ? notifUnread
-          : 0;
+          : b === "inbox"
+            ? inboxUnread
+            : 0;
 
   const renderItem = (item: NavItem) => {
     const Icon = item.icon;

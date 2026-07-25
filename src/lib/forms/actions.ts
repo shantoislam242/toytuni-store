@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { createAdminSupabase } from "@/lib/supabase/admin";
+import { getSessionUser } from "@/lib/auth/session";
+import { createSupportThread } from "@/lib/data/support";
 import { isFormRateLimited } from "@/lib/forms/throttle";
 import { validateContact, validateBulk, validateNewsletterEmail } from "@/lib/forms/validation";
 
@@ -15,6 +17,24 @@ export async function submitContactForm(input: {
   const v = validateContact(input);
   if (!v.ok) return v;
   const db = createAdminSupabase();
+
+  // A signed-in customer's message opens a two-way support thread (it lands in
+  // their /account/inbox and the admin's Support tab). Guests file a one-way
+  // form submission as before — they have no inbox to reply into.
+  const user = await getSessionUser();
+  if (user?.email) {
+    const id = await createSupportThread(db, {
+      email: user.email,
+      name: (user.user_metadata?.full_name as string | undefined) ?? v.value.name,
+      subject: v.value.subject?.trim() || "Contact message",
+      body: v.value.message,
+      sender: "customer",
+    });
+    if (!id) return { ok: false, error: FAILED };
+    revalidatePath("/admin/inbox");
+    return { ok: true };
+  }
+
   const { error } = await db.from("form_submissions" as never).insert({
     kind: "contact", name: v.value.name, email: v.value.email,
     subject: v.value.subject, message: v.value.message,

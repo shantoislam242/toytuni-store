@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { getInboxSubmissions, getNewsletterSubscribers } from "@/lib/admin/queries";
 import type { InboxSubmission, NewsletterSubscriber } from "@/lib/admin/queries";
+import { createAdminSupabase } from "@/lib/supabase/admin";
+import { getAdminThreads, type SupportThread } from "@/lib/data/support";
 import { InboxManager } from "@/components/admin/inbox-manager";
 
 export function generateMetadata(): Metadata {
@@ -21,10 +23,15 @@ export function generateMetadata(): Metadata {
 export default async function Page() {
   let submissions: InboxSubmission[] = [];
   let subscribers: NewsletterSubscriber[] = [];
+  let threads: SupportThread[] = [];
   try {
-    [submissions, subscribers] = await Promise.all([getInboxSubmissions(), getNewsletterSubscribers()]);
+    [submissions, subscribers, threads] = await Promise.all([
+      getInboxSubmissions(),
+      getNewsletterSubscribers(),
+      getAdminThreads(createAdminSupabase()),
+    ]);
   } catch (err) {
-    console.error("Inbox page: failed to load submissions/subscribers:", err);
+    console.error("Inbox page: failed to load submissions/subscribers/threads:", err);
   }
 
   return (
@@ -40,7 +47,7 @@ export default async function Page() {
       </div>
 
       <div className="mt-6">
-        <InboxManager submissions={submissions} subscribers={subscribers} />
+        <InboxManager submissions={submissions} subscribers={subscribers} threads={threads} />
       </div>
     </div>
   );
