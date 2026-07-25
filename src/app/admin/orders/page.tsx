@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
-import { ShoppingCart } from "lucide-react";
+import Link from "next/link";
+import { ShoppingCart, Plus } from "lucide-react";
 import { getAdminOrders } from "@/lib/admin/queries";
 import { OrdersTable } from "@/components/admin/orders-table";
 import { ExportCsvLink } from "@/components/admin/export-csv-link";
+import { Button } from "@/components/ui/button";
 
 export function generateMetadata(): Metadata {
   return {
@@ -27,7 +29,14 @@ export default async function Page() {
           </p>
           <h1 className="mt-1 font-display text-2xl font-bold text-ink">Orders</h1>
         </div>
-        {orders.length > 0 ? <ExportCsvLink href="/admin/orders/export" /> : null}
+        <div className="flex items-center gap-2">
+          {orders.length > 0 ? <ExportCsvLink href="/admin/orders/export" /> : null}
+          <Button asChild size="sm">
+            <Link href="/admin/orders/create">
+              <Plus className="size-4" /> New order
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {orders.length === 0 ? (
