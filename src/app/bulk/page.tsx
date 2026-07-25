@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { BulkView } from "@/components/bulk/bulk-view";
+import { getBulkContent } from "@/lib/data/bulk";
 
 export function generateMetadata(): Metadata {
   return {
@@ -10,6 +11,7 @@ export function generateMetadata(): Metadata {
   };
 }
 
-export default function Page() {
-  return <BulkView />;
+export default async function Page() {
+  const content = await getBulkContent();
+  return <BulkView content={content} />;
 }

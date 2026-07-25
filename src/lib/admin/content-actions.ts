@@ -6,6 +6,7 @@ import { createAdminSupabase } from "@/lib/supabase/admin";
 import { uploadImageToBucket } from "@/lib/storage/upload-image";
 import { rowToContent, type SiteContent } from "@/lib/data/content-shape";
 import { rowToAbout, type AboutContent } from "@/lib/data/about-shape";
+import { rowToBulk, type BulkContent } from "@/lib/data/bulk-shape";
 import type { Database } from "@/lib/supabase/database.types";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
@@ -52,6 +53,27 @@ export async function updateAboutContent(next: AboutContent): Promise<ActionResu
 
   revalidateTag("about-content", "max");
   revalidatePath("/about");
+  return { ok: true };
+}
+
+/**
+ * Save the editable Bulk/Wholesale-page content. Admin-gated (any admin).
+ * Normalized via `rowToBulk`. Stored in `site_settings` under the `bulk` key;
+ * busts the `bulk-content` cache + the /bulk page.
+ */
+export async function updateBulkContent(next: BulkContent): Promise<ActionResult> {
+  if (!(await getIsAdmin())) throw new Error("unauthorized");
+
+  const value = rowToBulk(next);
+  const db = createAdminSupabase();
+  const { error } = await db.from("site_settings").upsert(
+    { key: "bulk", value: value as unknown as SettingsValue },
+    { onConflict: "key" },
+  );
+  if (error) return { ok: false, error: error.message };
+
+  revalidateTag("bulk-content", "max");
+  revalidatePath("/bulk");
   return { ok: true };
 }
 
