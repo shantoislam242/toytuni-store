@@ -2,27 +2,29 @@ import { Check, Lock, Truck } from "lucide-react";
 import { formatTk } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { shippingOptions } from "@/lib/mock/checkout";
-import { getShippingFee, zoneForDistrict } from "@/lib/shipping";
+import { shippingFeeFor, zoneForDistrict, type ShippingConfig } from "@/lib/shipping";
 
 /**
  * Shipping-method picker - selectable radio cards. Controlled via `value` /
  * `onChange`; UI only (nothing is persisted). Free shipping unlocks by subtotal,
- * and express delivery is available only for Dhaka addresses.
+ * and express delivery is available only for inside-Dhaka addresses. Fees +
+ * inside-Dhaka districts come from the admin `shipping` config.
  */
 export function ShippingMethod({
   value,
   onChange,
   subtotal,
-  freeShippingThreshold,
+  shipping,
   district,
 }: {
   value: string;
   onChange: (id: string) => void;
   subtotal: number;
-  freeShippingThreshold: number;
+  shipping: ShippingConfig;
   district?: string | null;
 }) {
-  const zone = district ? zoneForDistrict(district) : null;
+  const freeShippingThreshold = shipping.freeShippingThreshold;
+  const zone = district ? zoneForDistrict(district, shipping.insideDistricts) : null;
   const expressAvailable = zone?.id === "inside_dhaka";
 
   return (
@@ -40,7 +42,7 @@ export function ShippingMethod({
           const locked = freeLocked || expressLocked;
           const remaining = freeShippingThreshold - subtotal;
           const price =
-            option.id === "standard" && district ? getShippingFee(district) : option.price;
+            option.id === "standard" && district ? shippingFeeFor(district, shipping) : option.price;
           const description = freeLocked
             ? `Add ${formatTk(remaining)} more to unlock`
             : expressLocked

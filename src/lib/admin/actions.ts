@@ -923,6 +923,14 @@ export async function updateSettings(next: Settings): Promise<ActionResult> {
       insideDhakaFee: next.shipping.insideDhakaFee,
       outsideDhakaFee: next.shipping.outsideDhakaFee,
       freeShippingThreshold: next.shipping.freeShippingThreshold,
+      // Deduped, trimmed district names; rowToSettings re-normalizes on read.
+      insideDistricts: Array.from(
+        new Set(
+          (Array.isArray(next.shipping.insideDistricts) ? next.shipping.insideDistricts : [])
+            .filter((s): s is string => typeof s === "string" && s.trim() !== "")
+            .map((s) => s.trim()),
+        ),
+      ),
     },
     codFee: next.codFee,
     contact: {

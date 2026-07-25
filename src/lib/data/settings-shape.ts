@@ -1,7 +1,14 @@
 import { BRAND_TAGLINE, BRAND_DESCRIPTION } from "@/lib/config";
 
 export type Settings = {
-  shipping: { insideDhakaFee: number; outsideDhakaFee: number; freeShippingThreshold: number };
+  /** Two-zone flat delivery. `insideDistricts` are the districts that get the
+   *  local (inside-Dhaka) rate; every other district gets the outside rate. */
+  shipping: {
+    insideDhakaFee: number;
+    outsideDhakaFee: number;
+    freeShippingThreshold: number;
+    insideDistricts: string[];
+  };
   codFee: number;
   contact: { phone: string; whatsapp: string; email: string; address: string };
   brand: { tagline: string; description: string };
@@ -15,7 +22,7 @@ export type Settings = {
 
 /** Current hardcoded values become the defaults + fail-soft fallback. */
 export const DEFAULT_SETTINGS: Settings = {
-  shipping: { insideDhakaFee: 80, outsideDhakaFee: 150, freeShippingThreshold: 2000 },
+  shipping: { insideDhakaFee: 80, outsideDhakaFee: 150, freeShippingThreshold: 2000, insideDistricts: ["Dhaka"] },
   codFee: 0,
   contact: {
     phone: "+880 1234-567890",
@@ -37,6 +44,14 @@ const bool = (v: unknown, fallback: boolean): boolean =>
   typeof v === "boolean" ? v : fallback;
 const str = (v: unknown, fallback: string): string =>
   typeof v === "string" && v.trim() !== "" ? v.trim() : fallback;
+/** Deduped list of non-blank strings; falls back when empty/invalid. */
+const strArr = (v: unknown, fallback: string[]): string[] => {
+  if (!Array.isArray(v)) return fallback;
+  const out = Array.from(
+    new Set(v.filter((s): s is string => typeof s === "string" && s.trim() !== "").map((s) => s.trim())),
+  );
+  return out.length ? out : fallback;
+};
 
 /** Shape any stored jsonb into a full Settings, filling every missing/invalid
  *  field from DEFAULT_SETTINGS. Pure — never throws. */
@@ -56,6 +71,7 @@ export function rowToSettings(value: unknown): Settings {
       insideDhakaFee: nnInt(sh.insideDhakaFee, d.shipping.insideDhakaFee),
       outsideDhakaFee: nnInt(sh.outsideDhakaFee, d.shipping.outsideDhakaFee),
       freeShippingThreshold: nnInt(sh.freeShippingThreshold, d.shipping.freeShippingThreshold),
+      insideDistricts: strArr(sh.insideDistricts, d.shipping.insideDistricts),
     },
     codFee: nnInt(v.codFee, d.codFee),
     contact: {

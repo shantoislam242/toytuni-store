@@ -30,6 +30,21 @@ describe("rowToSettings", () => {
   });
 });
 
+describe("shipping.insideDistricts", () => {
+  it("defaults to Dhaka", () => {
+    expect(DEFAULT_SETTINGS.shipping.insideDistricts).toEqual(["Dhaka"]);
+    expect(rowToSettings({}).shipping.insideDistricts).toEqual(["Dhaka"]);
+  });
+  it("reads + dedupes a stored list, dropping blanks", () => {
+    expect(rowToSettings({ shipping: { insideDistricts: ["Dhaka", "Gazipur", " Dhaka ", ""] } }).shipping.insideDistricts)
+      .toEqual(["Dhaka", "Gazipur"]);
+  });
+  it("empty/invalid → default", () => {
+    expect(rowToSettings({ shipping: { insideDistricts: [] } }).shipping.insideDistricts).toEqual(["Dhaka"]);
+    expect(rowToSettings({ shipping: { insideDistricts: "x" } }).shipping.insideDistricts).toEqual(["Dhaka"]);
+  });
+});
+
 describe("customerTiers", () => {
   it("defaults present", () => {
     expect(DEFAULT_SETTINGS.customerTiers).toEqual({ silver: 3000, gold: 10000 });

@@ -10,12 +10,7 @@ export const metadata: Metadata = {
 
 export default async function Page() {
   const settings = await getSettings();
-  return (
-    <CheckoutView
-      insideDhakaFee={settings.shipping.insideDhakaFee}
-      outsideDhakaFee={settings.shipping.outsideDhakaFee}
-      freeShippingThreshold={settings.shipping.freeShippingThreshold}
-      codFee={settings.codFee}
-    />
-  );
+  // Shipping config is provided app-wide via CheckoutProvider (root layout);
+  // only the COD fee is passed here.
+  return <CheckoutView codFee={settings.codFee} />;
 }
