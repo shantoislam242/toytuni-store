@@ -44,13 +44,13 @@ export default async function Page({
   const steps = buildTrackingSteps(order.status, order.historyStatuses);
 
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-12 sm:py-16">
+    <div>
       <Link
-        href="/account"
+        href="/account/orders"
         className="inline-flex items-center gap-1.5 text-sm text-ink-muted hover:text-ink"
       >
         <ArrowLeft className="size-4" />
-        Back to account
+        Back to orders
       </Link>
 
       <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
@@ -144,6 +144,6 @@ export default async function Page({
           </div>
         </div>
       </section>
-    </main>
+    </div>
   );
 }

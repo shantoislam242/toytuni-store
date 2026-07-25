@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 
 export type AccountOrderItem = {
@@ -45,8 +46,13 @@ type AccountOrderRow = {
  * via the service-role client, which bypasses RLS, so this is SERVER-ONLY and
  * the caller's session IS the authorization: only ever pass the email of the
  * currently signed-in user (see `src/app/account/page.tsx`).
+ *
+ * Wrapped in React `cache()` so the account layout (which derives the sidebar
+ * stats) and the page under it share ONE DB read per request instead of two.
  */
-export async function getOrdersForEmail(email: string): Promise<AccountOrder[]> {
+export const getOrdersForEmail = cache(async function getOrdersForEmail(
+  email: string,
+): Promise<AccountOrder[]> {
   const db = createAdminSupabase();
   const { data, error } = await db
     .from("orders")
@@ -81,6 +87,36 @@ export async function getOrdersForEmail(email: string): Promise<AccountOrder[]> 
       fulfillmentType: it.fulfillment_type,
     })),
   }));
+});
+
+export type CustomerDashboard = {
+  totalOrders: number;
+  /** Orders awaiting fulfilment (pending or confirmed). */
+  pendingOrders: number;
+  /** Lifetime spend across non-cancelled orders (drives tier + points). */
+  totalSpent: number;
+  /** The 3 most recent orders (newest first). */
+  recentOrders: AccountOrder[];
+};
+
+/**
+ * Dashboard stats for the signed-in customer, derived from their order history
+ * (`getOrdersForEmail` — service-role, session-email-scoped, SERVER-ONLY).
+ * Cancelled orders are excluded from spend; tier + points are computed by the
+ * caller from `totalSpent`.
+ */
+export async function getCustomerDashboard(email: string): Promise<CustomerDashboard> {
+  const orders = await getOrdersForEmail(email);
+  const totalSpent = orders
+    .filter((o) => o.status !== "cancelled")
+    .reduce((sum, o) => sum + o.total, 0);
+  const pendingOrders = orders.filter((o) => o.status === "pending" || o.status === "confirmed").length;
+  return {
+    totalOrders: orders.length,
+    pendingOrders,
+    totalSpent,
+    recentOrders: orders.slice(0, 3),
+  };
 }
 
 /**
