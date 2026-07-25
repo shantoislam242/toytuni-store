@@ -325,10 +325,14 @@ export function CartView() {
     appliedCoupon && selectedSubtotal >= appliedCoupon.minSubtotal
       ? computeCouponDiscount(couponKind(appliedCoupon), selectedSubtotal)
       : 0;
+  // A free-shipping coupon (minimum met) waives the delivery estimate.
+  const couponFreeShipping =
+    appliedCoupon?.type === "free_shipping" && selectedSubtotal >= appliedCoupon.minSubtotal;
+  const effectiveShipping = couponFreeShipping ? 0 : shipping;
   // Gift wrapping only charges when there's something to wrap.
   const giftWrapCharge = giftWrap && selectedCount > 0 ? GIFT_WRAP_CHARGE : 0;
   const total =
-    Math.max(0, selectedSubtotal - effectiveDiscount) + shipping + giftWrapCharge;
+    Math.max(0, selectedSubtotal - effectiveDiscount) + effectiveShipping + giftWrapCharge;
   const remaining = FREE_SHIPPING_THRESHOLD - selectedSubtotal;
   // Everything except shipping — the address modal adds a zone-based delivery
   // fee on top of this, replacing the cart's flat shipping estimate.
@@ -531,7 +535,7 @@ export function CartView() {
               <div className="flex justify-between">
                 <dt className="text-ink-muted">Shipping</dt>
                 <dd className="font-medium text-ink">
-                  {shipping === 0 ? "Free" : formatTk(shipping)}
+                  {effectiveShipping === 0 ? "Free" : formatTk(effectiveShipping)}
                 </dd>
               </div>
               {giftWrapCharge > 0 ? (

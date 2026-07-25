@@ -93,7 +93,7 @@ function normalizeInput(input: CouponInput): { ok: true; row: NormalizedCoupon }
   const code = normalizeCode(input.code);
   if (!code) return { ok: false, error: "Coupon code is required." };
   if (!CODE_RE.test(code)) return { ok: false, error: "Code can use only letters, numbers and dashes." };
-  if (input.type !== "percent" && input.type !== "fixed") {
+  if (input.type !== "percent" && input.type !== "fixed" && input.type !== "free_shipping") {
     return { ok: false, error: "Choose a discount type." };
   }
   let discount_pct = 0;
@@ -103,12 +103,13 @@ function normalizeInput(input: CouponInput): { ok: true; row: NormalizedCoupon }
       return { ok: false, error: "Discount must be a whole number from 1 to 100." };
     }
     discount_pct = input.discountPct;
-  } else {
+  } else if (input.type === "fixed") {
     if (!Number.isInteger(input.discountAmount) || input.discountAmount < 1) {
       return { ok: false, error: "Discount amount must be a whole number ≥ ৳1." };
     }
     discount_amount = input.discountAmount;
   }
+  // free_shipping needs no amount — it waives delivery; pct/amount stay 0.
   if (!Number.isInteger(input.minSubtotal) || input.minSubtotal < 0) {
     return { ok: false, error: "Minimum order must be a non-negative whole number." };
   }

@@ -19,7 +19,7 @@ function intOrNull(v: string): number | null {
   return Number.isInteger(n) && n >= 0 ? n : null;
 }
 
-type CouponType = "percent" | "fixed";
+type CouponType = "percent" | "fixed" | "free_shipping";
 
 type FormState = {
   code: string;
@@ -147,6 +147,7 @@ export function CouponsManager({ coupons }: { coupons: AdminCoupon[] }) {
               >
                 <option value="percent">Percentage (%)</option>
                 <option value="fixed">Fixed amount (৳)</option>
+                <option value="free_shipping">Free shipping</option>
               </select>
             </label>
             {form.type === "percent" ? (
@@ -160,7 +161,7 @@ export function CouponsManager({ coupons }: { coupons: AdminCoupon[] }) {
                   className="mt-1"
                 />
               </label>
-            ) : (
+            ) : form.type === "fixed" ? (
               <label className="block">
                 <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">Discount (৳)</span>
                 <Input
@@ -171,6 +172,11 @@ export function CouponsManager({ coupons }: { coupons: AdminCoupon[] }) {
                   className="mt-1"
                 />
               </label>
+            ) : (
+              <div className="block">
+                <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">Discount</span>
+                <p className="mt-1 flex h-9 items-center text-sm text-ink-muted">Waives the delivery fee.</p>
+              </div>
             )}
             <label className="block">
               <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">Min order (৳) — optional</span>
@@ -246,7 +252,11 @@ export function CouponsManager({ coupons }: { coupons: AdminCoupon[] }) {
                   <tr key={c.id} className="border-b border-cream-200 last:border-b-0 hover:bg-cream-50">
                     <td className="px-4 py-3 font-mono text-xs font-semibold text-ink">{c.code}</td>
                     <td className="px-4 py-3 text-ink">
-                      {c.type === "fixed" ? `৳${c.discountAmount.toLocaleString("en-US")}` : `${c.discountPct}%`}
+                      {c.type === "free_shipping"
+                        ? "Free shipping"
+                        : c.type === "fixed"
+                          ? `৳${c.discountAmount.toLocaleString("en-US")}`
+                          : `${c.discountPct}%`}
                     </td>
                     <td className="px-4 py-3 text-ink-muted">{c.minSubtotal > 0 ? `৳${c.minSubtotal}` : "—"}</td>
                     <td className="px-4 py-3 text-ink-muted">

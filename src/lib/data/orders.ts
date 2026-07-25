@@ -115,8 +115,9 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
   const { subtotal } = computeOrderTotals(
     items.map((i) => ({ unitPrice: i.unit_price, qty: i.qty })), 0);
   // Delivery fee depends on the chosen shipping method (not just the district),
-  // so it must be priced AFTER subtotal is known — see `priceDelivery`.
-  const deliveryFee = priceDelivery(input.shippingMethodId, subtotal, input.address.district, settings.shipping);
+  // so it must be priced AFTER subtotal is known — see `priceDelivery`. A
+  // free-shipping coupon (validated below) zeroes it.
+  let deliveryFee = priceDelivery(input.shippingMethodId, subtotal, input.address.district, settings.shipping);
 
   // Re-validate the coupon server-side against the authoritative subtotal (never
   // trust the client's applied discount). A supplied-but-invalid code fails the
@@ -135,6 +136,8 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
     const v = validateCoupon(coupon ?? null, subtotal, new Date());
     if (!v.ok) return { ok: false, error: COUPON_REASON_MESSAGE[v.reason] };
     discountTotal = computeCouponDiscount(v.kind, subtotal);
+    // A free-shipping coupon waives delivery instead of discounting the subtotal.
+    if (v.kind.type === "free_shipping") deliveryFee = 0;
     couponCode = normalized;
   }
 

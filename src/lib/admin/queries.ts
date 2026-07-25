@@ -946,7 +946,7 @@ export async function getAdminTeam(): Promise<AdminTeamMember[]> {
 export type AdminCoupon = {
   id: string;
   code: string;
-  type: "percent" | "fixed";
+  type: "percent" | "fixed" | "free_shipping";
   discountPct: number;
   discountAmount: number;
   active: boolean;
@@ -961,7 +961,7 @@ export type AdminCoupon = {
 type CouponRow = {
   id: string;
   code: string;
-  type: "percent" | "fixed" | null;
+  type: "percent" | "fixed" | "free_shipping" | null;
   discount_pct: number;
   discount_amount: number | null;
   active: boolean;

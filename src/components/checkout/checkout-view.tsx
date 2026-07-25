@@ -135,11 +135,14 @@ export function CheckoutView({
   // minimum, so the shown price never diverges from what the order will charge.
   const couponBelowMin = appliedCoupon != null && subtotal < appliedCoupon.minSubtotal;
   const discount = appliedCoupon && !couponBelowMin ? computeCouponDiscount(couponKind(appliedCoupon), subtotal) : 0;
+  // A free-shipping coupon (when its minimum is met) waives delivery.
+  const freeShipping = appliedCoupon != null && !couponBelowMin && appliedCoupon.type === "free_shipping";
+  const effectiveDelivery = freeShipping ? 0 : delivery;
   const couponNote = couponBelowMin && appliedCoupon
     ? `Add ৳${(appliedCoupon.minSubtotal - subtotal).toLocaleString("en-US")} more to use ${appliedCoupon.code}.`
     : null;
   const codLine = payment === "cod" ? codFee : 0;
-  const total = subtotal + delivery + codLine - discount;
+  const total = subtotal + effectiveDelivery + codLine - discount;
 
   const onApplyCoupon = () => {
     const code = couponInput.trim();
@@ -197,7 +200,7 @@ export function CheckoutView({
         },
         lines: items.map((it) => ({ slug: it.product.slug, qty: it.qty })),
         notes: notes || undefined,
-        deliveryFee: delivery,
+        deliveryFee: effectiveDelivery,
         shippingMethodId: effectiveShippingId,
         couponCode: appliedCoupon && !couponBelowMin ? appliedCoupon.code : undefined,
       });
@@ -294,7 +297,7 @@ export function CheckoutView({
               <OrderSummary
                 items={items}
                 subtotal={subtotal}
-                delivery={delivery}
+                delivery={effectiveDelivery}
                 deliveryZoneLabel={deliveryZoneLabel}
                 discount={discount}
                 codFee={codLine}

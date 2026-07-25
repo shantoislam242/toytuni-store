@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { normalizeCode } from "./normalize";
-import { computeCouponDiscount, couponKind, couponLabel } from "./discount";
+import { computeCouponDiscount, couponKind, couponLabel, couponIsFreeShipping } from "./discount";
 import { validateCoupon, type CouponRow } from "./validate";
 
 describe("normalizeCode", () => {
@@ -33,10 +33,20 @@ describe("computeCouponDiscount (fixed)", () => {
   });
 });
 
+describe("computeCouponDiscount (free_shipping)", () => {
+  it("gives no subtotal discount (delivery is waived elsewhere)", () => {
+    const fs = couponKind({ type: "free_shipping", discountPct: 0, discountAmount: 0 });
+    expect(computeCouponDiscount(fs, 1000)).toBe(0);
+    expect(couponIsFreeShipping({ type: "free_shipping" })).toBe(true);
+    expect(couponIsFreeShipping({ type: "percent" })).toBe(false);
+  });
+});
+
 describe("couponLabel", () => {
-  it("formats percent and fixed", () => {
+  it("formats percent, fixed, and free shipping", () => {
     expect(couponLabel({ type: "percent", discountPct: 15, discountAmount: 0 })).toBe("15% off");
     expect(couponLabel({ type: "fixed", discountPct: 0, discountAmount: 100 })).toBe("৳100 off");
+    expect(couponLabel({ type: "free_shipping", discountPct: 0, discountAmount: 0 })).toBe("Free shipping");
   });
 });
 
@@ -60,6 +70,10 @@ describe("validateCoupon", () => {
   it("returns a fixed kind for a fixed coupon", () => {
     expect(validateCoupon({ ...base, type: "fixed", discount_pct: 0, discount_amount: 100 }, 1000, now))
       .toEqual({ ok: true, kind: { type: "fixed", amount: 100 } });
+  });
+  it("returns a free_shipping kind for a free-shipping coupon", () => {
+    expect(validateCoupon({ ...base, type: "free_shipping", discount_pct: 0, discount_amount: 0 }, 1000, now))
+      .toEqual({ ok: true, kind: { type: "free_shipping" } });
   });
   it("treats a missing type as percent (pre-migration row)", () => {
     expect(validateCoupon({ ...base, type: undefined }, 1000, now)).toEqual(okPercent);
