@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { LoyaltyView } from "@/components/loyalty/loyalty-view";
+import { getLoyaltyContent } from "@/lib/data/loyalty";
 
 export function generateMetadata(): Metadata {
   return {
@@ -10,6 +11,7 @@ export function generateMetadata(): Metadata {
   };
 }
 
-export default function Page() {
-  return <LoyaltyView />;
+export default async function Page() {
+  const content = await getLoyaltyContent();
+  return <LoyaltyView content={content} />;
 }

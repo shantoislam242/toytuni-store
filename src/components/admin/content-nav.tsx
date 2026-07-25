@@ -8,6 +8,7 @@ const TABS = [
   { label: "Homepage", href: "/admin/content" },
   { label: "About page", href: "/admin/content/about" },
   { label: "Bulk page", href: "/admin/content/bulk" },
+  { label: "Loyalty page", href: "/admin/content/loyalty" },
 ];
 
 /** Sub-navigation for the admin Content area (Homepage / About / …). */
