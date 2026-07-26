@@ -13,6 +13,7 @@ export {
   normalizeBdPhone,
   emptyDraft,
   addressToDraft,
+  draftToAddress,
   validateDraft,
   isDraftValid,
 } from "@/lib/checkout/address-fields";

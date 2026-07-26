@@ -21,7 +21,16 @@ import { computeAdvance } from "@/lib/data/advance";
 import { createOrder } from "@/lib/data/orders";
 import { applyCoupon } from "@/lib/coupons/actions";
 import { computeCouponDiscount, couponKind, couponLabel } from "@/lib/coupons/discount";
+import {
+  addressToDraft,
+  draftToAddress,
+  emptyDraft,
+  isDraftValid,
+  validateDraft,
+  type AddressDraft,
+} from "@/lib/checkout/address-fields";
 import type { OverlaidProduct } from "@/lib/data/product-overlay";
+import type { Address } from "@/lib/types";
 import { shippingOptions } from "@/lib/mock/checkout";
 import { priceDelivery, zoneForDistrict } from "@/lib/shipping";
 
@@ -65,11 +74,28 @@ export function CheckoutView({ codFee }: { codFee: number }) {
   // instead of a phantom price — `createOrder` re-validates authoritatively.
   const [applyingCoupon, startApplyCoupon] = useTransition();
 
+  // Guest details form: seed from the address chosen in the cart's delivery
+  // modal (so the shopper never re-types it), and stay editable here. The
+  // confirmed draft — not the empty UI-only form of before — feeds placement.
+  const [guestDraft, setGuestDraft] = useState<AddressDraft>(() =>
+    address ? addressToDraft(address) : emptyDraft(),
+  );
+  const [showGuestErrors, setShowGuestErrors] = useState(false);
+  const guestErrors = validateDraft(guestDraft);
+  const guestAddress = isDraftValid(guestDraft) ? draftToAddress(guestDraft) : null;
+
+  // The address that actually drives delivery pricing + order placement: the
+  // modal address for signed-in customers, the (valid) guest draft otherwise.
+  const activeAddress: Address | null = isLoggedIn ? address : guestAddress;
+  // District used for the live fee — shown as soon as a district is picked, even
+  // before the whole guest form is valid.
+  const activeDistrict = isLoggedIn ? address?.district ?? null : guestDraft.district || null;
+
   // Free shipping unlocks at the threshold. Keep the selection valid: auto-apply
   // free once it unlocks (matches the cart), and never leave "free" selected on
   // an order that no longer qualifies.
   const freeUnlocked = subtotal >= shippingConfig.freeShippingThreshold;
-  const deliveryZone = address ? zoneForDistrict(address.district, shippingConfig.insideDistricts) : null;
+  const deliveryZone = activeDistrict ? zoneForDistrict(activeDistrict, shippingConfig.insideDistricts) : null;
   const expressAvailable = deliveryZone?.id === "inside_dhaka";
 
   useEffect(() => {
@@ -116,8 +142,8 @@ export function CheckoutView({ codFee }: { codFee: number }) {
   // Same helper the server uses in `createOrder` — display and charge can
   // never disagree. Before an address is chosen there's no district to price
   // against, so fall back to the selected option's flat mock price.
-  const delivery = address
-    ? priceDelivery(shipping, subtotal, address.district, shippingConfig)
+  const delivery = activeDistrict
+    ? priceDelivery(shipping, subtotal, activeDistrict, shippingConfig)
     : deliveryOption.price;
   const deliveryZoneLabel = deliveryZone?.label ?? null;
   // Withhold the discount (but keep the coupon) if the cart is now below its
@@ -167,25 +193,33 @@ export function CheckoutView({ codFee }: { codFee: number }) {
     return sum + computeAdvance(it.lineTotal, cat.availability.advancePct);
   }, 0);
 
-  const ctaLabel = placing ? "Placing…" : isLoggedIn ? "Place Order" : "Continue to Payment";
+  // COD "advance" split (display only — no gateway yet): the delivery charge is
+  // shown as due-now, the rest as cash on delivery. Skipped when a pre-order
+  // advance already governs the split, or when delivery is free.
+  const codAdvanceNow =
+    payment === "cod" && advanceDueNow === 0 && effectiveDelivery > 0 ? effectiveDelivery : 0;
+
+  const ctaLabel = placing ? "Placing…" : "Place Order";
   const onCta = async () => {
-    if (!isLoggedIn) {
-      toast.info("The payment step is coming soon — checkout is UI-only for now.");
-      return;
-    }
     if (placing) return;
-    if (!address) {
-      toast.error("Please add a delivery address first.");
+    // Signed-in customers use the address confirmed in the modal; guests use the
+    // (validated) form draft on this page.
+    const orderAddress = activeAddress;
+    if (!orderAddress) {
+      if (!isLoggedIn) setShowGuestErrors(true);
+      toast.error(
+        isLoggedIn ? "Please add a delivery address first." : "Please complete your delivery details.",
+      );
       return;
     }
 
     setPlacing(true);
     try {
       const result = await createOrder({
-        customer: { name: address.fullName, phone: address.phone, email: address.email },
+        customer: { name: orderAddress.fullName, phone: orderAddress.phone, email: orderAddress.email },
         address: {
-          division: address.division, district: address.district, area: address.area,
-          addressLine: address.addressLine, landmark: address.landmark,
+          division: orderAddress.division, district: orderAddress.district, area: orderAddress.area,
+          addressLine: orderAddress.addressLine, landmark: orderAddress.landmark,
         },
         lines: items.map((it) => ({ slug: it.product.slug, qty: it.qty })),
         notes: notes || undefined,
@@ -239,7 +273,12 @@ export function CheckoutView({ codFee }: { codFee: number }) {
                   onEdit={() => toast.info("Editing is UI-only for now.")}
                 />
               ) : (
-                <GuestForm />
+                <GuestForm
+                  value={guestDraft}
+                  errors={guestErrors}
+                  showErrors={showGuestErrors}
+                  onChange={(patch) => setGuestDraft((prev) => ({ ...prev, ...patch }))}
+                />
               )}
             </motion.div>
           </AnimatePresence>
@@ -250,7 +289,7 @@ export function CheckoutView({ codFee }: { codFee: number }) {
               onChange={setShipping}
               subtotal={subtotal}
               shipping={shippingConfig}
-              district={address?.district ?? null}
+              district={activeDistrict}
             />
           </Section>
 
@@ -294,6 +333,7 @@ export function CheckoutView({ codFee }: { codFee: number }) {
                 ctaLabel={ctaLabel}
                 onCta={onCta}
                 advanceDueNow={advanceDueNow}
+                codAdvanceNow={codAdvanceNow}
                 coupon={{
                   applied: appliedCoupon?.code ?? null,
                   input: couponInput,
