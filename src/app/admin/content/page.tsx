@@ -14,10 +14,18 @@ export function generateMetadata(): Metadata {
  * the client form.
  */
 export default async function Page() {
-  const [content, allProducts] = await Promise.all([getSiteContent(), getAdminProducts()]);
-  const products = allProducts
-    .filter((p) => p.active)
-    .map((p) => ({ slug: p.slug, title: p.title }));
+  const content = await getSiteContent();
+  // Product list backs the featured-product picker only. A products read must
+  // NEVER 500 the content editor — fail soft to an empty list (the picker keeps
+  // the current slug via its fallback option).
+  let products: { slug: string; title: string }[] = [];
+  try {
+    products = (await getAdminProducts())
+      .filter((p) => p.active)
+      .map((p) => ({ slug: p.slug, title: p.title }));
+  } catch (err) {
+    console.error("admin/content: product list failed to load:", err);
+  }
   return (
     <div>
       <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-neem-deep">Storefront</p>
