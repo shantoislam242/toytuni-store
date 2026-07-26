@@ -23,7 +23,10 @@ async function readSettings(): Promise<Settings> {
 
 /** Cached, tag-invalidatable store settings. An admin `updateSettings` calls
  *  `revalidateTag("settings")`. 1-hour revalidate bounds staleness. */
-export const getSettings = unstable_cache(readSettings, ["site-settings"], {
+// Cache-key suffix bumped on Settings SHAPE changes (the persisted Data Cache
+// stores the post-normalize value → an old entry can miss new fields and crash
+// new code). "2" = added shipping.insideDistricts + brand.logoUrl.
+export const getSettings = unstable_cache(readSettings, ["site-settings", "2"], {
   tags: ["settings"],
   revalidate: 3600,
 });
