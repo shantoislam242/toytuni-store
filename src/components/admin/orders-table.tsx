@@ -76,6 +76,7 @@ const DATE_RANGES = [
   { value: "15", label: "Last 15 days" },
   { value: "30", label: "Last 30 days" },
   { value: "90", label: "Last 90 days" },
+  { value: "custom", label: "Custom range" },
 ];
 const DAY_MS = 86_400_000;
 
@@ -84,10 +85,19 @@ export function OrdersTable({ orders }: { orders: AdminOrderListItem[] }) {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [paymentFilter, setPaymentFilter] = useState<string>("all");
   const [dateFilter, setDateFilter] = useState<string>("all");
+  // Only used when dateFilter === "custom" — inclusive "YYYY-MM-DD" bounds
+  // (either may be blank = open-ended on that side).
+  const [fromDate, setFromDate] = useState<string>("");
+  const [toDate, setToDate] = useState<string>("");
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const cutoff = dateFilter === "all" ? 0 : Date.now() - Number(dateFilter) * DAY_MS;
+    const cutoff =
+      dateFilter === "all" || dateFilter === "custom"
+        ? 0
+        : Date.now() - Number(dateFilter) * DAY_MS;
+    const fromT = fromDate ? new Date(`${fromDate}T00:00:00`).getTime() : -Infinity;
+    const toT = toDate ? new Date(`${toDate}T23:59:59.999`).getTime() : Infinity;
     return orders.filter((o) => {
       const matchesQuery =
         !q ||
@@ -95,13 +105,38 @@ export function OrdersTable({ orders }: { orders: AdminOrderListItem[] }) {
         o.customerPhone.toLowerCase().includes(q);
       const matchesStatus = statusFilter === "all" || o.status === statusFilter;
       const matchesPayment = paymentFilter === "all" || o.paymentStatus === paymentFilter;
-      const matchesDate = dateFilter === "all" || new Date(o.createdAt).getTime() >= cutoff;
+      let matchesDate = true;
+      if (dateFilter === "custom") {
+        const t = new Date(o.createdAt).getTime();
+        matchesDate = t >= fromT && t <= toT;
+      } else if (dateFilter !== "all") {
+        matchesDate = new Date(o.createdAt).getTime() >= cutoff;
+      }
       return matchesQuery && matchesStatus && matchesPayment && matchesDate;
     });
-  }, [orders, query, statusFilter, paymentFilter, dateFilter]);
+  }, [orders, query, statusFilter, paymentFilter, dateFilter, fromDate, toDate]);
 
   // CSV export honours the chosen date range (the other filters are view-only).
-  const exportHref = dateFilter === "all" ? "/admin/orders/export" : `/admin/orders/export?days=${dateFilter}`;
+  const exportHref = (() => {
+    if (dateFilter === "custom") {
+      const p = new URLSearchParams();
+      if (fromDate) p.set("from", fromDate);
+      if (toDate) p.set("to", toDate);
+      const qs = p.toString();
+      return qs ? `/admin/orders/export?${qs}` : "/admin/orders/export";
+    }
+    if (dateFilter === "all") return "/admin/orders/export";
+    return `/admin/orders/export?days=${dateFilter}`;
+  })();
+
+  const exportLabelSuffix = (() => {
+    if (dateFilter === "custom") {
+      if (!fromDate && !toDate) return "";
+      return ` (${fromDate || "start"} → ${toDate || "now"})`;
+    }
+    if (dateFilter === "all") return "";
+    return ` (${DATE_RANGES.find((r) => r.value === dateFilter)?.label})`;
+  })();
 
   return (
     <div>
@@ -155,10 +190,32 @@ export function OrdersTable({ orders }: { orders: AdminOrderListItem[] }) {
           </SelectContent>
         </Select>
 
+        {dateFilter === "custom" ? (
+          <div className="flex items-center gap-1.5">
+            <Input
+              type="date"
+              value={fromDate}
+              max={toDate || undefined}
+              onChange={(e) => setFromDate(e.target.value)}
+              aria-label="From date"
+              className="h-9 w-[9.5rem]"
+            />
+            <span className="text-sm text-ink-muted">→</span>
+            <Input
+              type="date"
+              value={toDate}
+              min={fromDate || undefined}
+              onChange={(e) => setToDate(e.target.value)}
+              aria-label="To date"
+              className="h-9 w-[9.5rem]"
+            />
+          </div>
+        ) : null}
+
         <Button asChild variant="outline" size="sm" className="ml-auto h-9">
           <a href={exportHref}>
             <Download className="size-4" />
-            Export CSV{dateFilter !== "all" ? ` (${DATE_RANGES.find((r) => r.value === dateFilter)?.label})` : ""}
+            Export CSV{exportLabelSuffix}
           </a>
         </Button>
       </div>
