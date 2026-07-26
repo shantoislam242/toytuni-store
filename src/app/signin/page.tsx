@@ -83,6 +83,7 @@ export default function SignInPage() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   // Step 2: password popup.
   const [showPassword, setShowPassword] = useState(false);
@@ -253,6 +254,32 @@ export default function SignInPage() {
     }
     toast.success("Confirmation email sent.", {
       description: `We re-sent the link to ${email.trim()}.`,
+    });
+  };
+
+  // "Forgot password?" → email a reset link. The link lands on
+  // `/auth/callback?next=/auth/reset-password`, which exchanges the recovery
+  // code for a session and forwards to the reset page where a new password is
+  // set. Works even for Google-created accounts that never had a password (it
+  // just sets one), so they can then sign in with email + password.
+  const handleForgotPassword = async () => {
+    const target = email.trim();
+    if (!/^\S+@\S+\.\S+$/.test(target)) {
+      toast.error("Enter your email above first, then tap Forgot password.");
+      return;
+    }
+    if (resetting) return;
+    setResetting(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(target, {
+      redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent("/auth/reset-password")}`,
+    });
+    setResetting(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Password reset link sent.", {
+      description: `Check ${target} for a link to set a new password.`,
     });
   };
 
@@ -525,10 +552,11 @@ export default function SignInPage() {
 
               <button
                 type="button"
-                onClick={() => toast.info("Password reset isn’t wired up yet.")}
-                className="mt-4 w-full text-center text-sm text-wood-deep underline-offset-2 hover:underline"
+                onClick={handleForgotPassword}
+                disabled={resetting}
+                className="mt-4 w-full text-center text-sm text-wood-deep underline-offset-2 hover:underline disabled:opacity-60"
               >
-                Forgot password?
+                {resetting ? "Sending reset link…" : "Forgot password?"}
               </button>
             </motion.div>
           </motion.div>
