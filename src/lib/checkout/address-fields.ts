@@ -60,6 +60,25 @@ export function addressToDraft(a: Address): AddressDraft {
   };
 }
 
+/** Build a confirmed `Address` from a draft: trims text, normalizes the +880
+ *  phones, and drops empty optionals. `id` defaults to a checkout-local marker
+ *  (a guest order doesn't persist the address). Mirror of `addressToDraft`. */
+export function draftToAddress(d: AddressDraft, id = "guest"): Address {
+  return {
+    id,
+    fullName: d.fullName.trim(),
+    phone: normalizeBdPhone(d.phone),
+    altPhone: d.altPhone.trim() ? normalizeBdPhone(d.altPhone) : undefined,
+    email: d.email.trim() || undefined,
+    division: d.division,
+    district: d.district,
+    area: d.area.trim(),
+    addressLine: d.addressLine.trim(),
+    landmark: d.landmark.trim() || undefined,
+    isDefault: false,
+  };
+}
+
 /** Validate required fields + phone shape. Returns a per-field error map. */
 export function validateDraft(d: AddressDraft): AddressErrors {
   const e: AddressErrors = {};

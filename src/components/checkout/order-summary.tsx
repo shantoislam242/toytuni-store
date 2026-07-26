@@ -23,6 +23,7 @@ export function OrderSummary({
   ctaLabel,
   onCta,
   advanceDueNow,
+  codAdvanceNow,
   coupon,
 }: {
   items: CartItem[];
@@ -38,6 +39,10 @@ export function OrderSummary({
   onCta: () => void;
   /** Pre-order advance total (BDT) due now, if any cart line is a pre-order. */
   advanceDueNow?: number;
+  /** COD split (display only): the delivery charge shown as due-now, with the
+   *  rest collected as cash on delivery. Ignored when a pre-order advance
+   *  already governs the split. */
+  codAdvanceNow?: number;
   /** Coupon apply/remove controls. Omit to hide the coupon field entirely. */
   coupon?: {
     applied: string | null;
@@ -174,6 +179,23 @@ export function OrderSummary({
           <div className="mt-1 flex justify-between">
             <span className="text-ink-muted">Pay on delivery</span>
             <span className="font-medium text-ink">{formatTk(total - advanceDueNow)}</span>
+          </div>
+          <p className="mt-1.5 text-xs text-ink-soft">
+            Online advance payment goes live soon — for now the full amount is Cash on Delivery.
+          </p>
+        </div>
+      ) : null}
+
+      {/* COD delivery-charge split (only when a pre-order advance isn't shown) */}
+      {codAdvanceNow && codAdvanceNow > 0 && !(advanceDueNow && advanceDueNow > 0) ? (
+        <div className="mt-4 rounded-lg border border-cream-200 bg-cream-50/60 p-3 text-sm">
+          <div className="flex justify-between">
+            <span className="text-ink-muted">Advance now (delivery charge)</span>
+            <span className="font-semibold text-ink">{formatTk(codAdvanceNow)}</span>
+          </div>
+          <div className="mt-1 flex justify-between">
+            <span className="text-ink-muted">Cash on delivery</span>
+            <span className="font-medium text-ink">{formatTk(total - codAdvanceNow)}</span>
           </div>
           <p className="mt-1.5 text-xs text-ink-soft">
             Online advance payment goes live soon — for now the full amount is Cash on Delivery.
