@@ -22,4 +22,14 @@ describe("rowToContent", () => {
     expect(rowToContent({ hero: { imageDesktop: "/local.webp" } }).hero.imageDesktop).toBeNull();
     expect(rowToContent({ hero: { imageDesktop: 42 } }).hero.imageDesktop).toBeNull();
   });
+  it("featured: keeps slug + allows a blank heading, cleans benefits", () => {
+    const f = rowToContent({ featured: { slug: "my-toy", heading: "", benefits: ["A", " ", "B", 3] } }).featured;
+    expect(f.slug).toBe("my-toy");
+    expect(f.heading).toBe(""); // blank allowed → use product title
+    expect(f.eyebrow).toBe(DEFAULT_CONTENT.featured.eyebrow); // missing → default
+    expect(f.benefits).toEqual(["A", "B"]);
+  });
+  it("featured: missing → defaults", () => {
+    expect(rowToContent({}).featured).toEqual(DEFAULT_CONTENT.featured);
+  });
 });
