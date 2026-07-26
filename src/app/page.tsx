@@ -42,8 +42,8 @@ export default async function Home() {
       {/* trust strip (full-width) */}
       <TrustStrip />
 
-      {/* featured product spotlight — Traditional Push Wagon */}
-      <FeaturedProductHero />
+      {/* featured product spotlight — admin-editable */}
+      <FeaturedProductHero featured={content.featured} />
 
       {/* shop by age — dedicated browse-by-stage section (DB, admin-editable) */}
       <ShopByAge ageTiers={ageTiers} categories={categories} />

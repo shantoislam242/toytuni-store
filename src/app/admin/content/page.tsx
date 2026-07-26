@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { getSiteContent } from "@/lib/data/content";
+import { getAdminProducts } from "@/lib/admin/queries";
 import { HomepageContentForm } from "@/components/admin/homepage-content-form";
 import { ContentNav } from "@/components/admin/content-nav";
 
@@ -13,7 +14,10 @@ export function generateMetadata(): Metadata {
  * the client form.
  */
 export default async function Page() {
-  const content = await getSiteContent();
+  const [content, allProducts] = await Promise.all([getSiteContent(), getAdminProducts()]);
+  const products = allProducts
+    .filter((p) => p.active)
+    .map((p) => ({ slug: p.slug, title: p.title }));
   return (
     <div>
       <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-neem-deep">Storefront</p>
@@ -21,7 +25,7 @@ export default async function Page() {
       <p className="mt-1 text-sm text-ink-muted">Edit storefront pages.</p>
       <ContentNav />
       <div className="mt-6">
-        <HomepageContentForm initial={content} />
+        <HomepageContentForm initial={content} products={products} />
       </div>
     </div>
   );

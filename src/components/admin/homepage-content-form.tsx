@@ -87,7 +87,13 @@ function ImageField({
  * images. Saves the whole blob via `updateHomepageContent` (which busts the
  * `site-content` cache + revalidates `/`).
  */
-export function HomepageContentForm({ initial }: { initial: SiteContent }) {
+export function HomepageContentForm({
+  initial,
+  products,
+}: {
+  initial: SiteContent;
+  products: { slug: string; title: string }[];
+}) {
   const router = useRouter();
   const [content, setContent] = useState<SiteContent>(initial);
   const [saving, setSaving] = useState(false);
@@ -96,6 +102,8 @@ export function HomepageContentForm({ initial }: { initial: SiteContent }) {
     setContent((c) => ({ ...c, hero: { ...c.hero, [k]: v } }));
   const setAbout = <K extends keyof SiteContent["about"]>(k: K, v: SiteContent["about"][K]) =>
     setContent((c) => ({ ...c, about: { ...c.about, [k]: v } }));
+  const setFeatured = <K extends keyof SiteContent["featured"]>(k: K, v: SiteContent["featured"][K]) =>
+    setContent((c) => ({ ...c, featured: { ...c.featured, [k]: v } }));
 
   const save = async () => {
     setSaving(true);
@@ -131,6 +139,48 @@ export function HomepageContentForm({ initial }: { initial: SiteContent }) {
             <ImageField label="Desktop image" value={content.hero.imageDesktop} fallback={DEFAULT_HERO_DESKTOP} onChange={(url) => setHero("imageDesktop", url)} />
             <ImageField label="Mobile image" value={content.hero.imageMobile} fallback={DEFAULT_HERO_MOBILE} onChange={(url) => setHero("imageMobile", url)} />
           </div>
+        </CardContent>
+      </Card>
+
+      {/* FEATURED PRODUCT */}
+      <Card className="border-cream-300">
+        <CardHeader><CardTitle>Featured product</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          <Labelled label="Product (image, price & badge come from this product)">
+            <select
+              value={content.featured.slug}
+              onChange={(e) => setFeatured("slug", e.target.value)}
+              className={`${inputCls} h-10`}
+            >
+              {products.some((p) => p.slug === content.featured.slug) ? null : (
+                <option value={content.featured.slug}>{content.featured.slug} (not found)</option>
+              )}
+              {products.map((p) => (
+                <option key={p.slug} value={p.slug}>{p.title}</option>
+              ))}
+            </select>
+          </Labelled>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Labelled label="Eyebrow"><Input value={content.featured.eyebrow} onChange={(e) => setFeatured("eyebrow", e.target.value)} placeholder="New Arrival" /></Labelled>
+            <Labelled label="Heading (blank = the product's own title)"><Input value={content.featured.heading} onChange={(e) => setFeatured("heading", e.target.value)} placeholder="(product title)" /></Labelled>
+          </div>
+          <Labelled label="Description">
+            <textarea value={content.featured.description} onChange={(e) => setFeatured("description", e.target.value)} rows={3} className={inputCls} />
+          </Labelled>
+          <div>
+            <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-ink-muted">Benefits (up to 3 shown)</span>
+            <div className="space-y-1.5">
+              {content.featured.benefits.map((b, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <Input value={b} onChange={(e) => setFeatured("benefits", content.featured.benefits.map((x, j) => (j === i ? e.target.value : x)))} placeholder="Benefit" />
+                  <button type="button" onClick={() => setFeatured("benefits", content.featured.benefits.filter((_, j) => j !== i))} aria-label="Remove" className="flex size-9 flex-none items-center justify-center rounded-md text-ink-soft hover:bg-danger/10 hover:text-danger">✕</button>
+                </div>
+              ))}
+              <Button type="button" variant="outline" size="sm" onClick={() => setFeatured("benefits", [...content.featured.benefits, ""])}>Add benefit</Button>
+            </div>
+          </div>
+          <Labelled label="CTA button label"><Input value={content.featured.ctaLabel} onChange={(e) => setFeatured("ctaLabel", e.target.value)} placeholder="Discover the product" /></Labelled>
+          <p className="text-xs text-ink-soft">The button links to the selected product page.</p>
         </CardContent>
       </Card>
 

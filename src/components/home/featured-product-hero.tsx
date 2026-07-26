@@ -3,23 +3,23 @@ import { ArrowRight, Check } from "lucide-react";
 import { ProductImage } from "@/components/product/product-image";
 import { Reveal } from "@/components/policy/reveal";
 import { getCatalogProduct } from "@/lib/data/catalog";
-import { productDetailBySlug } from "@/lib/mock/products";
-
-const FEATURED_SLUG = "traditional-push-wagon";
+import type { FeaturedContent } from "@/lib/data/content-shape";
 
 /**
- * Home-page featured-product spotlight — a split band (product image on one
- * side, copy + CTA on the other) whose CTA links straight to the product page.
- * All data is read from the catalogue so title, price and image stay in sync.
- * Renders nothing if the featured product ever goes missing.
+ * Home-page featured-product spotlight (admin-editable) — a split band (product
+ * image on one side, copy + CTA on the other) whose CTA links straight to the
+ * product page. The `slug` picks the product (image/badge/title stay in sync
+ * with the catalogue); the eyebrow, heading, description, benefits, and CTA
+ * label come from the editable homepage content. Renders nothing if the chosen
+ * product is missing.
  */
-export async function FeaturedProductHero() {
-  const product = await getCatalogProduct(FEATURED_SLUG);
+export async function FeaturedProductHero({ featured }: { featured: FeaturedContent }) {
+  const product = await getCatalogProduct(featured.slug);
   if (!product) return null;
 
-  const detail = productDetailBySlug(FEATURED_SLUG);
   const href = `/products/${product.slug}`;
-  const highlights = (detail?.benefits ?? []).slice(0, 3);
+  const heading = featured.heading || product.titleBn;
+  const highlights = featured.benefits.slice(0, 3);
 
   return (
     <section className="mx-auto w-full max-w-6xl px-4 py-12 sm:px-6 sm:py-16 lg:max-w-[90rem] lg:px-8">
@@ -48,16 +48,18 @@ export async function FeaturedProductHero() {
 
           {/* copy */}
           <div>
-            <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-neem-deep">
-              New Arrival
-            </span>
+            {featured.eyebrow ? (
+              <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-neem-deep">
+                {featured.eyebrow}
+              </span>
+            ) : null}
             <h2 className="mt-2 font-display text-3xl font-bold leading-tight tracking-tight text-ink sm:text-4xl lg:text-5xl">
-              {product.titleBn}
+              {heading}
             </h2>
 
-            {detail?.description ? (
+            {featured.description ? (
               <p className="mt-3 max-w-lg text-[15px] leading-7 text-ink-muted">
-                {detail.description}
+                {featured.description}
               </p>
             ) : null}
 
@@ -88,7 +90,7 @@ export async function FeaturedProductHero() {
                   aria-hidden
                   className="pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 -skew-x-12 bg-gradient-to-r from-transparent via-paper/35 to-transparent opacity-0 transition-all duration-700 ease-out group-hover:left-[130%] group-hover:opacity-100"
                 />
-                <span className="relative z-10">Discover the Push Wagon</span>
+                <span className="relative z-10">{featured.ctaLabel}</span>
                 <ArrowRight className="relative z-10 size-4 transition-transform duration-300 group-hover:translate-x-1" />
               </Link>
             </div>
