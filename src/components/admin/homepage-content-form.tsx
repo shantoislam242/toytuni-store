@@ -12,6 +12,7 @@ import { updateHomepageContent, uploadContentImage } from "@/lib/admin/content-a
 import {
   DEFAULT_HERO_DESKTOP,
   DEFAULT_HERO_MOBILE,
+  DEFAULT_CONTENT,
   type SiteContent,
 } from "@/lib/data/content-shape";
 
@@ -95,7 +96,13 @@ export function HomepageContentForm({
   products: { slug: string; title: string }[];
 }) {
   const router = useRouter();
-  const [content, setContent] = useState<SiteContent>(initial);
+  // Defensive: fill any section a stale cached blob might be missing so the
+  // form never reads `undefined.slug` etc.
+  const [content, setContent] = useState<SiteContent>({
+    hero: initial.hero ?? DEFAULT_CONTENT.hero,
+    about: initial.about ?? DEFAULT_CONTENT.about,
+    featured: initial.featured ?? DEFAULT_CONTENT.featured,
+  });
   const [saving, setSaving] = useState(false);
 
   const setHero = <K extends keyof SiteContent["hero"]>(k: K, v: SiteContent["hero"][K]) =>

@@ -14,6 +14,9 @@ import type { FeaturedContent } from "@/lib/data/content-shape";
  * product is missing.
  */
 export async function FeaturedProductHero({ featured }: { featured: FeaturedContent }) {
+  // Defensive: an older cached content blob may lack `featured` — hide the
+  // section rather than crash.
+  if (!featured?.slug) return null;
   const product = await getCatalogProduct(featured.slug);
   if (!product) return null;
 

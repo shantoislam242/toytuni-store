@@ -25,7 +25,10 @@ async function readContent(): Promise<SiteContent> {
  *  An admin `updateHomepageContent` calls `revalidateTag("site-content")`.
  *  1-hour revalidate bounds staleness. Stored in `site_settings` under the
  *  `homepage` key (same table/public-read policy as `getSettings`). */
-export const getSiteContent = unstable_cache(readContent, ["site-content"], {
+// Cache-key suffix is bumped whenever SiteContent's SHAPE changes (the Data
+// Cache persists across deploys and stores the post-normalize value, so an old
+// entry can be missing new fields and crash new code). "2" = added `featured`.
+export const getSiteContent = unstable_cache(readContent, ["site-content", "2"], {
   tags: ["site-content"],
   revalidate: 3600,
 });
