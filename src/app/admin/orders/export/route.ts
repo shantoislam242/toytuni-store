@@ -5,14 +5,25 @@ import { toCsv, csvResponse } from "@/lib/admin/csv";
 export const dynamic = "force-dynamic";
 
 /**
- * `GET /admin/orders/export` — download all orders as CSV. Admin-gated
- * (re-checked here, not just via the layout/proxy) and service-role, matching
- * the admin orders list.
+ * `GET /admin/orders/export[?days=N]` — download orders as CSV. Admin-gated
+ * (re-checked here, not just via the layout/proxy) and service-role. `days`
+ * (e.g. 15/30) limits the export to orders from the last N days; omitted =
+ * all orders. Matches the orders list's date-range filter.
  */
-export async function GET() {
+export async function GET(request: Request) {
   if (!(await getIsAdmin())) return new Response("Forbidden", { status: 403 });
 
-  const orders = await getAdminOrders();
+  const daysRaw = new URL(request.url).searchParams.get("days");
+  const days = daysRaw && /^\d+$/.test(daysRaw) ? Number(daysRaw) : 0;
+
+  let orders = await getAdminOrders();
+  let rangeLabel = "all";
+  if (days > 0) {
+    const cutoff = Date.now() - days * 86_400_000;
+    orders = orders.filter((o) => new Date(o.createdAt).getTime() >= cutoff);
+    rangeLabel = `last-${days}d`;
+  }
+
   const csv = toCsv(
     ["Order", "Date", "Customer", "Phone", "Total", "Status", "Payment method", "Payment status", "Carrier", "Tracking"],
     orders.map((o) => [
@@ -28,5 +39,5 @@ export async function GET() {
       o.trackingNumber,
     ]),
   );
-  return csvResponse(csv, `orders-${new Date().toISOString().slice(0, 10)}.csv`);
+  return csvResponse(csv, `orders-${rangeLabel}-${new Date().toISOString().slice(0, 10)}.csv`);
 }

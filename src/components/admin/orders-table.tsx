@@ -2,8 +2,9 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Search, Truck } from "lucide-react";
+import { Search, Truck, Download } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Select,
@@ -69,13 +70,24 @@ function PaymentBadge({ status }: { status: string }) {
  * can filter instantly — the underlying data (`getAdminOrders()`, service-role)
  * is fetched once, server-side, by the parent page.
  */
+const DATE_RANGES = [
+  { value: "all", label: "All time" },
+  { value: "7", label: "Last 7 days" },
+  { value: "15", label: "Last 15 days" },
+  { value: "30", label: "Last 30 days" },
+  { value: "90", label: "Last 90 days" },
+];
+const DAY_MS = 86_400_000;
+
 export function OrdersTable({ orders }: { orders: AdminOrderListItem[] }) {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [paymentFilter, setPaymentFilter] = useState<string>("all");
+  const [dateFilter, setDateFilter] = useState<string>("all");
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
+    const cutoff = dateFilter === "all" ? 0 : Date.now() - Number(dateFilter) * DAY_MS;
     return orders.filter((o) => {
       const matchesQuery =
         !q ||
@@ -83,9 +95,13 @@ export function OrdersTable({ orders }: { orders: AdminOrderListItem[] }) {
         o.customerPhone.toLowerCase().includes(q);
       const matchesStatus = statusFilter === "all" || o.status === statusFilter;
       const matchesPayment = paymentFilter === "all" || o.paymentStatus === paymentFilter;
-      return matchesQuery && matchesStatus && matchesPayment;
+      const matchesDate = dateFilter === "all" || new Date(o.createdAt).getTime() >= cutoff;
+      return matchesQuery && matchesStatus && matchesPayment && matchesDate;
     });
-  }, [orders, query, statusFilter, paymentFilter]);
+  }, [orders, query, statusFilter, paymentFilter, dateFilter]);
+
+  // CSV export honours the chosen date range (the other filters are view-only).
+  const exportHref = dateFilter === "all" ? "/admin/orders/export" : `/admin/orders/export?days=${dateFilter}`;
 
   return (
     <div>
@@ -127,6 +143,24 @@ export function OrdersTable({ orders }: { orders: AdminOrderListItem[] }) {
             ))}
           </SelectContent>
         </Select>
+
+        <Select value={dateFilter} onValueChange={setDateFilter}>
+          <SelectTrigger size="sm" className="h-9 w-40">
+            <SelectValue placeholder="Date range" />
+          </SelectTrigger>
+          <SelectContent>
+            {DATE_RANGES.map((r) => (
+              <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Button asChild variant="outline" size="sm" className="ml-auto h-9">
+          <a href={exportHref}>
+            <Download className="size-4" />
+            Export CSV{dateFilter !== "all" ? ` (${DATE_RANGES.find((r) => r.value === dateFilter)?.label})` : ""}
+          </a>
+        </Button>
       </div>
 
       <div className="mt-4 overflow-x-auto rounded-xl border border-cream-300">
