@@ -104,7 +104,8 @@ export function AdminSidebar({
       <SidebarContent className="px-2">
         <SidebarGroup>
           <SidebarGroupContent>
-            <SidebarMenu>
+            {/* gap-1 so items don't visually merge (the default is gap-0) */}
+            <SidebarMenu className="gap-1">
               {items.map((item) => {
                 const Icon = item.icon;
 
@@ -135,7 +136,12 @@ export function AdminSidebar({
                       isActive={active}
                       tooltip={item.label}
                       className={cn(
-                        active && "font-medium",
+                        // Selected = darker (cream-300); hover = lighter
+                        // (cream-100). Both overrides win over the primitive's
+                        // shared cream-200 accent via tailwind-merge.
+                        active
+                          ? "font-medium data-active:bg-cream-300 data-active:text-ink hover:bg-cream-300 hover:text-ink"
+                          : "hover:bg-cream-100 hover:text-ink",
                       )}
                     >
                       <Link href={item.href}>
