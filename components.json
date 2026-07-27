@@ -21,7 +21,5 @@
   },
   "menuColor": "default",
   "menuAccent": "subtle",
-  "registries": {
-    "@componentry": "https://componentry.fun/r/{name}.json"
-  }
+  "registries": {}
 }
