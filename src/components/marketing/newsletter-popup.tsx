@@ -34,6 +34,7 @@ export function NewsletterPopup() {
   const pathname = usePathname();
   const [armed, setArmed] = useState(false); // 30s elapsed
   const [open, setOpen] = useState(false);
+  const [dismissed, setDismissed] = useState(false); // closed/subscribed this session
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -51,9 +52,11 @@ export function NewsletterPopup() {
   }, []);
 
   // Open when armed, but only on an allowed route (waits if currently excluded).
+  // `dismissed` stops it reopening the instant it's closed (the effect would
+  // otherwise re-fire since `armed` stays true).
   useEffect(() => {
-    if (armed && !open && !done && !isExcluded(pathname)) setOpen(true);
-  }, [armed, pathname, open, done]);
+    if (armed && !open && !dismissed && !done && !isExcluded(pathname)) setOpen(true);
+  }, [armed, pathname, open, dismissed, done]);
 
   const persist = () => {
     try {
@@ -65,7 +68,10 @@ export function NewsletterPopup() {
 
   const handleOpenChange = (next: boolean) => {
     setOpen(next);
-    if (!next) persist(); // closed (with or without subscribing) → don't show again
+    if (!next) {
+      setDismissed(true); // don't reopen this session
+      persist(); // …or ever again (closed with or without subscribing)
+    }
   };
 
   const submit = async (e: React.FormEvent) => {
