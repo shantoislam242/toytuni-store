@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { motion } from "motion/react";
+import { motion, useAnimationControls } from "motion/react";
 import { ArrowRight, Heart } from "lucide-react";
 import {
   DEFAULT_HERO_DESKTOP,
@@ -76,19 +76,23 @@ export function HeroCarousel({ hero }: { hero: HeroContent }) {
     return () => clearInterval(id);
   }, [slides.length]);
 
+  // Copy re-zooms on every slide change (and on first paint) — a gentle scale
+  // pulse only (no fade), so the text stays readable and just breathes with the
+  // image instead of vanishing each cycle.
+  const copyControls = useAnimationControls();
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    copyControls.set({ scale: 1.04 });
+    copyControls.start({ scale: 1, transition: { duration: 1.1, ease: ENTER_EASE } });
+  }, [active, copyControls]);
+
   return (
     <section className="relative w-full overflow-hidden">
-      {/* Entrance: the whole scene (background image + copy) gently zooms in
-          together on load — one shared scale+fade so they move as one. */}
-      <motion.div
-        initial={{ opacity: 0, scale: 1.06 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 1.1, ease: ENTER_EASE }}
-      >
       {/* CONTENT — absolute overlay at every size, vertically centred over the
           image (which sits in flow underneath: the tall 4:3 crop on mobile, the
           76vh wide box on desktop). */}
       <div className="absolute inset-0 z-10 flex items-start px-4 pt-5 sm:px-6 lg:items-center lg:px-0 lg:pt-0">
+        <motion.div className="w-full origin-left" animate={copyControls}>
           <motion.div
             className="mx-auto w-full max-w-6xl lg:max-w-[90rem] lg:-translate-y-8 lg:px-8"
             variants={stagger}
@@ -177,6 +181,7 @@ export function HeroCarousel({ hero }: { hero: HeroContent }) {
               </motion.div>
             </motion.div>
           </motion.div>
+        </motion.div>
       </div>
 
       {/* DESKTOP image — content overlays it. Hidden below lg. */}
@@ -188,18 +193,22 @@ export function HeroCarousel({ hero }: { hero: HeroContent }) {
           90vh only caps ultrawide/short viewports (top/bottom crop). */}
       <div className="relative hidden w-full overflow-hidden lg:block lg:h-[min(76vh,43vw)] 2xl:h-[min(90vh,43vw)]">
         {slides.map((sl, i) => (
-          <Image
+          <motion.div
             key={sl.desktop}
-            src={sl.desktop}
-            alt={sl.alt}
-            fill
-            priority={i === 0}
-            sizes="100vw"
-            className={cn(
-              "object-cover object-center transition-opacity duration-[1200ms] ease-out",
-              i === active ? "opacity-100" : "opacity-0",
-            )}
-          />
+            className="absolute inset-0"
+            initial={{ opacity: 0, scale: 1.06 }}
+            animate={{ opacity: i === active ? 1 : 0, scale: i === active ? 1 : 1.06 }}
+            transition={{ duration: 1.1, ease: ENTER_EASE }}
+          >
+            <Image
+              src={sl.desktop}
+              alt={sl.alt}
+              fill
+              priority={i === 0}
+              sizes="100vw"
+              className="object-cover object-center"
+            />
+          </motion.div>
         ))}
         {/* cream scrim — fades left→right so the left-side copy stays legible */}
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-paper/85 via-paper/25 to-transparent" />
@@ -211,22 +220,25 @@ export function HeroCarousel({ hero }: { hero: HeroContent }) {
           it, with a cream scrim on the left for legibility. */}
       <div className="relative aspect-[1095/821] w-full overflow-hidden lg:hidden">
         {slides.map((sl, i) => (
-          <Image
+          <motion.div
             key={sl.mobile}
-            src={sl.mobile}
-            alt={sl.alt}
-            fill
-            priority={i === 0}
-            sizes="100vw"
-            className={cn(
-              "object-cover object-center transition-opacity duration-[1200ms] ease-out",
-              i === active ? "opacity-100" : "opacity-0",
-            )}
-          />
+            className="absolute inset-0"
+            initial={{ opacity: 0, scale: 1.06 }}
+            animate={{ opacity: i === active ? 1 : 0, scale: i === active ? 1 : 1.06 }}
+            transition={{ duration: 1.1, ease: ENTER_EASE }}
+          >
+            <Image
+              src={sl.mobile}
+              alt={sl.alt}
+              fill
+              priority={i === 0}
+              sizes="100vw"
+              className="object-cover object-center"
+            />
+          </motion.div>
         ))}
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-paper/90 via-paper/40 to-transparent" />
       </div>
-      </motion.div>
 
       {/* slide indicators — also let the visitor switch manually */}
       <div className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 gap-2 lg:bottom-6">
