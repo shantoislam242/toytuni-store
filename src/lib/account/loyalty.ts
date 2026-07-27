@@ -1,9 +1,10 @@
 import type { CustomerTier } from "@/lib/admin/customer-tier";
 
-/** Loyalty points earned per Taka spent. 1 point per ৳10 (so ৳1,000 → 100 pts).
- *  Points are DERIVED from lifetime spend (no separate ledger) — a real,
- *  always-consistent number the customer dashboard can show. */
-export const POINTS_PER_TAKA = 0.1;
+/** Loyalty points earned per Taka spent. 1 point per ৳100 (so ৳1,000 → 10 pts),
+ *  matching the program copy ("Earn 1 point per ৳100 spent"). Points are DERIVED
+ *  from lifetime spend (no separate ledger) — a real, always-consistent number
+ *  the customer dashboard can show. */
+export const POINTS_PER_TAKA = 0.01;
 
 /** Whole loyalty points for a lifetime spend (non-cancelled orders total). */
 export function pointsFromSpend(totalSpent: number): number {

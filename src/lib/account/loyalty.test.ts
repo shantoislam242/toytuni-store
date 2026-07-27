@@ -6,10 +6,10 @@ describe("pointsFromSpend", () => {
     expect(pointsFromSpend(0)).toBe(0);
     expect(pointsFromSpend(-500)).toBe(0);
   });
-  it("earns 1 point per ৳10, floored", () => {
-    expect(pointsFromSpend(1000)).toBe(100);
-    expect(pointsFromSpend(720)).toBe(72);
-    expect(pointsFromSpend(725)).toBe(72); // floor
-    expect(pointsFromSpend(9)).toBe(0);
+  it("earns 1 point per ৳100, floored", () => {
+    expect(pointsFromSpend(1000)).toBe(10);
+    expect(pointsFromSpend(1099)).toBe(10); // floor
+    expect(pointsFromSpend(999)).toBe(9);
+    expect(pointsFromSpend(50)).toBe(0);
   });
 });
