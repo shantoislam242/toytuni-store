@@ -73,6 +73,11 @@ export function HeroCarousel({ hero }: { hero: HeroContent }) {
           },
         ];
   const [active, setActive] = useState(0);
+  // Gates the Ken Burns zoom for reduced-motion users (resolved client-side).
+  const [reduce, setReduce] = useState(false);
+  useEffect(() => {
+    setReduce(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  }, []);
 
   useEffect(() => {
     if (slides.length < 2) return;
@@ -99,7 +104,7 @@ export function HeroCarousel({ hero }: { hero: HeroContent }) {
     (async () => {
       await copyControls.start({ opacity: 0, transition: { duration: 0.35, ease: "easeIn" } });
       if (cancelled) return;
-      copyControls.set({ scale: 1.06 });
+      copyControls.set({ scale: 0.96 }); // start small → grows to 1 (zoom in)
       await copyControls.start({
         opacity: 1,
         scale: 1,
@@ -221,9 +226,15 @@ export function HeroCarousel({ hero }: { hero: HeroContent }) {
           <motion.div
             key={sl.desktop}
             className="absolute inset-0"
-            initial={{ opacity: 0, scale: 1.06 }}
-            animate={{ opacity: i === active ? 1 : 0, scale: i === active ? 1 : 1.06 }}
-            transition={{ duration: 1.1, ease: ENTER_EASE }}
+            initial={{ opacity: 0, scale: 1 }}
+            animate={{
+              opacity: i === active ? 1 : 0,
+              scale: i === active && !reduce ? 1.08 : 1,
+            }}
+            transition={{
+              opacity: { duration: 1.1, ease: ENTER_EASE },
+              scale: { duration: 6.5, ease: "linear" },
+            }}
           >
             <Image
               src={sl.desktop}
@@ -248,9 +259,15 @@ export function HeroCarousel({ hero }: { hero: HeroContent }) {
           <motion.div
             key={sl.mobile}
             className="absolute inset-0"
-            initial={{ opacity: 0, scale: 1.06 }}
-            animate={{ opacity: i === active ? 1 : 0, scale: i === active ? 1 : 1.06 }}
-            transition={{ duration: 1.1, ease: ENTER_EASE }}
+            initial={{ opacity: 0, scale: 1 }}
+            animate={{
+              opacity: i === active ? 1 : 0,
+              scale: i === active && !reduce ? 1.08 : 1,
+            }}
+            transition={{
+              opacity: { duration: 1.1, ease: ENTER_EASE },
+              scale: { duration: 6.5, ease: "linear" },
+            }}
           >
             <Image
               src={sl.mobile}
