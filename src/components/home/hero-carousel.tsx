@@ -142,13 +142,13 @@ export function HeroCarousel({ hero }: { hero: HeroContent }) {
       </div>
 
       {/* DESKTOP image — content overlays it. Hidden below lg. */}
-      {/* Height = min(90vh, 43vw). The 43vw cap is the photo's own full-width
-          height (100vw ÷ 2.33), so on standard desktops/laptops (≤ ~2.1:1) the
-          box lands exactly at 43vw: the FULL image shows with no side-crop, and
-          it's tall enough that the stats strip below sits fully under the fold
-          (no awkward half-peek). The 90vh only kicks in on ultrawide/short
-          viewports, capping the height (top/bottom crop, never side-crop). */}
-      <div className="relative hidden w-full overflow-hidden lg:block lg:h-[min(90vh,43vw)]">
+      {/* Laptops (lg, < 1536px) keep the original min(76vh,43vw). Large desktops
+          (2xl, ≥ 1536px) go taller — min(90vh,43vw) — so on those wide screens
+          the box reaches the photo's full-width height (43vw, no side-crop) and
+          the stats strip below drops fully under the fold instead of half-
+          peeking. The 43vw cap on both means the image is never side-cropped;
+          90vh only caps ultrawide/short viewports (top/bottom crop). */}
+      <div className="relative hidden w-full overflow-hidden lg:block lg:h-[min(76vh,43vw)] 2xl:h-[min(90vh,43vw)]">
         <Image
           src={desktopSrc}
           alt={HERO_ALT}
