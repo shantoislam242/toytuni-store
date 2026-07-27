@@ -197,6 +197,30 @@ export function CartView() {
   // cosmetic — the confirm/remove flow below is unchanged).
   const [removeAnimKey, setRemoveAnimKey] = useState(0);
   const [clearAnimKey, setClearAnimKey] = useState(0);
+  // Signed-in customers get their saved address book pre-loaded into the modal
+  // (default pre-selected); guests always type a fresh address. Loaded lazily —
+  // an empty list simply shows the form. MUST stay ABOVE the early returns
+  // below: otherwise, when the cart empties (removing the last item) the
+  // `items.length === 0` return skips these hooks and React throws "rendered
+  // fewer hooks than expected", crashing the page.
+  const [savedAddresses, setSavedAddresses] = useState<Address[]>([]);
+  useEffect(() => {
+    if (!user) {
+      setSavedAddresses([]);
+      return;
+    }
+    let active = true;
+    listAddresses()
+      .then((a) => {
+        if (active) setSavedAddresses(a);
+      })
+      .catch(() => {
+        /* fail-soft: no saved addresses → the modal shows the form */
+      });
+    return () => {
+      active = false;
+    };
+  }, [user]);
 
   // Avoid rendering the empty state during the pre-hydration flash.
   if (!hydrated) {
@@ -338,28 +362,6 @@ export function CartView() {
   // fee on top of this, replacing the cart's flat shipping estimate.
   const preDeliveryTotal =
     Math.max(0, selectedSubtotal - effectiveDiscount) + giftWrapCharge;
-
-  // Signed-in customers get their saved address book pre-loaded into the modal
-  // (default pre-selected); guests always type a fresh address. Loaded lazily —
-  // an empty list simply shows the form.
-  const [savedAddresses, setSavedAddresses] = useState<Address[]>([]);
-  useEffect(() => {
-    if (!user) {
-      setSavedAddresses([]);
-      return;
-    }
-    let active = true;
-    listAddresses()
-      .then((a) => {
-        if (active) setSavedAddresses(a);
-      })
-      .catch(() => {
-        /* fail-soft: no saved addresses → the modal shows the form */
-      });
-    return () => {
-      active = false;
-    };
-  }, [user]);
 
   const canCheckout = agreedToTerms && selectedCount > 0;
   const confirmItemCount =
