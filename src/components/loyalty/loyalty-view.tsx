@@ -530,7 +530,8 @@ export function LoyaltyView({
         </Reveal>
       </section>
 
-      {/* final CTA */}
+      {/* final CTA — a "join / become a member" nudge, so hide it once signed in */}
+      {member ? null : (
       <section className={`${SECTION} pb-16 pt-6`}>
         <Reveal>
           <div className="relative overflow-hidden rounded-3xl border border-neem/20 bg-neem/5 px-6 py-14 text-center sm:px-10">
@@ -558,6 +559,7 @@ export function LoyaltyView({
           </div>
         </Reveal>
       </section>
+      )}
     </main>
   );
 }
