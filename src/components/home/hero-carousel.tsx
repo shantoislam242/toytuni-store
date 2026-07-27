@@ -104,7 +104,7 @@ export function HeroCarousel({ hero }: { hero: HeroContent }) {
                   />
                   <span className="relative z-10 inline-flex items-center">
                     <ArrowRight className="pointer-events-none absolute left-0 top-1/2 size-4 -translate-x-8 -translate-y-1/2 opacity-0 transition-all duration-300 ease-out group-hover:translate-x-0 group-hover:opacity-100" />
-                    <span className="transition-transform duration-300 ease-out group-hover:translate-x-6">
+                    <span className="transition-transform duration-300 ease-out group-hover:translate-x-4">
                       {hero.secondaryLabel}
                     </span>
                   </span>
@@ -131,7 +131,7 @@ export function HeroCarousel({ hero }: { hero: HeroContent }) {
                   />
                   <span className="relative z-10 inline-flex items-center">
                     <ArrowRight className="pointer-events-none absolute left-0 top-1/2 size-4 -translate-x-8 -translate-y-1/2 opacity-0 transition-all duration-300 ease-out group-hover:translate-x-0 group-hover:opacity-100" />
-                    <span className="transition-transform duration-300 ease-out group-hover:translate-x-6">
+                    <span className="transition-transform duration-300 ease-out group-hover:translate-x-4">
                       {hero.primaryLabel}
                     </span>
                   </span>
