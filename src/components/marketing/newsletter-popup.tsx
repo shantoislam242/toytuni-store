@@ -8,11 +8,14 @@ import { Check, Leaf, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { subscribeNewsletter } from "@/lib/forms/actions";
 
-/** Persisted flag so the popup only ever shows once (until the visitor clears
- *  storage). Set on close OR on a successful subscribe. */
+/** Stores the timestamp (ms) when the popup was last closed/subscribed, so it
+ *  stays hidden for `SUPPRESS_MS` and then shows again for returning visitors
+ *  (rather than never). A legacy non-numeric value reads as long-expired. */
 const STORAGE_KEY = "toytuni:newsletter-popup";
 /** Show after this long on the site (across page navigations). */
 const DELAY_MS = 30_000;
+/** Don't show again for this long after it's dismissed/subscribed (7 days). */
+const SUPPRESS_MS = 7 * 24 * 60 * 60 * 1000;
 
 // Don't interrupt purchase/auth/account flows or the admin app.
 const EXCLUDED = ["/admin", "/signin", "/signup", "/auth", "/checkout", "/cart", "/account"];
@@ -40,10 +43,11 @@ export function NewsletterPopup() {
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
 
-  // Arm once, 30s after mount — unless already shown before.
+  // Arm once, 30s after mount — unless dismissed within the last SUPPRESS_MS.
   useEffect(() => {
     try {
-      if (localStorage.getItem(STORAGE_KEY)) return;
+      const ts = Number(localStorage.getItem(STORAGE_KEY));
+      if (ts && Date.now() - ts < SUPPRESS_MS) return; // recently dismissed
     } catch {
       /* storage blocked — just proceed */
     }
@@ -60,7 +64,7 @@ export function NewsletterPopup() {
 
   const persist = () => {
     try {
-      localStorage.setItem(STORAGE_KEY, "1");
+      localStorage.setItem(STORAGE_KEY, String(Date.now()));
     } catch {
       /* ignore */
     }
@@ -70,7 +74,7 @@ export function NewsletterPopup() {
     setOpen(next);
     if (!next) {
       setDismissed(true); // don't reopen this session
-      persist(); // …or ever again (closed with or without subscribing)
+      persist(); // …nor for the next 7 days (closed with or without subscribing)
     }
   };
 
