@@ -8,10 +8,7 @@ import { Check, Leaf, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { subscribeNewsletter } from "@/lib/forms/actions";
 
-/** Persisted flag so the popup only ever shows once (until the visitor clears
- *  storage). Set on close OR on a successful subscribe. */
-const STORAGE_KEY = "toytuni:newsletter-popup";
-/** Show after this long on the site (across page navigations). */
+/** Show after this long on each fresh page load (across client navigations). */
 const DELAY_MS = 30_000;
 
 // Don't interrupt purchase/auth/account flows or the admin app.
@@ -24,48 +21,41 @@ const inputCls =
   "h-11 w-full rounded-full border border-cream-300 bg-paper px-4 text-sm text-ink outline-none transition-colors placeholder:text-ink-soft focus-visible:border-neem focus-visible:ring-2 focus-visible:ring-neem/25";
 
 /**
- * Timed newsletter pop-up. Appears once, ~30s after the visitor lands (the timer
+ * Timed newsletter pop-up. Appears ~30s after each fresh page load (the timer
  * survives client navigations since this lives in the root layout's deferred
- * islands). Closing or subscribing persists a flag so it never nags again, and
- * it stays out of purchase/auth/account flows. Reuses `subscribeNewsletter`
- * (source "popup"), so sign-ups land in the admin inbox like any other.
+ * islands, but resets on a full reload — so a returning visitor sees it again).
+ * Closing marks it dismissed for the current load only; it stays out of
+ * purchase/auth/account flows. Reuses `subscribeNewsletter` (source "popup"),
+ * so sign-ups land in the admin inbox like any other.
  */
 export function NewsletterPopup() {
   const pathname = usePathname();
   const [armed, setArmed] = useState(false); // 30s elapsed
   const [open, setOpen] = useState(false);
+  const [dismissed, setDismissed] = useState(false); // closed/subscribed this session
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
 
-  // Arm once, 30s after mount — unless already shown before.
+  // Arm 30s after each fresh page load — no persistence, so it shows on every
+  // new visit. Only the in-memory `dismissed` flag stops it reopening within
+  // the same load once closed.
   useEffect(() => {
-    try {
-      if (localStorage.getItem(STORAGE_KEY)) return;
-    } catch {
-      /* storage blocked — just proceed */
-    }
     const id = window.setTimeout(() => setArmed(true), DELAY_MS);
     return () => window.clearTimeout(id);
   }, []);
 
   // Open when armed, but only on an allowed route (waits if currently excluded).
+  // `dismissed` stops it reopening the instant it's closed (the effect would
+  // otherwise re-fire since `armed` stays true).
   useEffect(() => {
-    if (armed && !open && !done && !isExcluded(pathname)) setOpen(true);
-  }, [armed, pathname, open, done]);
-
-  const persist = () => {
-    try {
-      localStorage.setItem(STORAGE_KEY, "1");
-    } catch {
-      /* ignore */
-    }
-  };
+    if (armed && !open && !dismissed && !done && !isExcluded(pathname)) setOpen(true);
+  }, [armed, pathname, open, dismissed, done]);
 
   const handleOpenChange = (next: boolean) => {
     setOpen(next);
-    if (!next) persist(); // closed (with or without subscribing) → don't show again
+    if (!next) setDismissed(true); // don't reopen within this page load
   };
 
   const submit = async (e: React.FormEvent) => {
@@ -83,7 +73,6 @@ export function NewsletterPopup() {
       return;
     }
     setDone(true);
-    persist();
   };
 
   // Never mount on excluded routes (also keeps the portal out of those trees).
@@ -105,10 +94,10 @@ export function NewsletterPopup() {
             {/* image panel — hidden on phones to keep the card compact */}
             <div className="relative hidden min-h-[24rem] sm:block">
               <Image
-                src="/images/hero/hero-mobile-v3.webp"
+                src="/images/marketing/newsletter.webp"
                 alt=""
                 fill
-                sizes="(min-width: 640px) 22rem, 0px"
+                sizes="(min-width: 640px) 24rem, 0px"
                 className="object-cover"
               />
             </div>
