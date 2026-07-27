@@ -34,6 +34,20 @@ import { loyaltyDashboard, type LoyaltyIcon } from "@/lib/mock/loyalty";
 import type { LoyaltyContent } from "@/lib/data/loyalty-shape";
 import type { Tone } from "@/lib/types";
 
+/** Signed-in member's live rewards snapshot (built in the loyalty page from
+ *  lifetime spend). Null → guest, so the dashboard shows the locked preview. */
+export type LoyaltyMemberView = {
+  firstName: string;
+  tierLabel: string;
+  tierBadge: string;
+  points: number;
+  /** Percent (0–100) toward the next spend tier. */
+  progress: number;
+  nextTierLabel: string | null;
+  pointsToNext: number;
+  activity: { id: string; label: string; date: string; points: string }[];
+} | null;
+
 const loyaltyIcon: Record<LoyaltyIcon, LucideIcon> = {
   coins: Coins,
   percent: Percent,
@@ -79,12 +93,95 @@ function SectionHead({ eyebrow, title, sub }: { eyebrow: string; title: string; 
   );
 }
 
+/** Real, unlocked rewards dashboard for a signed-in member. */
+function MemberDashboard({ member }: { member: NonNullable<LoyaltyMemberView> }) {
+  return (
+    <div className="mx-auto mt-8 max-w-2xl overflow-hidden rounded-3xl border border-cream-200 bg-paper shadow-sm">
+      {/* header */}
+      <div className="flex items-center justify-between gap-4 border-b border-cream-200 bg-neem/5 px-6 py-5">
+        <div>
+          <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-neem-deep">Current tier</p>
+          <p className="mt-0.5 flex items-center gap-2 font-display text-xl font-bold text-ink">
+            <Medal className="size-5 text-neem" aria-hidden />
+            {member.tierLabel}
+          </p>
+        </div>
+        <div className="text-right">
+          <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-neem-deep">Points</p>
+          <p className="mt-0.5 font-display text-2xl font-bold text-ink">
+            {member.points.toLocaleString("en-US")}
+          </p>
+        </div>
+      </div>
+
+      {/* progress toward the next tier */}
+      <div className="px-6 py-5">
+        {member.nextTierLabel ? (
+          <>
+            <div className="flex items-center justify-between text-sm">
+              <span className="font-medium text-ink">
+                {member.pointsToNext.toLocaleString("en-US")} points to {member.nextTierLabel}
+              </span>
+              <span className="text-ink-soft">{member.progress}%</span>
+            </div>
+            <div className="mt-2">
+              <LoyaltyProgress value={member.progress} />
+            </div>
+          </>
+        ) : (
+          <p className="flex items-center gap-2 text-sm font-medium text-neem-deep">
+            <Crown className="size-4" aria-hidden /> You&apos;re at our top tier — enjoy every perk!
+          </p>
+        )}
+      </div>
+
+      {/* recent activity */}
+      <div className="border-t border-cream-200 px-6 py-5">
+        <div className="flex items-center justify-between gap-3">
+          <p className="font-display text-sm font-bold text-ink">Recent activity</p>
+          <Link
+            href="/account"
+            className="inline-flex items-center gap-1 text-xs font-semibold text-neem-deep hover:text-neem"
+          >
+            Full dashboard <ArrowRight className="size-3.5" />
+          </Link>
+        </div>
+        {member.activity.length === 0 ? (
+          <p className="mt-3 text-sm text-ink-muted">
+            No activity yet — place an order to start earning points.
+          </p>
+        ) : (
+          <ul className="mt-3 space-y-3">
+            {member.activity.map((a) => (
+              <li key={a.id} className="flex items-center justify-between gap-3 text-sm">
+                <div>
+                  <p className="font-medium text-ink">{a.label}</p>
+                  <p className="text-xs text-ink-soft">{a.date}</p>
+                </div>
+                <span className="font-display font-bold text-neem-deep">{a.points}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /**
  * Premium Loyalty Rewards page. Server component — renders the program from the
  * loyalty config; the only client islands are the Reveal scroll animation, the
- * FAQ accordion, and the animated dashboard progress bar.
+ * FAQ accordion, and the animated dashboard progress bar. When a `member` is
+ * passed (signed in), the dashboard shows their real points/tier; otherwise a
+ * blurred, locked preview invites sign-in.
  */
-export function LoyaltyView({ content }: { content: LoyaltyContent }) {
+export function LoyaltyView({
+  content,
+  member,
+}: {
+  content: LoyaltyContent;
+  member: LoyaltyMemberView;
+}) {
   const { hero, benefits, steps, tiers, rewards, testimonials, faqs, cta } = content;
   return (
     <main className="flex-1 bg-paper">
@@ -273,8 +370,21 @@ export function LoyaltyView({ content }: { content: LoyaltyContent }) {
           the (blurred) shape of the dashboard, never the point values. */}
       <section className={`${SECTION} py-10`}>
         <Reveal>
-          <SectionHead eyebrow="Your account" title="Your rewards dashboard" sub="Sign in to track your points, tier progress, and rewards." />
+          <SectionHead
+            eyebrow="Your account"
+            title="Your rewards dashboard"
+            sub={
+              member
+                ? `Welcome back, ${member.firstName} — here's your points, tier, and progress.`
+                : "Sign in to track your points, tier progress, and rewards."
+            }
+          />
         </Reveal>
+        {member ? (
+          <Reveal>
+            <MemberDashboard member={member} />
+          </Reveal>
+        ) : (
         <Reveal>
           <div className="relative mx-auto mt-8 max-w-2xl">
             {/* blurred, non-interactive preview (hidden from assistive tech) */}
@@ -360,6 +470,7 @@ export function LoyaltyView({ content }: { content: LoyaltyContent }) {
             </div>
           </div>
         </Reveal>
+        )}
       </section>
 
       {/* testimonials */}
