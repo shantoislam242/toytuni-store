@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, useAnimationControls } from "motion/react";
@@ -76,14 +76,31 @@ export function HeroCarousel({ hero }: { hero: HeroContent }) {
     return () => clearInterval(id);
   }, [slides.length]);
 
-  // Copy re-zooms on every slide change (and on first paint) — a gentle scale
-  // pulse only (no fade), so the text stays readable and just breathes with the
-  // image instead of vanishing each cycle.
+  // On every slide change the copy fades out and comes back in with a gentle
+  // zoom — a fresh reveal each cycle. Skipped on first paint (the stagger
+  // entrance already reveals it) and under reduced-motion.
   const copyControls = useAnimationControls();
+  const firstPaint = useRef(true);
   useEffect(() => {
+    if (firstPaint.current) {
+      firstPaint.current = false;
+      return;
+    }
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    copyControls.set({ scale: 1.04 });
-    copyControls.start({ scale: 1, transition: { duration: 1.1, ease: ENTER_EASE } });
+    let cancelled = false;
+    (async () => {
+      await copyControls.start({ opacity: 0, transition: { duration: 0.35, ease: "easeIn" } });
+      if (cancelled) return;
+      copyControls.set({ scale: 1.06 });
+      await copyControls.start({
+        opacity: 1,
+        scale: 1,
+        transition: { duration: 0.8, ease: ENTER_EASE },
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [active, copyControls]);
 
   return (
