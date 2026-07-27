@@ -27,8 +27,9 @@ async function readContent(): Promise<SiteContent> {
  *  `homepage` key (same table/public-read policy as `getSettings`). */
 // Cache-key suffix is bumped whenever SiteContent's SHAPE changes (the Data
 // Cache persists across deploys and stores the post-normalize value, so an old
-// entry can be missing new fields and crash new code). "2" = added `featured`.
-export const getSiteContent = unstable_cache(readContent, ["site-content", "2"], {
+// entry can be missing new fields and crash new code). "2" = added `featured`;
+// "3" = added hero `images` (multi-slide).
+export const getSiteContent = unstable_cache(readContent, ["site-content", "3"], {
   tags: ["site-content"],
   revalidate: 3600,
 });

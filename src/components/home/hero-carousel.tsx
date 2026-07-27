@@ -52,18 +52,26 @@ export function HeroCarousel({ hero }: { hero: HeroContent }) {
   // Two-slide auto-rotating hero. Slide 1 is the (CMS-editable) primary image;
   // slide 2 is a bundled second scene. The copy overlay stays fixed — only the
   // background image cross-fades every 6s (paused under reduced-motion).
-  const slides = [
-    {
-      desktop: hero.imageDesktop ?? DEFAULT_HERO_DESKTOP,
-      mobile: hero.imageMobile ?? DEFAULT_HERO_MOBILE,
-      alt: HERO_ALT,
-    },
-    {
-      desktop: HERO_SLIDE_2_DESKTOP,
-      mobile: HERO_SLIDE_2_MOBILE,
-      alt: HERO_ALT_2,
-    },
-  ];
+  // Admin-uploaded slides win when present — each image serves both breakpoints
+  // (object-cover fits it to the wide desktop box / 4:3 mobile box). With none
+  // uploaded, fall back to the two bundled default slides. (`?? []` guards a
+  // stale cached blob from before `images` existed.)
+  const uploaded = hero.images ?? [];
+  const slides =
+    uploaded.length > 0
+      ? uploaded.map((url) => ({ desktop: url, mobile: url, alt: HERO_ALT }))
+      : [
+          {
+            desktop: hero.imageDesktop ?? DEFAULT_HERO_DESKTOP,
+            mobile: hero.imageMobile ?? DEFAULT_HERO_MOBILE,
+            alt: HERO_ALT,
+          },
+          {
+            desktop: HERO_SLIDE_2_DESKTOP,
+            mobile: HERO_SLIDE_2_MOBILE,
+            alt: HERO_ALT_2,
+          },
+        ];
   const [active, setActive] = useState(0);
 
   useEffect(() => {
@@ -257,22 +265,24 @@ export function HeroCarousel({ hero }: { hero: HeroContent }) {
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-paper/90 via-paper/40 to-transparent" />
       </div>
 
-      {/* slide indicators — also let the visitor switch manually */}
-      <div className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 gap-2 lg:bottom-6">
-        {slides.map((_, i) => (
-          <button
-            key={i}
-            type="button"
-            onClick={() => setActive(i)}
-            aria-label={`Show slide ${i + 1}`}
-            aria-current={i === active}
-            className={cn(
-              "h-2 rounded-full transition-all duration-300",
-              i === active ? "w-6 bg-neem" : "w-2 bg-ink/30 hover:bg-ink/50",
-            )}
-          />
-        ))}
-      </div>
+      {/* slide indicators — only when there's more than one slide */}
+      {slides.length > 1 ? (
+        <div className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 gap-2 lg:bottom-6">
+          {slides.map((_, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => setActive(i)}
+              aria-label={`Show slide ${i + 1}`}
+              aria-current={i === active}
+              className={cn(
+                "h-2 rounded-full transition-all duration-300",
+                i === active ? "w-6 bg-neem" : "w-2 bg-ink/30 hover:bg-ink/50",
+              )}
+            />
+          ))}
+        </div>
+      ) : null}
     </section>
   );
 }

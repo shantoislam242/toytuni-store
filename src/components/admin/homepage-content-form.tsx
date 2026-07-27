@@ -4,17 +4,12 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { toast } from "sonner";
-import { Upload, Loader2, RotateCcw } from "lucide-react";
+import { Upload, Loader2, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { updateHomepageContent, uploadContentImage } from "@/lib/admin/content-actions";
-import {
-  DEFAULT_HERO_DESKTOP,
-  DEFAULT_HERO_MOBILE,
-  DEFAULT_CONTENT,
-  type SiteContent,
-} from "@/lib/data/content-shape";
+import { DEFAULT_CONTENT, type SiteContent } from "@/lib/data/content-shape";
 
 const inputCls =
   "w-full rounded-lg border border-cream-300 bg-paper px-3 py-2 text-sm text-ink outline-none transition-colors placeholder:text-ink-soft focus-visible:border-neem focus-visible:ring-2 focus-visible:ring-neem/25";
@@ -28,33 +23,33 @@ function Labelled({ label, children }: { label: string; children: React.ReactNod
   );
 }
 
-/** Upload/preview control for one hero image; null value → bundled default. */
-function ImageField({
-  label,
-  value,
-  fallback,
+/**
+ * Up to 4 hero-slide images. Each uploaded image becomes one slide in the
+ * auto-rotating hero (1 = static, 2–4 = slider); an empty list falls back to
+ * the bundled default slides. The array is compact + ordered — slide N is
+ * `images[N-1]`.
+ */
+function HeroSlidesField({
+  images,
   onChange,
 }: {
-  label: string;
-  value: string | null;
-  fallback: string;
-  onChange: (url: string | null) => void;
+  images: string[];
+  onChange: (next: string[]) => void;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
-  const src = value ?? fallback;
 
-  const pick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const add = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
-    if (!file) return;
+    if (!file || images.length >= 4) return;
     setUploading(true);
     const fd = new FormData();
     fd.append("file", file);
     const res = await uploadContentImage(fd);
     setUploading(false);
     if (res.ok) {
-      onChange(res.url);
+      onChange([...images, res.url]);
       toast.success("Image uploaded — Save to publish.");
     } else {
       toast.error(res.error);
@@ -63,22 +58,43 @@ function ImageField({
 
   return (
     <div>
-      <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-ink-muted">{label}</span>
-      <div className="relative aspect-[2/1] w-full overflow-hidden rounded-lg border border-cream-300 bg-cream-100">
-        <Image src={src} alt="" fill sizes="320px" className="object-cover" />
-      </div>
-      <div className="mt-2 flex items-center gap-2">
-        <Button type="button" size="sm" variant="outline" disabled={uploading} onClick={() => fileRef.current?.click()}>
-          {uploading ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
-          {uploading ? "Uploading…" : "Upload"}
-        </Button>
-        {value ? (
-          <Button type="button" size="sm" variant="outline" onClick={() => onChange(null)}>
-            <RotateCcw className="size-4" /> Use default
-          </Button>
+      <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-ink-muted">
+        Hero slides (up to 4 — each image is one slide)
+      </span>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {images.map((url, i) => (
+          <div key={url} className="relative aspect-[2/1] w-full overflow-hidden rounded-lg border border-cream-300 bg-cream-100">
+            <Image src={url} alt="" fill sizes="320px" className="object-cover" />
+            <span className="absolute left-2 top-2 rounded-full bg-ink/70 px-2 py-0.5 text-[11px] font-semibold text-paper">
+              Slide {i + 1}
+            </span>
+            <button
+              type="button"
+              onClick={() => onChange(images.filter((_, j) => j !== i))}
+              aria-label={`Remove slide ${i + 1}`}
+              className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-full bg-ink/70 text-paper transition-colors hover:bg-danger"
+            >
+              <X className="size-4" />
+            </button>
+          </div>
+        ))}
+        {images.length < 4 ? (
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={uploading}
+            className="flex aspect-[2/1] w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-cream-300 bg-cream-50 text-sm font-medium text-ink-muted transition-colors hover:border-neem hover:text-neem-deep disabled:opacity-60"
+          >
+            {uploading ? <Loader2 className="size-5 animate-spin" /> : <Upload className="size-5" />}
+            {uploading ? "Uploading…" : "Upload image"}
+          </button>
         ) : null}
       </div>
-      <input ref={fileRef} type="file" accept="image/*" onChange={pick} className="hidden" />
+      <p className="mt-2 text-xs text-ink-soft">
+        Uploaded images become the hero slider. Leave empty to use the built-in default images.
+        Wide landscape images (about 2.3 : 1) work best.
+      </p>
+      <input ref={fileRef} type="file" accept="image/*" onChange={add} className="hidden" />
     </div>
   );
 }
@@ -99,7 +115,7 @@ export function HomepageContentForm({
   // Defensive: fill any section a stale cached blob might be missing so the
   // form never reads `undefined.slug` etc.
   const [content, setContent] = useState<SiteContent>({
-    hero: initial.hero ?? DEFAULT_CONTENT.hero,
+    hero: { ...DEFAULT_CONTENT.hero, ...(initial.hero ?? {}) },
     about: initial.about ?? DEFAULT_CONTENT.about,
     featured: initial.featured ?? DEFAULT_CONTENT.featured,
   });
@@ -114,7 +130,12 @@ export function HomepageContentForm({
 
   const save = async () => {
     setSaving(true);
-    const res = await updateHomepageContent(content);
+    // Hero images are managed via `images` now; clear the legacy single-image
+    // fields so they can't resurrect via the read-time migration.
+    const res = await updateHomepageContent({
+      ...content,
+      hero: { ...content.hero, imageDesktop: null, imageMobile: null },
+    });
     setSaving(false);
     if (res.ok) {
       toast.success("Homepage updated.");
@@ -142,10 +163,10 @@ export function HomepageContentForm({
             <Labelled label="Secondary button label"><Input value={content.hero.secondaryLabel} onChange={(e) => setHero("secondaryLabel", e.target.value)} /></Labelled>
             <Labelled label="Secondary button link"><Input value={content.hero.secondaryHref} onChange={(e) => setHero("secondaryHref", e.target.value)} placeholder="/collections/by-age" /></Labelled>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <ImageField label="Desktop image" value={content.hero.imageDesktop} fallback={DEFAULT_HERO_DESKTOP} onChange={(url) => setHero("imageDesktop", url)} />
-            <ImageField label="Mobile image" value={content.hero.imageMobile} fallback={DEFAULT_HERO_MOBILE} onChange={(url) => setHero("imageMobile", url)} />
-          </div>
+          <HeroSlidesField
+            images={content.hero.images}
+            onChange={(next) => setHero("images", next)}
+          />
         </CardContent>
       </Card>
 
