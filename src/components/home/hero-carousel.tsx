@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "motion/react";
@@ -7,11 +8,16 @@ import { ArrowRight, Heart } from "lucide-react";
 import {
   DEFAULT_HERO_DESKTOP,
   DEFAULT_HERO_MOBILE,
+  HERO_SLIDE_2_DESKTOP,
+  HERO_SLIDE_2_MOBILE,
   type HeroContent,
 } from "@/lib/data/content-shape";
+import { cn } from "@/lib/utils";
 
 const HERO_ALT =
   "Handmade neem-wood Montessori stacking tower, shape sorter, pull-along duck and rattle on a linen tabletop";
+const HERO_ALT_2 =
+  "Smiling baby learning to walk with a neem-wood push walker among wooden rattles and teethers in a cosy playroom";
 
 // Entrance choreography — a calm, staggered fade-up with a gentle defocus→focus
 // blur. Slow easeOut curve (no bounce/overshoot) so it reads elegant, not flashy.
@@ -43,8 +49,33 @@ const rise = {
  * shine / hover-arrow are animated.
  */
 export function HeroCarousel({ hero }: { hero: HeroContent }) {
-  const desktopSrc = hero.imageDesktop ?? DEFAULT_HERO_DESKTOP;
-  const mobileSrc = hero.imageMobile ?? DEFAULT_HERO_MOBILE;
+  // Two-slide auto-rotating hero. Slide 1 is the (CMS-editable) primary image;
+  // slide 2 is a bundled second scene. The copy overlay stays fixed — only the
+  // background image cross-fades every 6s (paused under reduced-motion).
+  const slides = [
+    {
+      desktop: hero.imageDesktop ?? DEFAULT_HERO_DESKTOP,
+      mobile: hero.imageMobile ?? DEFAULT_HERO_MOBILE,
+      alt: HERO_ALT,
+    },
+    {
+      desktop: HERO_SLIDE_2_DESKTOP,
+      mobile: HERO_SLIDE_2_MOBILE,
+      alt: HERO_ALT_2,
+    },
+  ];
+  const [active, setActive] = useState(0);
+
+  useEffect(() => {
+    if (slides.length < 2) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const id = window.setInterval(
+      () => setActive((i) => (i + 1) % slides.length),
+      6000,
+    );
+    return () => clearInterval(id);
+  }, [slides.length]);
+
   return (
     <section className="relative w-full overflow-hidden">
       {/* CONTENT — absolute overlay at every size, vertically centred over the
@@ -149,14 +180,20 @@ export function HeroCarousel({ hero }: { hero: HeroContent }) {
           peeking. The 43vw cap on both means the image is never side-cropped;
           90vh only caps ultrawide/short viewports (top/bottom crop). */}
       <div className="relative hidden w-full overflow-hidden lg:block lg:h-[min(76vh,43vw)] 2xl:h-[min(90vh,43vw)]">
-        <Image
-          src={desktopSrc}
-          alt={HERO_ALT}
-          fill
-          priority
-          sizes="100vw"
-          className="object-cover object-center"
-        />
+        {slides.map((sl, i) => (
+          <Image
+            key={sl.desktop}
+            src={sl.desktop}
+            alt={sl.alt}
+            fill
+            priority={i === 0}
+            sizes="100vw"
+            className={cn(
+              "object-cover object-center transition-opacity duration-[1200ms] ease-out",
+              i === active ? "opacity-100" : "opacity-0",
+            )}
+          />
+        ))}
         {/* cream scrim — fades left→right so the left-side copy stays legible */}
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-paper/85 via-paper/25 to-transparent" />
       </div>
@@ -165,17 +202,39 @@ export function HeroCarousel({ hero }: { hero: HeroContent }) {
           toys) so it shows fuller at phone width without any container crop.
           Sits in flow and defines the section height; the content above overlays
           it, with a cream scrim on the left for legibility. */}
-      <div className="relative lg:hidden">
-        <Image
-          src={mobileSrc}
-          alt={HERO_ALT}
-          width={1095}
-          height={821}
-          priority
-          sizes="100vw"
-          className="block h-auto w-full"
-        />
+      <div className="relative aspect-[1095/821] w-full overflow-hidden lg:hidden">
+        {slides.map((sl, i) => (
+          <Image
+            key={sl.mobile}
+            src={sl.mobile}
+            alt={sl.alt}
+            fill
+            priority={i === 0}
+            sizes="100vw"
+            className={cn(
+              "object-cover object-center transition-opacity duration-[1200ms] ease-out",
+              i === active ? "opacity-100" : "opacity-0",
+            )}
+          />
+        ))}
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-paper/90 via-paper/40 to-transparent" />
+      </div>
+
+      {/* slide indicators — also let the visitor switch manually */}
+      <div className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 gap-2 lg:bottom-6">
+        {slides.map((_, i) => (
+          <button
+            key={i}
+            type="button"
+            onClick={() => setActive(i)}
+            aria-label={`Show slide ${i + 1}`}
+            aria-current={i === active}
+            className={cn(
+              "h-2 rounded-full transition-all duration-300",
+              i === active ? "w-6 bg-neem" : "w-2 bg-ink/30 hover:bg-ink/50",
+            )}
+          />
+        ))}
       </div>
     </section>
   );

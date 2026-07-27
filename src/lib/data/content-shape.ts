@@ -42,6 +42,10 @@ export type SiteContent = { hero: HeroContent; about: AboutTeaserContent; featur
 export const DEFAULT_HERO_DESKTOP = "/images/hero/hero-v2.webp";
 export const DEFAULT_HERO_MOBILE = "/images/hero/hero-mobile-43.webp";
 
+/** Second hero slide (auto-rotating slider). Bundled, not CMS-editable yet. */
+export const HERO_SLIDE_2_DESKTOP = "/images/hero/hero-v3.webp";
+export const HERO_SLIDE_2_MOBILE = "/images/hero/hero-mobile-v3.webp";
+
 export const DEFAULT_CONTENT: SiteContent = {
   hero: {
     heading: "Learning Begins\nwith Play",
