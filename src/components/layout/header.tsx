@@ -668,18 +668,34 @@ export function Header({ mainNav, logoUrl }: { mainNav: NavLink[]; logoUrl: stri
                 <WishlistBadge className="absolute -right-0.5 -top-0.5 size-4" />
               </Link>
             </Button>
-            {/* Account / Sign in — desktop only. */}
-            <Button
-              asChild
-              variant="ghost"
-              size="icon"
-              aria-label={isLoggedIn ? "Account" : "Sign in"}
-              className="relative hidden lg:inline-flex"
-            >
-              <Link href={isLoggedIn ? "/account" : "/signin"} className="flex items-center gap-2">
-                <User className="size-6" />
-              </Link>
-            </Button>
+            {/* Account / Sign in — desktop only. Signed-in shows the account
+                icon; signed-out shows a labelled "Sign In" outline pill so the
+                affordance is obvious (a bare icon read as unclear). */}
+            {isLoggedIn ? (
+              <Button
+                asChild
+                variant="ghost"
+                size="icon"
+                aria-label="Account"
+                className="relative hidden lg:inline-flex"
+              >
+                <Link href="/account">
+                  <User className="size-6" />
+                </Link>
+              </Button>
+            ) : (
+              <Button
+                asChild
+                variant="outline"
+                aria-label="Sign in"
+                className="hidden h-9 gap-1.5 rounded-full border-neem/40 px-3.5 text-sm font-semibold text-neem-deep hover:border-neem hover:bg-neem/10 hover:text-neem-deep lg:inline-flex"
+              >
+                <Link href="/signin">
+                  <User className="size-4.5" />
+                  Sign In
+                </Link>
+              </Button>
+            )}
             {/* Cart — desktop only (mobile uses the fixed bottom bar). */}
             <Button
               asChild
