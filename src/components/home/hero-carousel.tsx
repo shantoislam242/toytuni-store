@@ -141,12 +141,14 @@ export function HeroCarousel({ hero }: { hero: HeroContent }) {
           </motion.div>
       </div>
 
-      {/* DESKTOP image — the sized 76vh box the content overlays. Hidden below lg. */}
+      {/* DESKTOP image — the sized 64vh box the content overlays. Hidden below lg.
+          Kept a touch shorter than a full viewport so the stats strip below peeks
+          above the fold on desktop. */}
       {/* Height is capped at the image's own full-width height (~43vw = 100vw
           ÷ 2.33) so a tall/portrait viewport (e.g. iPad Pro portrait, where
-          76vh ≈ 100vw) can't stretch the box past the photo's ratio and crop its
-          sides. Wide screens still get the tuned 76vh. */}
-      <div className="relative hidden w-full overflow-hidden lg:block lg:h-[min(76vh,43vw)]">
+          64vh ≈ 100vw) can't stretch the box past the photo's ratio and crop its
+          sides. Wide screens still get the tuned 64vh. */}
+      <div className="relative hidden w-full overflow-hidden lg:block lg:h-[min(64vh,43vw)]">
         <Image
           src={desktopSrc}
           alt={HERO_ALT}
