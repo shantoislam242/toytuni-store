@@ -10,9 +10,13 @@ export type HeroContent = {
   primaryHref: string;
   secondaryLabel: string;
   secondaryHref: string;
-  /** Uploaded image URL, or null to use the bundled default. */
+  /** Uploaded image URL, or null to use the bundled default. Legacy single-image
+   *  fields — superseded by `images` (kept for back-compat + migration). */
   imageDesktop: string | null;
   imageMobile: string | null;
+  /** Up to 4 uploaded slide images — each becomes one hero slide (auto-rotating
+   *  slider). Empty → the bundled default slides are shown. */
+  images: string[];
 };
 
 export type AboutTeaserContent = {
@@ -57,6 +61,7 @@ export const DEFAULT_CONTENT: SiteContent = {
     secondaryHref: "/collections/by-age",
     imageDesktop: null,
     imageMobile: null,
+    images: [],
   },
   about: {
     heading: "About Us",
@@ -92,6 +97,15 @@ const str = (v: unknown, fallback: string): string =>
 const imageUrl = (v: unknown): string | null =>
   typeof v === "string" && v.startsWith("http") ? v : null;
 
+/** Up to 4 http(s) hero-slide image URLs. When the array is empty, falls back
+ *  to a legacy single desktop image (migration from the old imageDesktop). */
+const heroImages = (v: unknown, legacy: string | null): string[] => {
+  const arr = Array.isArray(v)
+    ? v.filter((s): s is string => typeof s === "string" && s.startsWith("http")).slice(0, 4)
+    : [];
+  return arr.length === 0 && legacy ? [legacy] : arr;
+};
+
 /** Shape any stored jsonb into a full `SiteContent`, filling every
  *  missing/invalid field from `DEFAULT_CONTENT`. Pure — never throws. */
 /** Optional multi-line string: trimmed as entered, EMPTY allowed (so an admin
@@ -115,6 +129,7 @@ export function rowToContent(value: unknown): SiteContent {
       secondaryHref: str(h.secondaryHref, d.hero.secondaryHref),
       imageDesktop: imageUrl(h.imageDesktop),
       imageMobile: imageUrl(h.imageMobile),
+      images: heroImages(h.images, imageUrl(h.imageDesktop)),
     },
     about: {
       heading: str(a.heading, d.about.heading),
