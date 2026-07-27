@@ -9,6 +9,7 @@ import dynamic from "next/dynamic";
  * critical path and the main thread — with no visual or behavioural change:
  *   - CursorSparkleTrail: a desktop mouse-trail (no-op on touch devices anyway)
  *   - BackToTop: only appears once the footer scrolls into view
+ *   - NewsletterPopup: a timed sign-up modal (~30s in, once, off purchase/auth)
  */
 const CursorSparkleTrail = dynamic(
   () =>
@@ -23,11 +24,20 @@ const BackToTop = dynamic(
   { ssr: false },
 );
 
+const NewsletterPopup = dynamic(
+  () =>
+    import("@/components/marketing/newsletter-popup").then(
+      (m) => m.NewsletterPopup,
+    ),
+  { ssr: false },
+);
+
 export function DeferredIslands() {
   return (
     <>
       <BackToTop />
       <CursorSparkleTrail />
+      <NewsletterPopup />
     </>
   );
 }

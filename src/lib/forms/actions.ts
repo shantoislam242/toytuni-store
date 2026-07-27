@@ -68,7 +68,7 @@ export async function subscribeNewsletter(
   if (await isFormRateLimited()) return { ok: false, error: BUSY };
   const v = validateNewsletterEmail(email);
   if (!v.ok) return v;
-  const src = ["footer", "blog", "journal"].includes(source) ? source : "footer";
+  const src = ["footer", "blog", "journal", "popup"].includes(source) ? source : "footer";
   const db = createAdminSupabase();
   const { error } = await db.from("newsletter_subscribers" as never).insert({
     email: v.value, source: src,
