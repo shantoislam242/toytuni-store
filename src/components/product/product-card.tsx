@@ -80,7 +80,8 @@ export function ProductCard({
 
   // The single top-left status badge (priority: sold-out > pre-order >
   // New/Best Seller/Limited). It's shown EVEN when a discount ribbon is present
-  // — the two just stack: the ribbon owns the corner, the badge sits below it.
+  // — the two sit side by side along the top: the ribbon owns the corner, the
+  // badge shifts right to sit beside it.
   const statusBadge =
     availability?.state === "sold_out"
       ? { text: "Sold out", tone: "bg-ink/70 text-paper" }
@@ -89,10 +90,12 @@ export function ProductCard({
         : product.badge
           ? { text: product.badge, tone: "bg-neem text-paper" }
           : null;
-  // When the discount ribbon (≈80/88px corner) is showing, drop the badge below
-  // it; otherwise it sits in the top-left corner as usual.
+  // When the discount ribbon (≈80/88px corner) is showing, sit the badge at the
+  // top BESIDE the ribbon — shifted right past its ~80/88px width, still leaving
+  // room for the wishlist heart on the right (it truncates on narrow cards).
+  // With no ribbon it takes the top-left corner as usual.
   const badgePosition = discountPercent
-    ? "left-2 top-[4.75rem] sm:left-2.5 sm:top-[5.25rem] max-w-[calc(100%-1rem)]"
+    ? "left-[5rem] top-2 max-w-[calc(100%-8.25rem)] sm:left-[5.5rem] sm:top-2.5 sm:max-w-[calc(100%-8.75rem)]"
     : "left-2 top-2 sm:left-2.5 sm:top-2.5 max-w-[calc(100%-3.5rem)]"; // clear the heart
 
   return (
@@ -149,7 +152,7 @@ export function ProductCard({
           </div>
         ) : null}
 
-        {/* status badge — sits in the top-left corner, or just below the
+        {/* status badge — sits in the top-left corner, or at the top beside the
             discount ribbon when one is present, so both stay visible without
             overlapping (z-30 keeps it above the ribbon either way). */}
         {statusBadge ? (
