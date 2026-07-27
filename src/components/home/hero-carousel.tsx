@@ -78,6 +78,13 @@ export function HeroCarousel({ hero }: { hero: HeroContent }) {
 
   return (
     <section className="relative w-full overflow-hidden">
+      {/* Entrance: the whole scene (background image + copy) gently zooms in
+          together on load — one shared scale+fade so they move as one. */}
+      <motion.div
+        initial={{ opacity: 0, scale: 1.06 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 1.1, ease: ENTER_EASE }}
+      >
       {/* CONTENT — absolute overlay at every size, vertically centred over the
           image (which sits in flow underneath: the tall 4:3 crop on mobile, the
           76vh wide box on desktop). */}
@@ -219,6 +226,7 @@ export function HeroCarousel({ hero }: { hero: HeroContent }) {
         ))}
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-paper/90 via-paper/40 to-transparent" />
       </div>
+      </motion.div>
 
       {/* slide indicators — also let the visitor switch manually */}
       <div className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 gap-2 lg:bottom-6">
