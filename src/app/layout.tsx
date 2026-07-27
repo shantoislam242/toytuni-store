@@ -7,6 +7,7 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { getNavContent } from "@/lib/data/nav";
 import { getSettings } from "@/lib/data/settings";
+import { getPopupContent } from "@/lib/data/popup";
 import { FooterGate } from "@/components/layout/footer-gate";
 import { SiteBackground } from "@/components/layout/site-background";
 import { MobileBottomBar } from "@/components/layout/mobile-bottom-bar";
@@ -81,7 +82,11 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const [nav, settings] = await Promise.all([getNavContent(), getSettings()]);
+  const [nav, settings, popup] = await Promise.all([
+    getNavContent(),
+    getSettings(),
+    getPopupContent(),
+  ]);
   return (
     <html
       lang="en"
@@ -110,7 +115,7 @@ export default async function RootLayout({
                     </FooterGate>
                     <MobileBottomBar />
                     <WhatsAppButton />
-                    <DeferredIslands />
+                    <DeferredIslands popup={popup} />
                     <Toaster />
                   </HomeResetProvider>
                 </WishlistProvider>

@@ -394,6 +394,7 @@ function SubscribersList({
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-cream-300 bg-cream-100 text-left text-xs uppercase tracking-wide text-ink-muted">
+              <th className="px-4 py-2.5 font-medium">Name</th>
               <th className="px-4 py-2.5 font-medium">Email</th>
               <th className="px-4 py-2.5 font-medium">Source</th>
               <th className="px-4 py-2.5 font-medium">Date</th>
@@ -405,6 +406,7 @@ function SubscribersList({
               const busy = isPending && busyId === s.id;
               return (
                 <tr key={s.id} className="border-b border-cream-200 last:border-b-0 hover:bg-cream-50">
+                  <td className="px-4 py-3 text-ink">{s.name || <span className="text-ink-soft">—</span>}</td>
                   <td className="px-4 py-3 font-medium text-ink">
                     <a href={`mailto:${s.email}`} className="hover:underline">
                       {s.email}

@@ -63,15 +63,16 @@ export async function submitBulkInquiry(input: {
 }
 
 export async function subscribeNewsletter(
-  email: string, source: string,
+  email: string, source: string, name?: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   if (await isFormRateLimited()) return { ok: false, error: BUSY };
   const v = validateNewsletterEmail(email);
   if (!v.ok) return v;
   const src = ["footer", "blog", "journal", "popup"].includes(source) ? source : "footer";
+  const cleanName = typeof name === "string" && name.trim() !== "" ? name.trim().slice(0, 120) : null;
   const db = createAdminSupabase();
   const { error } = await db.from("newsletter_subscribers" as never).insert({
-    email: v.value, source: src,
+    email: v.value, source: src, name: cleanName,
   } as never);
   // Already subscribed → success (no enumeration).
   if (error && error.code !== "23505") {

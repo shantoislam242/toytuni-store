@@ -866,9 +866,9 @@ export async function getInboxSubmissions(): Promise<InboxSubmission[]> {
   }));
 }
 
-export type NewsletterSubscriber = { id: string; email: string; source: string; createdAt: string };
+export type NewsletterSubscriber = { id: string; email: string; source: string; name: string | null; createdAt: string };
 
-type NewsletterSubscriberRow = { id: string; email: string; source: string; created_at: string };
+type NewsletterSubscriberRow = { id: string; email: string; source: string; name: string | null; created_at: string };
 
 /** All newsletter subscribers, newest first. Service-role — same RLS-locked
  *  post-generation table as `form_submissions` above. */
@@ -876,11 +876,11 @@ export async function getNewsletterSubscribers(): Promise<NewsletterSubscriber[]
   const db = createAdminSupabase();
   const { data, error } = await db
     .from("newsletter_subscribers" as never)
-    .select("id, email, source, created_at")
+    .select("id, email, source, name, created_at")
     .order("created_at", { ascending: false })
     .overrideTypes<NewsletterSubscriberRow[], { merge: false }>();
   if (error) throw new Error(`getNewsletterSubscribers failed: ${error.message}`);
-  return (data ?? []).map((r) => ({ id: r.id, email: r.email, source: r.source, createdAt: r.created_at }));
+  return (data ?? []).map((r) => ({ id: r.id, email: r.email, source: r.source, name: r.name ?? null, createdAt: r.created_at }));
 }
 
 /** Count of `status = 'new'` submissions, for the admin sidebar's unread

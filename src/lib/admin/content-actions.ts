@@ -9,6 +9,7 @@ import { rowToAbout, type AboutContent } from "@/lib/data/about-shape";
 import { rowToBulk, type BulkContent } from "@/lib/data/bulk-shape";
 import { rowToLoyalty, type LoyaltyContent } from "@/lib/data/loyalty-shape";
 import { rowToNav, type NavContent } from "@/lib/data/nav-shape";
+import { rowToPopup, type PopupContent } from "@/lib/data/popup-shape";
 import type { Database } from "@/lib/supabase/database.types";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
@@ -118,6 +119,28 @@ export async function updateNavContent(next: NavContent): Promise<ActionResult> 
   if (error) return { ok: false, error: error.message };
 
   revalidateTag("nav-content", "max");
+  return { ok: true };
+}
+
+/**
+ * Save the editable newsletter pop-up content. Admin-gated (any admin).
+ * Normalized via `rowToPopup`. Stored in `site_settings` under the `popup` key;
+ * busts the `popup-content` cache. The pop-up renders in the root layout on
+ * every page, so (like nav) a targeted layout revalidate isn't done — the tag +
+ * 1-hour bound cover it; dynamic pages reflect it immediately.
+ */
+export async function updatePopupContent(next: PopupContent): Promise<ActionResult> {
+  if (!(await getIsAdmin())) throw new Error("unauthorized");
+
+  const value = rowToPopup(next);
+  const db = createAdminSupabase();
+  const { error } = await db.from("site_settings").upsert(
+    { key: "popup", value: value as unknown as SettingsValue },
+    { onConflict: "key" },
+  );
+  if (error) return { ok: false, error: error.message };
+
+  revalidateTag("popup-content", "max");
   return { ok: true };
 }
 

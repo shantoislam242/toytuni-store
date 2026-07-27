@@ -9,6 +9,7 @@ const TABS = [
   { label: "About page", href: "/admin/content/about" },
   { label: "Bulk page", href: "/admin/content/bulk" },
   { label: "Loyalty page", href: "/admin/content/loyalty" },
+  { label: "Pop-up", href: "/admin/content/popup" },
   { label: "Policies", href: "/admin/content/policies" },
   { label: "Navigation", href: "/admin/content/navigation" },
 ];
