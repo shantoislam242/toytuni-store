@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import type { PopupContent } from "@/lib/data/popup-shape";
 
 /**
  * Non-critical, purely decorative/scroll-triggered client islands, code-split
@@ -32,12 +33,12 @@ const NewsletterPopup = dynamic(
   { ssr: false },
 );
 
-export function DeferredIslands() {
+export function DeferredIslands({ popup }: { popup: PopupContent }) {
   return (
     <>
       <BackToTop />
       <CursorSparkleTrail />
-      <NewsletterPopup />
+      <NewsletterPopup content={popup} />
     </>
   );
 }

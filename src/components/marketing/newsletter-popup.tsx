@@ -7,9 +7,7 @@ import { Dialog } from "radix-ui";
 import { Check, Leaf, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { subscribeNewsletter } from "@/lib/forms/actions";
-
-/** Show after this long on each fresh page load (across client navigations). */
-const DELAY_MS = 30_000;
+import { DEFAULT_POPUP_IMAGE, type PopupContent } from "@/lib/data/popup-shape";
 
 // Don't interrupt purchase/auth/account flows or the admin app.
 const EXCLUDED = ["/admin", "/signin", "/signup", "/auth", "/checkout", "/cart", "/account"];
@@ -28,7 +26,7 @@ const inputCls =
  * purchase/auth/account flows. Reuses `subscribeNewsletter` (source "popup"),
  * so sign-ups land in the admin inbox like any other.
  */
-export function NewsletterPopup() {
+export function NewsletterPopup({ content }: { content: PopupContent }) {
   const pathname = usePathname();
   const [armed, setArmed] = useState(false); // 30s elapsed
   const [open, setOpen] = useState(false);
@@ -38,13 +36,14 @@ export function NewsletterPopup() {
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
 
-  // Arm 30s after each fresh page load — no persistence, so it shows on every
-  // new visit. Only the in-memory `dismissed` flag stops it reopening within
-  // the same load once closed.
+  // Arm after the admin-set delay on each fresh page load — no persistence, so
+  // it shows on every new visit. Only the in-memory `dismissed` flag stops it
+  // reopening within the same load once closed. Skipped when disabled.
   useEffect(() => {
-    const id = window.setTimeout(() => setArmed(true), DELAY_MS);
+    if (!content.enabled) return;
+    const id = window.setTimeout(() => setArmed(true), content.delaySeconds * 1000);
     return () => window.clearTimeout(id);
-  }, []);
+  }, [content.enabled, content.delaySeconds]);
 
   // Open when armed, but only on an allowed route (waits if currently excluded).
   // `dismissed` stops it reopening the instant it's closed (the effect would
@@ -66,7 +65,7 @@ export function NewsletterPopup() {
       return;
     }
     setSubmitting(true);
-    const res = await subscribeNewsletter(email.trim(), "popup");
+    const res = await subscribeNewsletter(email.trim(), "popup", firstName);
     setSubmitting(false);
     if (!res.ok) {
       toast.error(res.error);
@@ -75,8 +74,8 @@ export function NewsletterPopup() {
     setDone(true);
   };
 
-  // Never mount on excluded routes (also keeps the portal out of those trees).
-  if (isExcluded(pathname)) return null;
+  // Never mount when disabled or on excluded routes (keeps the portal out too).
+  if (!content.enabled || isExcluded(pathname)) return null;
 
   return (
     <Dialog.Root open={open} onOpenChange={handleOpenChange}>
@@ -94,7 +93,7 @@ export function NewsletterPopup() {
             {/* image panel — hidden on phones to keep the card compact */}
             <div className="relative hidden min-h-[24rem] sm:block">
               <Image
-                src="/images/marketing/newsletter.webp"
+                src={content.image ?? DEFAULT_POPUP_IMAGE}
                 alt=""
                 fill
                 sizes="(min-width: 640px) 24rem, 0px"
@@ -110,11 +109,10 @@ export function NewsletterPopup() {
                     <Check className="size-7" strokeWidth={2.5} />
                   </span>
                   <h2 className="mt-4 font-display text-2xl font-bold text-ink">
-                    You&apos;re in{firstName.trim() ? `, ${firstName.trim()}` : ""}! 🎉
+                    {content.successHeading}
                   </h2>
                   <p className="mx-auto mt-2 max-w-xs text-sm leading-6 text-ink-muted">
-                    Keep an eye on your inbox — new arrivals, sales, and members-only offers
-                    are on the way.
+                    {content.successBody}
                   </p>
                   <Dialog.Close className="mt-6 inline-flex h-11 items-center justify-center rounded-full bg-neem px-8 text-sm font-bold text-paper transition-colors hover:bg-neem-deep">
                     Continue shopping
@@ -124,14 +122,13 @@ export function NewsletterPopup() {
                 <>
                   <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-neem/10 px-3 py-1 text-xs font-semibold text-neem-deep">
                     <Leaf className="size-3.5" />
-                    Toytuni family
+                    {content.eyebrow}
                   </span>
                   <Dialog.Title className="mt-3 font-display text-2xl font-bold leading-tight text-ink sm:text-3xl">
-                    Join our little community
+                    {content.heading}
                   </Dialog.Title>
                   <Dialog.Description className="mt-2 text-sm leading-6 text-ink-muted">
-                    Be first to hear about new arrivals, sales, and members-only offers —
-                    thoughtfully made, straight to your inbox.
+                    {content.subheading}
                   </Dialog.Description>
 
                   <form onSubmit={submit} noValidate className="mt-5 space-y-3">
@@ -161,13 +158,11 @@ export function NewsletterPopup() {
                       className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-neem text-sm font-bold uppercase tracking-wide text-paper transition-colors hover:bg-neem-deep disabled:opacity-60"
                     >
                       {submitting ? <Loader2 className="size-4 animate-spin" /> : null}
-                      {submitting ? "Joining…" : "Join Now"}
+                      {submitting ? "Joining…" : content.buttonLabel}
                     </button>
                   </form>
 
-                  <p className="mt-3 text-center text-[11px] text-ink-soft">
-                    No spam — just the good stuff. Unsubscribe anytime.
-                  </p>
+                  <p className="mt-3 text-center text-[11px] text-ink-soft">{content.finePrint}</p>
                 </>
               )}
             </div>
