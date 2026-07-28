@@ -37,34 +37,97 @@ function fromFaq(f: AdminFaq): FormState {
   };
 }
 
+/** The shared field set — reused by the "Add FAQ" card and the inline editor. */
+function FaqFields({
+  value,
+  set,
+}: {
+  value: FormState;
+  set: <K extends keyof FormState>(key: K, v: FormState[K]) => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label className="block">
+          <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">Category</span>
+          <select value={value.category} onChange={(e) => set("category", e.target.value)} className={`${inputCls} mt-1`}>
+            {FAQ_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </label>
+        <label className="flex items-center gap-2.5 sm:mt-6">
+          <input type="checkbox" checked={value.active} onChange={(e) => set("active", e.target.checked)} className="size-4 accent-neem" />
+          <span className="text-sm font-medium text-ink">Active (visible on the site)</span>
+        </label>
+      </div>
+      <label className="block">
+        <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">Question</span>
+        <Input value={value.question} onChange={(e) => set("question", e.target.value)} placeholder="How do I place an order?" className="mt-1" />
+      </label>
+      <label className="block">
+        <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">Answer</span>
+        <textarea value={value.answer} onChange={(e) => set("answer", e.target.value)} rows={3} className={`${inputCls} mt-1`} />
+      </label>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label className="block">
+          <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">Link label — optional</span>
+          <Input value={value.linkLabel} onChange={(e) => set("linkLabel", e.target.value)} placeholder="Shipping & Delivery" className="mt-1" />
+        </label>
+        <label className="block">
+          <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">Link URL — optional</span>
+          <Input value={value.linkHref} onChange={(e) => set("linkHref", e.target.value)} placeholder="/policy/shipping" className="mt-1" />
+        </label>
+      </div>
+    </div>
+  );
+}
+
 /**
- * FAQ management UI (`/admin/faqs`). One form doubles as create/edit; the table
- * lists every FAQ in display order with edit/delete, an active toggle, and
- * up/down reordering (persisted via `reorderFaqs`). Shared admin idiom:
- * `useTransition`, check `r.ok`, toast, `router.refresh()`.
+ * FAQ management UI (`/admin/faqs`). The top card CREATES a FAQ; each row in the
+ * list edits IN PLACE — clicking its pencil opens an inline editor on that same
+ * FAQ (no jump to the top form). The list also supports delete, an active
+ * toggle, and up/down reordering (persisted via `reorderFaqs`).
  */
 export function FaqManager({ faqs }: { faqs: AdminFaq[] }) {
   const router = useRouter();
-  const [form, setForm] = useState<FormState>(BLANK);
+  const [addForm, setAddForm] = useState<FormState>(BLANK);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<FormState>(BLANK);
   const [busy, start] = useTransition();
 
-  const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm((f) => ({ ...f, [k]: v }));
-  const reset = () => { setForm(BLANK); setEditingId(null); };
+  const setAdd = <K extends keyof FormState>(k: K, v: FormState[K]) => setAddForm((f) => ({ ...f, [k]: v }));
+  const setEdit = <K extends keyof FormState>(k: K, v: FormState[K]) => setEditForm((f) => ({ ...f, [k]: v }));
 
   const startEdit = (f: AdminFaq) => {
     setEditingId(f.id);
-    setForm(fromFaq(f));
-    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+    setEditForm(fromFaq(f));
+  };
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditForm(BLANK);
   };
 
-  const submit = () => {
-    const input: FaqInput = { ...form };
+  const add = () => {
+    const input: FaqInput = { ...addForm };
     start(async () => {
-      const r = editingId ? await updateFaq(editingId, input) : await createFaq(input);
+      const r = await createFaq(input);
       if (r.ok) {
-        toast.success(editingId ? "FAQ updated." : "FAQ added.");
-        reset();
+        toast.success("FAQ added.");
+        setAddForm(BLANK);
+        router.refresh();
+      } else {
+        toast.error(r.error);
+      }
+    });
+  };
+
+  const saveEdit = () => {
+    if (!editingId) return;
+    const input: FaqInput = { ...editForm };
+    start(async () => {
+      const r = await updateFaq(editingId, input);
+      if (r.ok) {
+        toast.success("FAQ updated.");
+        cancelEdit();
         router.refresh();
       } else {
         toast.error(r.error);
@@ -76,7 +139,7 @@ export function FaqManager({ faqs }: { faqs: AdminFaq[] }) {
     if (!confirm(`Delete this FAQ?\n\n${f.question}`)) return;
     start(async () => {
       const r = await deleteFaq(f.id);
-      if (r.ok) { toast.success("FAQ deleted."); if (editingId === f.id) reset(); router.refresh(); }
+      if (r.ok) { toast.success("FAQ deleted."); if (editingId === f.id) cancelEdit(); router.refresh(); }
       else toast.error(r.error);
     });
   };
@@ -96,44 +159,12 @@ export function FaqManager({ faqs }: { faqs: AdminFaq[] }) {
   return (
     <div className="space-y-4">
       <Card className="border-cream-300">
-        <CardHeader><CardTitle>{editingId ? "Edit FAQ" : "Add FAQ"}</CardTitle></CardHeader>
+        <CardHeader><CardTitle>Add FAQ</CardTitle></CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className="block">
-              <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">Category</span>
-              <select value={form.category} onChange={(e) => set("category", e.target.value)} className={`${inputCls} mt-1`}>
-                {FAQ_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </label>
-            <label className="flex items-center gap-2.5 sm:mt-6">
-              <input type="checkbox" checked={form.active} onChange={(e) => set("active", e.target.checked)} className="size-4 accent-neem" />
-              <span className="text-sm font-medium text-ink">Active (visible on the site)</span>
-            </label>
-          </div>
-          <label className="block">
-            <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">Question</span>
-            <Input value={form.question} onChange={(e) => set("question", e.target.value)} placeholder="How do I place an order?" className="mt-1" />
-          </label>
-          <label className="block">
-            <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">Answer</span>
-            <textarea value={form.answer} onChange={(e) => set("answer", e.target.value)} rows={3} className={`${inputCls} mt-1`} />
-          </label>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className="block">
-              <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">Link label — optional</span>
-              <Input value={form.linkLabel} onChange={(e) => set("linkLabel", e.target.value)} placeholder="Shipping & Delivery" className="mt-1" />
-            </label>
-            <label className="block">
-              <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">Link URL — optional</span>
-              <Input value={form.linkHref} onChange={(e) => set("linkHref", e.target.value)} placeholder="/policy/shipping" className="mt-1" />
-            </label>
-          </div>
-          <div className="flex gap-2">
-            <Button onClick={submit} disabled={busy}>
-              <HelpCircle className="size-4" /> {busy ? "Saving…" : editingId ? "Save changes" : "Add FAQ"}
-            </Button>
-            {editingId && <Button variant="outline" onClick={reset} disabled={busy}><X className="size-4" /> Cancel</Button>}
-          </div>
+          <FaqFields value={addForm} set={setAdd} />
+          <Button onClick={add} disabled={busy}>
+            <HelpCircle className="size-4" /> {busy ? "Saving…" : "Add FAQ"}
+          </Button>
         </CardContent>
       </Card>
 
@@ -145,23 +176,39 @@ export function FaqManager({ faqs }: { faqs: AdminFaq[] }) {
           ) : (
             <ul className="space-y-2">
               {faqs.map((f, i) => (
-                <li key={f.id} className="flex items-start gap-3 rounded-xl border border-cream-300 p-3">
-                  <div className="flex flex-none flex-col">
-                    <button type="button" disabled={busy || i === 0} onClick={() => move(i, -1)} className="text-ink-soft hover:text-ink disabled:opacity-30" aria-label="Move up"><ChevronUp className="size-4" /></button>
-                    <button type="button" disabled={busy || i === faqs.length - 1} onClick={() => move(i, 1)} className="text-ink-soft hover:text-ink disabled:opacity-30" aria-label="Move down"><ChevronDown className="size-4" /></button>
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded-full bg-cream-200 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-soft">{f.category}</span>
-                      {!f.active && <span className="rounded-full border border-cream-300 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-muted">Hidden</span>}
-                      <span className="font-medium text-ink">{f.question}</span>
+                <li key={f.id} className="rounded-xl border border-cream-300 p-3">
+                  {editingId === f.id ? (
+                    <div className="space-y-4">
+                      <FaqFields value={editForm} set={setEdit} />
+                      <div className="flex gap-2">
+                        <Button onClick={saveEdit} disabled={busy}>
+                          <HelpCircle className="size-4" /> {busy ? "Saving…" : "Save changes"}
+                        </Button>
+                        <Button variant="outline" onClick={cancelEdit} disabled={busy}>
+                          <X className="size-4" /> Cancel
+                        </Button>
+                      </div>
                     </div>
-                    <p className="mt-1 line-clamp-2 text-sm text-ink-muted">{f.answer}</p>
-                  </div>
-                  <div className="flex flex-none items-center gap-1.5">
-                    <Button variant="outline" size="icon" aria-label="Edit FAQ" disabled={busy} onClick={() => startEdit(f)}><Pencil className="size-4" /></Button>
-                    <Button variant="outline" size="icon" aria-label="Delete FAQ" disabled={busy} className="border-danger/40 text-danger hover:bg-danger/10 hover:text-danger" onClick={() => remove(f)}><Trash2 className="size-4" /></Button>
-                  </div>
+                  ) : (
+                    <div className="flex items-start gap-3">
+                      <div className="flex flex-none flex-col">
+                        <button type="button" disabled={busy || i === 0} onClick={() => move(i, -1)} className="text-ink-soft hover:text-ink disabled:opacity-30" aria-label="Move up"><ChevronUp className="size-4" /></button>
+                        <button type="button" disabled={busy || i === faqs.length - 1} onClick={() => move(i, 1)} className="text-ink-soft hover:text-ink disabled:opacity-30" aria-label="Move down"><ChevronDown className="size-4" /></button>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="rounded-full bg-cream-200 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-soft">{f.category}</span>
+                          {!f.active && <span className="rounded-full border border-cream-300 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-muted">Hidden</span>}
+                          <span className="font-medium text-ink">{f.question}</span>
+                        </div>
+                        <p className="mt-1 line-clamp-2 text-sm text-ink-muted">{f.answer}</p>
+                      </div>
+                      <div className="flex flex-none items-center gap-1.5">
+                        <Button variant="outline" size="icon" aria-label="Edit FAQ" disabled={busy} onClick={() => startEdit(f)}><Pencil className="size-4" /></Button>
+                        <Button variant="outline" size="icon" aria-label="Delete FAQ" disabled={busy} className="border-danger/40 text-danger hover:bg-danger/10 hover:text-danger" onClick={() => remove(f)}><Trash2 className="size-4" /></Button>
+                      </div>
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>
