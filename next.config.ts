@@ -1,15 +1,16 @@
 import type { NextConfig } from "next";
 
 /**
- * Content-Security-Policy shipped in REPORT-ONLY mode first: it never blocks a
- * request, only logs violations to the browser console, so we can watch for
- * false positives before flipping to an enforcing `Content-Security-Policy`.
- * `'unsafe-inline'` is currently required by Next's inline hydration bootstrap,
- * the Preloader guard script, and the JSON-LD `<script>` blocks; tightening to
- * nonces is the eventual follow-up. Supabase is allowed for storage images
- * (img) and the auth/data client (connect, incl. realtime websockets).
+ * Content-Security-Policy — now ENFORCED (was report-only during the initial
+ * roll-out; no violations surfaced for the app's own resources, all of which
+ * are self-hosted or explicitly allow-listed below). `'unsafe-inline'` is still
+ * required by Next's inline hydration bootstrap, the Preloader guard script,
+ * and the JSON-LD `<script>` blocks; moving those to nonces (which would let us
+ * drop `'unsafe-inline'`) is the eventual follow-up. Supabase is allowed for
+ * storage images (img) and the auth/data client (connect, incl. realtime
+ * websockets); Cloudflare Turnstile for the signup/login bot check.
  */
-const CSP_REPORT_ONLY = [
+const CONTENT_SECURITY_POLICY = [
   "default-src 'self'",
   "base-uri 'self'",
   "object-src 'none'",
@@ -19,7 +20,9 @@ const CSP_REPORT_ONLY = [
   "style-src 'self' 'unsafe-inline'",
   "font-src 'self' data:",
   "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://challenges.cloudflare.com",
-  "frame-src 'self' https://challenges.cloudflare.com",
+  // youtube: product PDP embeds a product video (www.youtube.com/embed/…).
+  "frame-src 'self' https://challenges.cloudflare.com https://www.youtube.com https://www.youtube-nocookie.com",
+  "worker-src 'self' blob:",
   "form-action 'self'",
 ].join("; ");
 
@@ -36,7 +39,7 @@ const SECURITY_HEADERS = [
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "X-DNS-Prefetch-Control", value: "on" },
   { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), browsing-topics=()" },
-  { key: "Content-Security-Policy-Report-Only", value: CSP_REPORT_ONLY },
+  { key: "Content-Security-Policy", value: CONTENT_SECURITY_POLICY },
 ];
 
 const nextConfig: NextConfig = {

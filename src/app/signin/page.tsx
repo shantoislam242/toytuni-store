@@ -91,6 +91,12 @@ export default function SignInPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [password, setPassword] = useState("");
   const [revealPw, setRevealPw] = useState(false);
+  // Login brute-force guard: after a failed sign-in, require a Turnstile check
+  // on subsequent attempts (no friction on a correct first try). Only when
+  // Turnstile is configured.
+  const [loginNeedsCaptcha, setLoginNeedsCaptcha] = useState(false);
+  const [loginToken, setLoginToken] = useState<string | null>(null);
+  const [loginTurnstileKey, setLoginTurnstileKey] = useState(0);
   const [showSignUp, setShowSignUp] = useState(false);
   const [acceptedSignUpTerms, setAcceptedSignUpTerms] = useState(false);
 
@@ -119,6 +125,15 @@ export default function SignInPage() {
   const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
   const [confirmationEmail, setConfirmationEmail] = useState("");
 
+  // One-off notice when the admin session-timeout route sent the user here.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("reason") === "admin_timeout") {
+      toast.info("Admin session expired", {
+        description: "For security, admin sessions end periodically. Please sign in again.",
+      });
+    }
+  }, []);
+
   // Step 1 → open the password popup once an identifier is entered.
   const handleIdentifierSubmit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -133,6 +148,14 @@ export default function SignInPage() {
     setShowPassword(false);
     setPassword("");
     setRevealPw(false);
+    setLoginNeedsCaptcha(false);
+    setLoginToken(null);
+  };
+
+  /** Force a fresh Turnstile challenge on the login popup after a bad token. */
+  const resetLoginTurnstile = () => {
+    setLoginToken(null);
+    setLoginTurnstileKey((k) => k + 1);
   };
 
   const closeSignUpModal = () => {
@@ -318,10 +341,28 @@ export default function SignInPage() {
       toast.error("Please enter your password.");
       return;
     }
-    setLoading(true);
+    // Brute-force guard: once a prior attempt failed, a valid Turnstile token
+    // is required and verified server-side before we even hit Supabase.
+    if (loginNeedsCaptcha && turnstileEnabled) {
+      setLoading(true);
+      const { ok } = await verifyTurnstile(loginToken ?? "");
+      if (!ok) {
+        setLoading(false);
+        toast.error("Please complete the verification below.");
+        resetLoginTurnstile();
+        return;
+      }
+    } else {
+      setLoading(true);
+    }
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) {
+      // A failed attempt arms the Turnstile check for the next try.
+      if (turnstileEnabled) {
+        setLoginNeedsCaptcha(true);
+        resetLoginTurnstile();
+      }
       // Supabase blocks sign-in until the signup email is confirmed. Surface a
       // clear message + a one-tap "Resend" rather than the raw error text.
       const unconfirmed =
@@ -585,9 +626,19 @@ export default function SignInPage() {
                   </button>
                 </div>
 
+                {loginNeedsCaptcha && turnstileEnabled ? (
+                  <div className="mt-4 flex justify-center">
+                    <TurnstileWidget
+                      key={loginTurnstileKey}
+                      onToken={(t) => setLoginToken(t)}
+                      onExpire={() => setLoginToken(null)}
+                    />
+                  </div>
+                ) : null}
+
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || (loginNeedsCaptcha && turnstileEnabled && !loginToken)}
                   className="mt-4 flex h-12 w-full items-center justify-center rounded-lg bg-neem text-base font-semibold text-paper transition hover:bg-neem-deep disabled:opacity-60"
                 >
                   {loading ? "Signing in…" : "Sign in"}

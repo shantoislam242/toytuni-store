@@ -3,6 +3,7 @@ import { cache } from "react";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import { resolveAdminRole, type AdminRole } from "@/lib/auth/resolve-role";
+import { isAdminSessionExpired } from "@/lib/auth/admin-session";
 
 export type { AdminRole };
 
@@ -23,6 +24,10 @@ export const getAdminRole = cache(async (): Promise<AdminRole | null> => {
   const { data: { user } } = await supabase.auth.getUser();
   const email = user?.email?.trim().toLowerCase();
   if (!email) return null;
+  // Admin absolute-session cap: an over-age session is treated as non-admin
+  // (server actions + route handlers rely on this; the admin layout turns it
+  // into a re-login). Applies to env- and DB-managed admins alike.
+  if (isAdminSessionExpired(user?.last_sign_in_at)) return null;
   const env = adminEnvEmails();
   if (env.includes(email)) return "super_admin";
   try {

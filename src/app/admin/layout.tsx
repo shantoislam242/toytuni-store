@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth/session";
 import { getAdminRole } from "@/lib/auth/roles";
+import { isAdminSessionExpired } from "@/lib/auth/admin-session";
 import { getInboxUnreadCount } from "@/lib/admin/queries";
 import { AdminShell } from "@/components/admin/admin-shell";
 
@@ -18,6 +19,13 @@ export default async function AdminLayout({
   children: React.ReactNode;
 }) {
   const user = await getSessionUser();
+  // Admin absolute-session cap: an over-age admin session is signed out and
+  // sent to re-login (consumer sessions are unaffected — this gate only runs
+  // under /admin). Checked before the role lookup so the redirect is a clean
+  // sign-out rather than a bare "not an admin" bounce.
+  if (user && isAdminSessionExpired(user.last_sign_in_at)) {
+    redirect("/auth/admin-timeout");
+  }
   const role = await getAdminRole();
   if (!user || !role) {
     redirect("/");
