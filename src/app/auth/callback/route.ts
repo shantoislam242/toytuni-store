@@ -12,10 +12,19 @@ import { createServerSupabase } from "@/lib/supabase/server";
 // `Set-Cookie` headers without needing the request/response cookie bridge
 // that `src/proxy.ts` uses (that bridge is only required in Proxy/Middleware,
 // which has no direct `cookies().set()` support).
+/** Same-origin path guard (mirrors signin's `getNextParam`): only an internal
+ *  path is allowed, so a crafted `?next=@evil.com` / `//evil.com` can't turn
+ *  `${origin}${next}` into an off-site (open) redirect. */
+function safeNext(raw: string | null): string {
+  return raw && raw.startsWith("/") && !raw.startsWith("//") && !raw.includes("\\")
+    ? raw
+    : "/account";
+}
+
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/account";
+  const next = safeNext(searchParams.get("next"));
 
   if (code) {
     const supabase = await createServerSupabase();
