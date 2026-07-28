@@ -51,7 +51,7 @@ function Section({ children, delay = 0 }: { children: React.ReactNode; delay?: n
  * delivery summary and the guest form. Order submission is wired
  * (`createOrder`); payment remains UI-only.
  */
-export function CheckoutView({ codFee }: { codFee: number }) {
+export function CheckoutView({ codFee, onlineEnabled }: { codFee: number; onlineEnabled: boolean }) {
   const { items, subtotal, hydrated, clear } = useCart();
   // Delivery address chosen in the cart's address modal (drives the summary +
   // the delivery zone label). The actual delivery charge is driven by the
@@ -226,13 +226,19 @@ export function CheckoutView({ codFee }: { codFee: number }) {
         deliveryFee: effectiveDelivery,
         shippingMethodId: effectiveShippingId,
         couponCode: appliedCoupon && !couponBelowMin ? appliedCoupon.code : undefined,
+        paymentMethod: payment === "online" ? "online" : "cod",
       });
 
       if (result.ok) {
         clear();
         setAppliedCoupon(null);
-        toast.success(`Order placed! Your order number is ${result.orderNumber}.`);
-        router.push("/");
+        // Online: the order is placed as pending — hand off to the gateway.
+        if (result.gatewayUrl) {
+          window.location.href = result.gatewayUrl;
+          return; // navigating away; keep the button in its placing state
+        }
+        // COD: straight to the confirmation page.
+        router.push(`/checkout/complete?order=${encodeURIComponent(result.orderNumber)}&status=cod`);
       } else {
         toast.error(result.error);
       }
@@ -298,7 +304,7 @@ export function CheckoutView({ codFee }: { codFee: number }) {
           </Section>
 
           <Section delay={0.15}>
-            <PaymentMethods value={payment} onChange={setPayment} />
+            <PaymentMethods value={payment} onChange={setPayment} onlineEnabled={onlineEnabled} />
           </Section>
         </div>
 

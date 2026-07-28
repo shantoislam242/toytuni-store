@@ -67,7 +67,5 @@ export type PaymentOption = {
 
 export const paymentOptions: PaymentOption[] = [
   { id: "cod", label: "Cash on Delivery", desc: "Pay when it arrives", icon: "banknote" },
-  { id: "bkash", label: "bKash", desc: "Mobile wallet", icon: "bkash" },
-  { id: "nagad", label: "Nagad", desc: "Mobile wallet", icon: "nagad" },
-  { id: "card", label: "Card Payment", desc: "Visa · Mastercard", icon: "card" },
+  { id: "online", label: "Online Payment", desc: "bKash · Nagad · Card", icon: "card" },
 ];
