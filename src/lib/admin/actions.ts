@@ -834,6 +834,16 @@ export async function createProduct(
   if (dupErr) return { ok: false, error: dupErr.message };
   if (existing) return { ok: false, error: `A product with slug "${slug}" already exists.` };
 
+  // SKU must be unique too (backed by a DB unique index) — check up front for a
+  // clean message instead of a raw Postgres conflict.
+  const { data: skuDup, error: skuDupErr } = await db
+    .from("products")
+    .select("id")
+    .eq("sku", sku)
+    .maybeSingle();
+  if (skuDupErr) return { ok: false, error: skuDupErr.message };
+  if (skuDup) return { ok: false, error: `SKU "${sku}" is already in use.` };
+
   const insertRow: ProductsInsertExt = {
     slug,
     sku,
