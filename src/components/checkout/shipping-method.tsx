@@ -24,6 +24,7 @@ export function ShippingMethod({
   district?: string | null;
 }) {
   const freeShippingThreshold = shipping.freeShippingThreshold;
+  const freeUnlocked = subtotal >= freeShippingThreshold;
   const zone = district ? zoneForDistrict(district, shipping.insideDistricts) : null;
   const expressAvailable = zone?.id === "inside_dhaka";
 
@@ -37,17 +38,23 @@ export function ShippingMethod({
       <div className="mt-4 grid gap-3">
         {shippingOptions.map((option) => {
           const selected = value === option.id;
-          const freeLocked = option.id === "free" && subtotal < freeShippingThreshold;
-          const expressLocked = option.id === "express" && !expressAvailable;
-          const locked = freeLocked || expressLocked;
+          const isFree = option.id === "free";
+          const freeLocked = isFree && !freeUnlocked;
+          const expressGeoLocked = option.id === "express" && !expressAvailable;
+          // Once the order qualifies for free shipping, the paid options
+          // (Standard / Express) are disabled — the customer gets it free.
+          const supersededByFree = freeUnlocked && !isFree;
+          const locked = freeLocked || expressGeoLocked || supersededByFree;
           const remaining = freeShippingThreshold - subtotal;
           const price =
             option.id === "standard" && district ? shippingFeeFor(district, shipping) : option.price;
           const description = freeLocked
             ? `Add ${formatTk(remaining)} more to unlock`
-            : expressLocked
-              ? "Available inside Dhaka only"
-              : `${option.desc} - ${option.eta}`;
+            : supersededByFree
+              ? "Free shipping unlocked for this order"
+              : expressGeoLocked
+                ? "Available inside Dhaka only"
+                : `${option.desc} - ${option.eta}`;
 
           return (
             <button
