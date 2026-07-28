@@ -35,7 +35,8 @@ async function loadMember(): Promise<LoyaltyMemberView> {
     getCustomerDashboard(user.email),
     getSettings(),
   ]);
-  const spent = dashboard.totalSpent;
+  // Rewards accrue only on PAID orders — placing an order alone earns nothing.
+  const spent = dashboard.rewardableSpent;
   const tier = customerTier(spent, settings.customerTiers);
   const points = pointsFromSpend(spent);
   const { silver, gold } = settings.customerTiers;
@@ -69,7 +70,11 @@ async function loadMember(): Promise<LoyaltyMemberView> {
       id: o.orderNumber,
       label: `Order ${o.orderNumber}`,
       date: formatDate(o.createdAt),
-      points: `+${pointsFromSpend(o.total).toLocaleString("en-US")}`,
+      // Points show as earned only once the order is paid; otherwise "Pending".
+      points:
+        o.paymentStatus === "paid"
+          ? `+${pointsFromSpend(o.total).toLocaleString("en-US")}`
+          : "Pending",
     })),
   };
 }

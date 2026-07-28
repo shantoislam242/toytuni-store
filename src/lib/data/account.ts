@@ -93,8 +93,12 @@ export type CustomerDashboard = {
   totalOrders: number;
   /** Orders awaiting fulfilment (pending or confirmed). */
   pendingOrders: number;
-  /** Lifetime spend across non-cancelled orders (drives tier + points). */
+  /** Lifetime order value across non-cancelled orders (the "Total spent" stat). */
   totalSpent: number;
+  /** Spend on orders whose payment SUCCEEDED (`payment_status = 'paid'`) — this
+   *  is what drives loyalty tier + points, so rewards are only earned once
+   *  payment actually clears (not merely on placing an order). */
+  rewardableSpent: number;
   /** The 3 most recent orders (newest first). */
   recentOrders: AccountOrder[];
 };
@@ -102,19 +106,23 @@ export type CustomerDashboard = {
 /**
  * Dashboard stats for the signed-in customer, derived from their order history
  * (`getOrdersForEmail` — service-role, session-email-scoped, SERVER-ONLY).
- * Cancelled orders are excluded from spend; tier + points are computed by the
- * caller from `totalSpent`.
+ * `totalSpent` excludes cancelled/returned orders; `rewardableSpent` (tier +
+ * points) counts only PAID orders.
  */
 export async function getCustomerDashboard(email: string): Promise<CustomerDashboard> {
   const orders = await getOrdersForEmail(email);
   const totalSpent = orders
     .filter((o) => o.status !== "cancelled" && o.status !== "returned")
     .reduce((sum, o) => sum + o.total, 0);
+  const rewardableSpent = orders
+    .filter((o) => o.paymentStatus === "paid")
+    .reduce((sum, o) => sum + o.total, 0);
   const pendingOrders = orders.filter((o) => o.status === "pending" || o.status === "confirmed").length;
   return {
     totalOrders: orders.length,
     pendingOrders,
     totalSpent,
+    rewardableSpent,
     recentOrders: orders.slice(0, 3),
   };
 }

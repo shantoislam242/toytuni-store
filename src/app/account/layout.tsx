@@ -32,8 +32,8 @@ export default async function AccountLayout({ children }: { children: ReactNode 
     getUnreadNotificationCount(db, user.email),
     getUnreadThreadCount(db, user.email),
   ]);
-  const tier = customerTier(dashboard.totalSpent, settings.customerTiers);
-  const points = pointsFromSpend(dashboard.totalSpent);
+  const tier = customerTier(dashboard.rewardableSpent, settings.customerTiers);
+  const points = pointsFromSpend(dashboard.rewardableSpent);
 
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 lg:py-12">
