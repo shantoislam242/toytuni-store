@@ -33,8 +33,8 @@ export default async function Page() {
     getCustomerDashboard(user.email),
     getSettings(),
   ]);
-  const tier = customerTier(dashboard.totalSpent, settings.customerTiers);
-  const points = pointsFromSpend(dashboard.totalSpent);
+  const tier = customerTier(dashboard.rewardableSpent, settings.customerTiers);
+  const points = pointsFromSpend(dashboard.rewardableSpent);
   const meta = TIER_META[tier];
   const firstName = (user.user_metadata?.full_name ?? user.email).split(/[\s@]/)[0];
 

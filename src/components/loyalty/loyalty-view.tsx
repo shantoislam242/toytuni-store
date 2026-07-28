@@ -158,7 +158,13 @@ function MemberDashboard({ member }: { member: NonNullable<LoyaltyMemberView> })
                   <p className="font-medium text-ink">{a.label}</p>
                   <p className="text-xs text-ink-soft">{a.date}</p>
                 </div>
-                <span className="font-display font-bold text-neem-deep">{a.points}</span>
+                <span
+                  className={`font-display font-bold ${
+                    a.points === "Pending" ? "text-ink-soft" : "text-neem-deep"
+                  }`}
+                >
+                  {a.points}
+                </span>
               </li>
             ))}
           </ul>
@@ -206,21 +212,25 @@ export function LoyaltyView({
               {hero.title}
             </h1>
             <p className="mx-auto mt-4 max-w-xl text-ink-muted">{hero.subtitle}</p>
-            <div className="mt-8 flex flex-wrap justify-center gap-3">
-              <Link
-                href={hero.primaryHref}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-neem px-6 text-sm font-bold text-paper transition-all duration-300 hover:-translate-y-0.5 hover:bg-neem-deep"
-              >
-                {hero.primaryLabel}
-                <ArrowRight className="size-4" />
-              </Link>
-              <Link
-                href={hero.secondaryHref}
-                className="inline-flex h-11 items-center justify-center rounded-md border border-cream-300 bg-paper px-6 text-sm font-bold text-ink transition-colors hover:border-neem"
-              >
-                {hero.secondaryLabel}
-              </Link>
-            </div>
+            {/* Join / View CTAs are for signed-out visitors — members already
+                see their dashboard below, so hide them when signed in. */}
+            {member ? null : (
+              <div className="mt-8 flex flex-wrap justify-center gap-3">
+                <Link
+                  href={hero.primaryHref}
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-neem px-6 text-sm font-bold text-paper transition-all duration-300 hover:-translate-y-0.5 hover:bg-neem-deep"
+                >
+                  {hero.primaryLabel}
+                  <ArrowRight className="size-4" />
+                </Link>
+                <Link
+                  href={hero.secondaryHref}
+                  className="inline-flex h-11 items-center justify-center rounded-md border border-cream-300 bg-paper px-6 text-sm font-bold text-ink transition-colors hover:border-neem"
+                >
+                  {hero.secondaryLabel}
+                </Link>
+              </div>
+            )}
           </Reveal>
         </div>
       </section>
