@@ -901,6 +901,33 @@ export async function softDeleteProduct(slug: string): Promise<ActionResult> {
   return { ok: true };
 }
 
+/**
+ * Hard-delete a product. FK-safe: `order_items` references `products` with no
+ * cascade, so a product that appears in past orders can't be removed — the
+ * delete raises a foreign-key error (23503) and we ask the admin to deactivate
+ * it instead (preserving order history). Inventory / reviews / cart rows cascade
+ * away. Server Action — admin re-check + service-role.
+ */
+export async function deleteProduct(slug: string): Promise<ActionResult> {
+  if (!(await getIsAdmin())) throw new Error("unauthorized");
+
+  const db = createAdminSupabase();
+  const { error } = await db.from("products").delete().eq("slug", slug);
+  if (error) {
+    if (error.code === "23503") {
+      return {
+        ok: false,
+        error: "This product is in past orders and can't be deleted. Set it inactive instead.",
+      };
+    }
+    return { ok: false, error: error.message };
+  }
+
+  revalidateStorefront(slug);
+  await logAudit({ action: "product.delete", entity: "product", entityId: slug, summary: `Deleted product ${slug}` });
+  return { ok: true };
+}
+
 /** Validate + persist store settings to the single `site_settings.general` row.
  *  Server Action — super-admin re-check + service-role (Settings is gated to
  *  super admins only). Money fields are non-negative integers; strings are
