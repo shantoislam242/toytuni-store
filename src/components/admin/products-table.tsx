@@ -1,12 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
-import { Plus, Search } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Loader2, Plus, Search } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ProductImage } from "@/components/product/product-image";
 import { ProductFrame } from "@/components/product/product-frame";
+import { deleteProduct } from "@/lib/admin/actions";
 import { formatTk } from "@/lib/format";
 import type { AdminProductListItem } from "@/lib/admin/queries";
 import { cn } from "@/lib/utils";
@@ -32,6 +35,29 @@ function ActiveBadge({ active }: { active: boolean }) {
  */
 export function ProductsTable({ products }: { products: AdminProductListItem[] }) {
   const [query, setQuery] = useState("");
+  const router = useRouter();
+  const [deletingSlug, setDeletingSlug] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  const onDelete = (product: AdminProductListItem) => {
+    if (
+      !confirm(
+        `Delete "${product.title}"? This can't be undone.\n\n(A product that appears in past orders can't be deleted — deactivate it instead.)`,
+      )
+    )
+      return;
+    setDeletingSlug(product.slug);
+    startTransition(async () => {
+      const r = await deleteProduct(product.slug);
+      setDeletingSlug(null);
+      if (r.ok) {
+        toast.success("Product deleted.");
+        router.refresh();
+      } else {
+        toast.error(r.error);
+      }
+    });
+  };
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -124,12 +150,25 @@ export function ProductsTable({ products }: { products: AdminProductListItem[] }
                     <ActiveBadge active={product.active} />
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <Link
-                      href={`/admin/products/${product.slug}`}
-                      className="text-xs font-medium text-neem-deep hover:underline"
-                    >
-                      Edit
-                    </Link>
+                    <div className="flex items-center justify-end gap-3">
+                      <Link
+                        href={`/admin/products/${product.slug}`}
+                        className="text-xs font-medium text-neem-deep hover:underline"
+                      >
+                        Edit
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => onDelete(product)}
+                        disabled={pending}
+                        className="inline-flex items-center gap-1 text-xs font-medium text-danger hover:underline disabled:opacity-50"
+                      >
+                        {pending && deletingSlug === product.slug ? (
+                          <Loader2 className="size-3 animate-spin" />
+                        ) : null}
+                        Delete
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))
