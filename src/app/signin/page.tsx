@@ -332,6 +332,22 @@ export default function SignInPage() {
     return () => window.removeEventListener("keydown", onKey);
   }, [showPassword, showSignUp, showVerify]);
 
+  // Google OAuth is a full-page redirect. If the user cancels and hits Back,
+  // the browser restores this page from the back-forward cache with the frozen
+  // `googleLoading = true`, leaving the button stuck spinning + unclickable.
+  // Reset the loading flags whenever the page is shown from the bfcache.
+  useEffect(() => {
+    const onPageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) {
+        setGoogleLoading(false);
+        setLoading(false);
+        setResetting(false);
+      }
+    };
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
+  }, []);
+
   return (
     // Bare route: the mobile bottom bar isn't rendered here, but <body> still
     // reserves 3.5rem for it. Subtract that (and dvh, so a phone's URL bar can't
