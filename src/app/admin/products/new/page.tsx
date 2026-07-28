@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { getCategories, getAgeTiers } from "@/lib/data/taxonomy";
+import { getNextProductSku } from "@/lib/admin/queries";
 import { ProductCreateForm } from "@/components/admin/product-create-form";
 
 export function generateMetadata(): Metadata {
@@ -18,7 +19,11 @@ export function generateMetadata(): Metadata {
  * server-side). A brand-new DB-only product then renders on the storefront.
  */
 export default async function Page() {
-  const [categories, ageTiers] = await Promise.all([getCategories(), getAgeTiers()]);
+  const [categories, ageTiers, nextSku] = await Promise.all([
+    getCategories(),
+    getAgeTiers(),
+    getNextProductSku(),
+  ]);
 
   return (
     <div>
@@ -44,6 +49,7 @@ export default async function Page() {
         <ProductCreateForm
           categories={categories.map((c) => ({ slug: c.slug, label: c.nameBn }))}
           ageTiers={ageTiers.map((a) => ({ slug: a.slug, label: a.labelBn }))}
+          defaultSku={nextSku}
         />
       </div>
     </div>

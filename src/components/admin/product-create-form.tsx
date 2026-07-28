@@ -51,9 +51,12 @@ function slugify(value: string): string {
 export function ProductCreateForm({
   categories,
   ageTiers,
+  defaultSku,
 }: {
   categories: TaxonomyOption[];
   ageTiers: TaxonomyOption[];
+  /** Auto-suggested unique SKU (server-computed); pre-fills the field, still editable. */
+  defaultSku: string;
 }) {
   const router = useRouter();
   const [isSaving, startSaving] = useTransition();
@@ -61,7 +64,7 @@ export function ProductCreateForm({
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
   const [slugEdited, setSlugEdited] = useState(false);
-  const [sku, setSku] = useState("");
+  const [sku, setSku] = useState(defaultSku);
   const [price, setPrice] = useState("");
   const [compareAt, setCompareAt] = useState("");
   const [category, setCategory] = useState<string>("");

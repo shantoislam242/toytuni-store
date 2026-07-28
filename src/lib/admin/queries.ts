@@ -274,6 +274,26 @@ export async function getAdminProducts(): Promise<AdminProductListItem[]> {
   });
 }
 
+/**
+ * Next auto-suggested product SKU — `NWR-####` where #### is the highest
+ * existing `NWR-<number>` SKU + 1 (4-digit padded). Differently-prefixed SKUs
+ * (gift cards `NWR-GC-…`, kits `NWR-G0…`, etc.) are ignored, so the counter
+ * only tracks plain sequential SKUs. Used to pre-fill the new-product form with
+ * a unique value; the DB unique index is the hard guarantee.
+ */
+export async function getNextProductSku(): Promise<string> {
+  const db = createAdminSupabase();
+  const { data } = await db
+    .from("products")
+    .select("sku")
+    .overrideTypes<{ sku: string }[], { merge: false }>();
+  const max = (data ?? []).reduce((m, r) => {
+    const match = /^NWR-(\d+)$/.exec(r.sku ?? "");
+    return match ? Math.max(m, Number(match[1])) : m;
+  }, 0);
+  return `NWR-${String(max + 1).padStart(4, "0")}`;
+}
+
 /** One product (active or not) by slug, with inventory + variants. */
 export async function getAdminProductBySlug(slug: string): Promise<AdminProductDetail | null> {
   const db = createAdminSupabase();
