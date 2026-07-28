@@ -37,7 +37,12 @@ export default function ResetPasswordPage() {
       return;
     }
     setSaving(true);
-    const { error } = await supabase.auth.updateUser({ password });
+    const { error } = await supabase.auth.updateUser({
+      password,
+      // Flag that the account now has a password (drives the "old password"
+      // field on /account/security).
+      data: { ...(user?.user_metadata ?? {}), has_password: true },
+    });
     setSaving(false);
     if (error) {
       toast.error(error.message);
