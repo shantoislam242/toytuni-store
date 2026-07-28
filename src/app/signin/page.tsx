@@ -20,6 +20,8 @@ import { toast } from "sonner";
 import { BRAND_NAME } from "@/lib/config";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 import { isValidBdMobile } from "@/lib/auth/bd-phone";
+import { TurnstileWidget, turnstileEnabled } from "@/components/auth/turnstile-widget";
+import { verifyTurnstile } from "@/lib/auth/turnstile-actions";
 
 /**
  * Where to send the user after a successful sign-in — the `?next=` search
@@ -100,10 +102,16 @@ export default function SignInPage() {
   const [signUpConfirmPassword, setSignUpConfirmPassword] = useState("");
   const [signUpLoading, setSignUpLoading] = useState(false);
 
-  // Human-verification (CAPTCHA) step — UI only, shown after "Create account".
+  // Human-verification step, shown after "Create account". Uses a real
+  // Cloudflare Turnstile widget when configured; the legacy placeholder below
+  // is only reached when Turnstile is disabled (no site key).
   const [showVerify, setShowVerify] = useState(false);
   const [captchaChecked, setCaptchaChecked] = useState(false);
   const [captchaVerifying, setCaptchaVerifying] = useState(false);
+  // Turnstile token from the widget; `turnstileKey` bumps to force a fresh
+  // challenge after a failed/expired attempt.
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileKey, setTurnstileKey] = useState(0);
 
   // Post sign-up: Supabase requires email confirmation before the account can
   // sign in, so swap the main card for a "check your email" state instead of
@@ -136,6 +144,14 @@ export default function SignInPage() {
     setShowVerify(false);
     setCaptchaChecked(false);
     setCaptchaVerifying(false);
+    setTurnstileToken(null);
+  };
+
+  /** Bump the widget key so Turnstile issues a fresh, unused token. */
+  const resetTurnstile = () => {
+    setTurnstileToken(null);
+    setCaptchaChecked(false);
+    setTurnstileKey((k) => k + 1);
   };
 
   // Sign-up submit → validate the (now-wired) fields, then open the
@@ -186,6 +202,18 @@ export default function SignInPage() {
   const handleVerify = async () => {
     if (!captchaChecked || signUpLoading) return;
     setSignUpLoading(true);
+    // Real bot check: validate the Turnstile token server-side before creating
+    // the account. Disabled (env-unset) → verifyTurnstile returns ok, so the
+    // legacy no-key path is unaffected.
+    if (turnstileEnabled) {
+      const { ok } = await verifyTurnstile(turnstileToken ?? "");
+      if (!ok) {
+        setSignUpLoading(false);
+        toast.error("Verification failed. Please try the check again.");
+        resetTurnstile();
+        return;
+      }
+    }
     const { error } = await supabase.auth.signUp({
       email: signUpEmail.trim(),
       password: signUpPassword,
@@ -817,35 +845,53 @@ export default function SignInPage() {
                 create your account.
               </p>
 
-              {/* Google reCAPTCHA-style placeholder (non-functional) */}
-              <div className="mt-5 flex justify-center">
-                <div className="flex w-full max-w-[304px] items-center gap-3 rounded-[3px] border border-[#d3d3d3] bg-[#f9f9f9] px-3 py-3 shadow-sm">
-                  <button
-                    type="button"
-                    role="checkbox"
-                    aria-checked={captchaChecked}
-                    aria-label="I'm not a robot"
-                    onClick={runCaptcha}
-                    className="flex size-7 flex-none items-center justify-center rounded-[2px] border-2 border-[#c1c1c1] bg-white"
-                  >
-                    {captchaVerifying ? (
-                      <Loader2 className="size-5 animate-spin text-[#4285F4]" />
-                    ) : captchaChecked ? (
-                      <Check className="size-6 text-[#1e9e50]" strokeWidth={3} />
-                    ) : null}
-                  </button>
-                  <span className="text-[15px] leading-none text-[#3c4043]">
-                    I&apos;m not a robot
-                  </span>
-                  <div className="ml-auto flex flex-col items-center gap-0.5 text-[#9aa0a6]">
-                    <RefreshCw className="size-7 text-[#1c3aa9]" strokeWidth={2.2} />
-                    <span className="text-[10px] font-medium leading-none text-[#5f6368]">
-                      reCAPTCHA
+              {/* Real Cloudflare Turnstile when configured; the legacy
+                  reCAPTCHA-style placeholder only shows if Turnstile is
+                  disabled (no site key). */}
+              {turnstileEnabled ? (
+                <div className="mt-5 flex justify-center">
+                  <TurnstileWidget
+                    key={turnstileKey}
+                    onToken={(t) => {
+                      setTurnstileToken(t);
+                      setCaptchaChecked(true);
+                    }}
+                    onExpire={() => {
+                      setTurnstileToken(null);
+                      setCaptchaChecked(false);
+                    }}
+                  />
+                </div>
+              ) : (
+                <div className="mt-5 flex justify-center">
+                  <div className="flex w-full max-w-[304px] items-center gap-3 rounded-[3px] border border-[#d3d3d3] bg-[#f9f9f9] px-3 py-3 shadow-sm">
+                    <button
+                      type="button"
+                      role="checkbox"
+                      aria-checked={captchaChecked}
+                      aria-label="I'm not a robot"
+                      onClick={runCaptcha}
+                      className="flex size-7 flex-none items-center justify-center rounded-[2px] border-2 border-[#c1c1c1] bg-white"
+                    >
+                      {captchaVerifying ? (
+                        <Loader2 className="size-5 animate-spin text-[#4285F4]" />
+                      ) : captchaChecked ? (
+                        <Check className="size-6 text-[#1e9e50]" strokeWidth={3} />
+                      ) : null}
+                    </button>
+                    <span className="text-[15px] leading-none text-[#3c4043]">
+                      I&apos;m not a robot
                     </span>
-                    <span className="text-[8px] leading-none">Privacy · Terms</span>
+                    <div className="ml-auto flex flex-col items-center gap-0.5 text-[#9aa0a6]">
+                      <RefreshCw className="size-7 text-[#1c3aa9]" strokeWidth={2.2} />
+                      <span className="text-[10px] font-medium leading-none text-[#5f6368]">
+                        reCAPTCHA
+                      </span>
+                      <span className="text-[8px] leading-none">Privacy · Terms</span>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               <div className="mt-6 flex gap-3">
                 <button
