@@ -1,4 +1,5 @@
 "use server";
+import { headers } from "next/headers";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import { getProductState } from "@/lib/data/product-state";
 import { computeOrderTotals } from "@/lib/data/order-totals";
@@ -11,7 +12,19 @@ import { priceDelivery } from "@/lib/shipping";
 import { sendOrderEmail } from "@/lib/email/send-order-email";
 import { buildInvoiceData } from "@/lib/invoice/build-invoice-data";
 import { generateInvoicePdf } from "@/lib/invoice/generate-invoice-pdf";
-import { BRAND_NAME } from "@/lib/config";
+import { initiatePayment, isOnlinePaymentEnabled } from "@/lib/payments/sslcommerz";
+import { voidOnlineOrder } from "@/lib/payments/settle";
+import { BRAND_NAME, SITE_URL } from "@/lib/config";
+
+/** Same-origin the payment gateway should redirect back to. Derived from the
+ *  incoming request so local dev (localhost) and production (custom domain)
+ *  both work without config; falls back to the canonical SITE_URL. */
+async function resolveOrigin(): Promise<string> {
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host");
+  const proto = h.get("x-forwarded-proto") ?? "https";
+  return host ? `${proto}://${host}` : SITE_URL;
+}
 
 export type CreateOrderInput = {
   customer: { name: string; phone: string; email?: string };
@@ -21,9 +34,12 @@ export type CreateOrderInput = {
   deliveryFee: number;
   shippingMethodId: string;
   couponCode?: string;
+  /** "cod" (default) or "online" (SSLCommerz). Online skips the COD fee and
+   *  returns a `gatewayUrl` for the client to redirect to. */
+  paymentMethod?: "cod" | "online";
 };
 export type CreateOrderResult =
-  | { ok: true; orderNumber: string; total: number }
+  | { ok: true; orderNumber: string; total: number; gatewayUrl?: string }
   | { ok: false; error: string };
 
 /** Row shape for the products select below, supplied via `.overrideTypes()`
@@ -50,7 +66,12 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
   // COD fee) server-side from admin settings + the order's district. The
   // client-supplied `input.deliveryFee` is display-only and ignored here.
   const settings = await getSettings();
-  const codFee = settings.codFee; // all orders are COD today
+  const method: "cod" | "online" = input.paymentMethod === "online" ? "online" : "cod";
+  if (method === "online" && !isOnlinePaymentEnabled()) {
+    return { ok: false, error: "Online payment is not available right now. Please use Cash on Delivery." };
+  }
+  // Online orders are pre-paid through the gateway — no cash-handling fee.
+  const codFee = method === "online" ? 0 : settings.codFee;
 
   // Re-read price + stock server-side — never trust the client.
   const slugs = input.lines.map((l) => l.slug);
@@ -161,6 +182,7 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
     subtotal, delivery_fee: deliveryFee, total, notes: input.notes ?? null,
     advance_total: advanceTotal,
     discount_total: discountTotal, coupon_code: couponCode,
+    payment_method: method,
   };
   const p_items = items.map((i) => ({
     product_id: i.product_id, title: i.title, unit_price: i.unit_price, qty: i.qty,
@@ -180,6 +202,27 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
       return { ok: false, error: "This coupon is no longer available. Please remove it and try again." };
     }
     return { ok: false, error: "Could not place order." };
+  }
+
+  // Online: the pending order now holds its stock — hand off to SSLCommerz.
+  // The confirmation email is sent later, on verified payment (see
+  // `settleOnlineOrder`), not here. If the gateway session can't be opened we
+  // void the order (restoring stock) so an un-payable order isn't left behind.
+  if (method === "online") {
+    const numItems = items.reduce((sum, i) => sum + i.qty, 0);
+    const init = await initiatePayment({
+      orderNumber,
+      amount: total,
+      customer: { name: input.customer.name, phone: input.customer.phone, email: input.customer.email ?? null },
+      address: { addressLine: input.address.addressLine, district: input.address.district },
+      baseUrl: await resolveOrigin(),
+      numItems,
+    });
+    if (!init.ok) {
+      await voidOnlineOrder(orderNumber, "Payment initiation failed");
+      return { ok: false, error: init.error };
+    }
+    return { ok: true, orderNumber: orderNumberResult as string, total, gatewayUrl: init.gatewayUrl };
   }
 
   // Fail-soft placed-confirmation email (with invoice PDF attached). Wrapped
