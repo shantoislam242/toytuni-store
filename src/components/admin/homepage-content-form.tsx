@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { updateHomepageContent, uploadContentImage } from "@/lib/admin/content-actions";
-import { DEFAULT_CONTENT, type SiteContent } from "@/lib/data/content-shape";
+import { DEFAULT_CONTENT, HERO_DEFAULT_SLIDES, type SiteContent } from "@/lib/data/content-shape";
 
 const inputCls =
   "w-full rounded-lg border border-cream-300 bg-paper px-3 py-2 text-sm text-ink outline-none transition-colors placeholder:text-ink-soft focus-visible:border-neem focus-visible:ring-2 focus-visible:ring-neem/25";
@@ -91,8 +91,9 @@ function HeroSlidesField({
         ) : null}
       </div>
       <p className="mt-2 text-xs text-ink-soft">
-        Uploaded images become the hero slider. Leave empty to use the built-in default images.
-        Wide landscape images (about 2.3 : 1) work best.
+        Each image is one slide (1 = static, 2–4 = auto-rotating slider). The two built-in
+        slides are pre-loaded — remove any with the ✕, or add your own (up to 4). Remove all
+        to fall back to the built-in defaults. Wide landscape images (about 2.3 : 1) work best.
       </p>
       <input ref={fileRef} type="file" accept="image/*" onChange={add} className="hidden" />
     </div>
@@ -114,10 +115,16 @@ export function HomepageContentForm({
   const router = useRouter();
   // Defensive: fill any section a stale cached blob might be missing so the
   // form never reads `undefined.slug` etc.
-  const [content, setContent] = useState<SiteContent>({
-    hero: { ...DEFAULT_CONTENT.hero, ...(initial.hero ?? {}) },
-    about: initial.about ?? DEFAULT_CONTENT.about,
-    featured: initial.featured ?? DEFAULT_CONTENT.featured,
+  const [content, setContent] = useState<SiteContent>(() => {
+    const hero = { ...DEFAULT_CONTENT.hero, ...(initial.hero ?? {}) };
+    // Seed the built-in default slides when nothing custom is set, so the admin
+    // can SEE the current hero images and remove/replace them.
+    if (hero.images.length === 0) hero.images = HERO_DEFAULT_SLIDES.map((s) => s.desktop);
+    return {
+      hero,
+      about: initial.about ?? DEFAULT_CONTENT.about,
+      featured: initial.featured ?? DEFAULT_CONTENT.featured,
+    };
   });
   const [saving, setSaving] = useState(false);
 

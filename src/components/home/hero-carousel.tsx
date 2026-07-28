@@ -6,10 +6,8 @@ import Image from "next/image";
 import { motion, useAnimationControls } from "motion/react";
 import { ArrowRight, Heart } from "lucide-react";
 import {
-  DEFAULT_HERO_DESKTOP,
-  DEFAULT_HERO_MOBILE,
+  HERO_DEFAULT_SLIDES,
   HERO_SLIDE_2_DESKTOP,
-  HERO_SLIDE_2_MOBILE,
   type HeroContent,
 } from "@/lib/data/content-shape";
 import { cn } from "@/lib/utils";
@@ -56,22 +54,23 @@ export function HeroCarousel({ hero }: { hero: HeroContent }) {
   // (object-cover fits it to the wide desktop box / 4:3 mobile box). With none
   // uploaded, fall back to the two bundled default slides. (`?? []` guards a
   // stale cached blob from before `images` existed.)
+  // A bundled default slide keeps its dedicated mobile crop; an uploaded image
+  // is used for both breakpoints (object-cover fits it).
+  const mobileFor = (desktop: string) =>
+    HERO_DEFAULT_SLIDES.find((s) => s.desktop === desktop)?.mobile ?? desktop;
   const uploaded = hero.images ?? [];
   const slides =
     uploaded.length > 0
-      ? uploaded.map((url) => ({ desktop: url, mobile: url, alt: HERO_ALT }))
-      : [
-          {
-            desktop: hero.imageDesktop ?? DEFAULT_HERO_DESKTOP,
-            mobile: hero.imageMobile ?? DEFAULT_HERO_MOBILE,
-            alt: HERO_ALT,
-          },
-          {
-            desktop: HERO_SLIDE_2_DESKTOP,
-            mobile: HERO_SLIDE_2_MOBILE,
-            alt: HERO_ALT_2,
-          },
-        ];
+      ? uploaded.map((url) => ({
+          desktop: url,
+          mobile: mobileFor(url),
+          alt: url === HERO_SLIDE_2_DESKTOP ? HERO_ALT_2 : HERO_ALT,
+        }))
+      : HERO_DEFAULT_SLIDES.map((s, i) => ({
+          desktop: s.desktop,
+          mobile: s.mobile,
+          alt: i === 0 ? HERO_ALT : HERO_ALT_2,
+        }));
   const [active, setActive] = useState(0);
   // Gates the Ken Burns zoom for reduced-motion users (resolved client-side).
   const [reduce, setReduce] = useState(false);

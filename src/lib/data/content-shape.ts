@@ -46,9 +46,17 @@ export type SiteContent = { hero: HeroContent; about: AboutTeaserContent; featur
 export const DEFAULT_HERO_DESKTOP = "/images/hero/hero-v2.webp";
 export const DEFAULT_HERO_MOBILE = "/images/hero/hero-mobile-43.webp";
 
-/** Second hero slide (auto-rotating slider). Bundled, not CMS-editable yet. */
+/** Second hero slide (auto-rotating slider). Bundled default. */
 export const HERO_SLIDE_2_DESKTOP = "/images/hero/hero-v3.webp";
 export const HERO_SLIDE_2_MOBILE = "/images/hero/hero-mobile-v3.webp";
+
+/** The built-in default hero slides (desktop + its matching mobile crop). Shown
+ *  when no images are set, and seeded into the admin editor so an admin can see,
+ *  remove, or replace them. */
+export const HERO_DEFAULT_SLIDES: { desktop: string; mobile: string }[] = [
+  { desktop: DEFAULT_HERO_DESKTOP, mobile: DEFAULT_HERO_MOBILE },
+  { desktop: HERO_SLIDE_2_DESKTOP, mobile: HERO_SLIDE_2_MOBILE },
+];
 
 export const DEFAULT_CONTENT: SiteContent = {
   hero: {
@@ -100,8 +108,12 @@ const imageUrl = (v: unknown): string | null =>
 /** Up to 4 http(s) hero-slide image URLs. When the array is empty, falls back
  *  to a legacy single desktop image (migration from the old imageDesktop). */
 const heroImages = (v: unknown, legacy: string | null): string[] => {
+  // Accept uploaded (https) URLs AND bundled local paths ("/images/…"), so the
+  // built-in default slides can be kept/removed like any other.
   const arr = Array.isArray(v)
-    ? v.filter((s): s is string => typeof s === "string" && s.startsWith("http")).slice(0, 4)
+    ? v
+        .filter((s): s is string => typeof s === "string" && (s.startsWith("http") || s.startsWith("/")))
+        .slice(0, 4)
     : [];
   return arr.length === 0 && legacy ? [legacy] : arr;
 };
