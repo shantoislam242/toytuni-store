@@ -1,4 +1,5 @@
 import "server-only";
+import { randomUUID } from "node:crypto";
 import type { createAdminSupabase } from "@/lib/supabase/admin";
 
 type AdminDb = ReturnType<typeof createAdminSupabase>;
@@ -73,7 +74,10 @@ export async function uploadImageToBucket(
     return { ok: false, error: "File is not a supported image (JPEG, PNG, WebP, GIF, or AVIF)." };
   }
   const ext = extFromType(realType)!; // realType is always one of the mapped types
-  const objectPath = `${prefix}/${Date.now()}-${Math.round(file.size)}.${ext}`;
+  // Unpredictable, collision-free object key: a random UUID (not a
+  // timestamp/size, which is guessable). The client never influences the name
+  // or path, so there's no traversal or overwrite of another object.
+  const objectPath = `${prefix}/${randomUUID()}.${ext}`;
   const { error: uploadErr } = await db.storage
     .from("product-images")
     .upload(objectPath, file, { contentType: realType, upsert: false });
