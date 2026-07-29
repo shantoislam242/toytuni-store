@@ -2,10 +2,19 @@
 type Cell = string | number | null | undefined;
 
 /** RFC-4180-escape one cell: wrap in quotes (doubling any inner quotes) when it
- *  contains a comma, quote, or newline; blank for null/undefined. */
+ *  contains a comma, quote, or newline; blank for null/undefined.
+ *
+ *  Also guards against CSV/formula injection: a STRING cell that begins with a
+ *  spreadsheet formula trigger (`= + - @`, or a leading tab/CR) is prefixed with
+ *  a single quote so Excel/Sheets treat it as literal text, not an executable
+ *  formula — customer-controlled fields (name, email, tags) flow into these
+ *  exports. Numbers are passed through untouched so legitimate negative values
+ *  (which start with `-`) are never corrupted. */
 function escapeCell(v: Cell): string {
   if (v == null) return "";
-  const s = String(v);
+  if (typeof v === "number") return String(v);
+  let s = String(v);
+  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
   return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
